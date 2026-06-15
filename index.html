@@ -1,78 +1,72 @@
 <!doctype html>
-<html lang="en">
+<html lang="zh-CN">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Aery Creative</title>
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link
-      href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@500;600;700&family=Kumbh+Sans:wght@400;500;600&display=swap"
-      rel="stylesheet"
-    />
+    <title>菻桐昕 Personal Portfolio</title>
     <link rel="stylesheet" href="./styles.css" />
   </head>
   <body>
     <header class="site-header" aria-label="Primary navigation">
-      <a class="brand" href="#" aria-label="Aery home">AERY</a>
+      <a class="brand brand-mark" href="#" aria-label="菻桐昕首页">
+        <span class="brand-dot" aria-hidden="true"></span>
+        <span>菻桐昕</span>
+      </a>
       <nav class="nav-links" aria-label="Main menu">
-        <a href="#">Home</a>
-        <a href="#">Pages</a>
-        <a href="#">Services</a>
-        <a href="#">Portfolio</a>
-        <a href="#">Blog</a>
-        <a href="#">Contact Us</a>
+        <a href="#">首页</a>
+        <a href="#">关于我</a>
+        <a href="#">品牌</a>
+        <a href="#">作品集</a>
+        <a href="#">联系</a>
       </nav>
-      <div class="header-actions" aria-label="Social links">
-        <a href="#" aria-label="Instagram"></a>
-        <a href="#" aria-label="Dribbble"></a>
-      </div>
     </header>
 
+    <div class="scroll-progress" aria-hidden="true"></div>
+
     <main>
-      <section class="hero">
-        <div class="hero-card hero-product">
-          <img src="https://www.figma.com/api/mcp/asset/7e3be7f2-43d2-430c-9d4f-f45e59d8e2dd" alt="" />
+      <section class="hero" data-reveal="hero">
+        <div class="hero-card hero-product" data-parallax>
+          <img src="https://www.figma.com/api/mcp/asset/00345acd-7717-4c81-9b4d-02a849163100" alt="" />
         </div>
         <p class="hero-note">Creative solutions for modern, elegant, and bold global brands</p>
-        <div class="hero-card hero-texture">
-          <img src="https://www.figma.com/api/mcp/asset/94bdcb0b-9028-4f6c-8754-de05a6faf18a" alt="" />
+        <div class="hero-card hero-texture" data-parallax>
+          <img src="https://www.figma.com/api/mcp/asset/42c7ec5a-52ae-423f-b1c1-188d88a85642" alt="" />
         </div>
-        <h1>Shaping the<br />Future Today</h1>
+        <h1>Personal<br />Portfolio</h1>
       </section>
 
-      <section class="about">
+      <section class="about" data-reveal>
         <div class="section-kicker">About our agency</div>
         <h2>We shape creative stories for lasting brands</h2>
         <div class="about-gallery">
-          <img src="https://www.figma.com/api/mcp/asset/7a1c8dfa-b9c5-4a3a-9951-db6f5f31c772" alt="Portrait of a creative professional" />
-          <img src="https://www.figma.com/api/mcp/asset/9ea5e512-1510-40ae-88fe-ce4264ed5ae9" alt="Abstract black circular design" />
-          <img src="https://www.figma.com/api/mcp/asset/679d6738-963d-4b25-8fb9-d631d080cf99" alt="Designer working on a tablet" />
+          <img class="lift-card" style="--delay: 0.05s" src="https://www.figma.com/api/mcp/asset/bc3cd462-c125-474c-a612-d78d729e65db" alt="Portrait of a creative professional" data-reveal />
+          <img class="lift-card" style="--delay: 0.12s" src="https://www.figma.com/api/mcp/asset/f3b03133-2630-401d-a6cc-535c80fc0027" alt="Abstract black circular design" data-reveal />
+          <img class="lift-card" style="--delay: 0.18s" src="https://www.figma.com/api/mcp/asset/b38fffac-9838-468d-9fac-90f895156e07" alt="Designer working on a tablet" data-reveal />
         </div>
       </section>
 
-      <section class="capabilities" aria-label="Capabilities">
-        <article>
+      <section class="capabilities" aria-label="Capabilities" data-reveal>
+        <article class="lift-card" style="--delay: 0.02s" data-reveal>
           <span class="icon-badge">*</span>
           <h3>Branding experts</h3>
           <p>We craft distinctive brands that communicate your values, inspire trust, and leave memorable impressions across every touchpoint and platform.</p>
         </article>
-        <article>
+        <article class="lift-card" style="--delay: 0.1s" data-reveal>
           <span class="icon-badge">&lt;&gt;</span>
           <h3>Digital creators</h3>
           <p>We design innovative digital experiences that engage audiences, enhance interaction, and turn ideas into visually stunning, functional realities.</p>
         </article>
-        <article>
+        <article class="lift-card" style="--delay: 0.18s" data-reveal>
           <span class="icon-badge">()</span>
           <h3>Visual storytellers</h3>
           <p>We tell compelling stories through visuals, blending design, narrative, and emotion to create unforgettable brand experiences that resonate.</p>
         </article>
       </section>
 
-      <section class="solutions">
-        <div class="solutions-heading">
+      <section class="solutions" data-reveal>
+        <div class="solutions-heading" data-reveal>
           <h2>Solutions</h2>
-          <img src="https://www.figma.com/api/mcp/asset/647d2bf7-f347-41ee-b7fc-6d4e2940f769" alt="" />
+          <img src="https://www.figma.com/api/mcp/asset/65a280fb-4f5a-48f9-966a-4ba16f2ac06d" alt="" />
         </div>
         <div class="accordion">
           <details>
@@ -96,31 +90,22 @@
         </div>
       </section>
 
-      <section class="showcase">
-        <div class="showcase-intro">
+      <section class="showcase" data-reveal>
+        <div class="showcase-intro" data-reveal>
           <h2>A brand &amp; entertainment studio led by design, inspired by dialogue</h2>
-          <p>Strategy, launches, packaging, digital products, art direction, and brand systems built with a refined point of view.</p>
-        </div>
-        <div class="client-row" aria-label="Selected clients">
-          <span>Prestige</span>
-          <span>Loops</span>
-          <span>Studio</span>
-          <span>Elegant</span>
-          <span>Archive</span>
-          <span>Nordic</span>
         </div>
         <div class="portfolio-grid">
-          <img class="tall" src="https://www.figma.com/api/mcp/asset/7d6620c1-e2b6-405f-98fb-5535ffec2ea5" alt="Minimal paper object held in hand" />
-          <img src="https://www.figma.com/api/mcp/asset/42990681-6901-4e62-af44-1d0876d0a10b" alt="Orange product photography" />
-          <img src="https://www.figma.com/api/mcp/asset/90834aca-4bbb-44b3-a9bd-e0e4878d980b" alt="Editorial lifestyle detail" />
-          <img src="https://www.figma.com/api/mcp/asset/cbcce895-be75-406c-9e40-b4d78c20dd4d" alt="Stacked white packaging" />
-          <img class="wide" src="https://www.figma.com/api/mcp/asset/be1842a7-38a4-40e5-916b-a8eb97b04636" alt="Black cylindrical product design" />
+          <img class="tall lift-card" style="--delay: 0.02s" src="https://www.figma.com/api/mcp/asset/7d6620c1-e2b6-405f-98fb-5535ffec2ea5" alt="Minimal paper object held in hand" data-reveal />
+          <img class="lift-card" style="--delay: 0.12s" src="https://www.figma.com/api/mcp/asset/42990681-6901-4e62-af44-1d0876d0a10b" alt="Orange product photography" data-reveal />
+          <img class="lift-card" style="--delay: 0.18s" src="https://www.figma.com/api/mcp/asset/90834aca-4bbb-44b3-a9bd-e0e4878d980b" alt="Editorial lifestyle detail" data-reveal />
+          <img class="lift-card" style="--delay: 0.24s" src="https://www.figma.com/api/mcp/asset/cbcce895-be75-406c-9e40-b4d78c20dd4d" alt="Stacked white packaging" data-reveal />
+          <img class="wide lift-card" style="--delay: 0.08s" src="https://www.figma.com/api/mcp/asset/be1842a7-38a4-40e5-916b-a8eb97b04636" alt="Black cylindrical product design" data-reveal />
         </div>
       </section>
 
-      <section class="faq-news">
-        <div class="faq">
-          <div class="section-kicker">FAQ</div>
+      <section class="faq-news" data-reveal>
+        <div class="faq" data-reveal>
+          <div class="section-kicker">Conversation</div>
           <h2>Frequently asked questions</h2>
           <details open>
             <summary>How fast can a brand start?</summary>
@@ -133,45 +118,45 @@
             <summary>What services are included?</summary>
           </details>
         </div>
-        <div class="news">
-          <div class="section-kicker">Blog</div>
+        <div class="news" data-reveal>
+          <div class="section-kicker">Explore Aery</div>
           <h2>Latest insights</h2>
           <div class="news-grid">
-            <article>
-              <img src="https://www.figma.com/api/mcp/asset/64003bbf-e1c8-4906-8742-3182ca36fac3" alt="" />
+            <article class="lift-card" style="--delay: 0.02s" data-reveal>
+              <img src="https://www.figma.com/api/mcp/asset/d3765e5b-0d29-4ebf-98cb-3bb313f3eb62" alt="" />
               <p>Fresh strategies for evolving your creative identity</p>
             </article>
-            <article>
-              <img src="https://www.figma.com/api/mcp/asset/2c315125-1aa3-4f63-abb4-0471ec70c940" alt="" />
+            <article class="lift-card" style="--delay: 0.08s" data-reveal>
+              <img src="https://www.figma.com/api/mcp/asset/f3b7f69e-bc3b-46ed-bd58-16b819e24a53" alt="" />
               <p>Building memorable digital-first campaigns</p>
             </article>
-            <article>
-              <img src="https://www.figma.com/api/mcp/asset/523762ea-7863-4556-8f18-c002d395f774" alt="" />
+            <article class="lift-card" style="--delay: 0.14s" data-reveal>
+              <img src="https://www.figma.com/api/mcp/asset/c7e60768-4aba-4e7a-873f-300c1921c1c5" alt="" />
               <p>Marketing your creative portfolio online</p>
             </article>
-            <article>
-              <img src="https://www.figma.com/api/mcp/asset/24c4c4f2-377a-47ed-b202-8dd3c73f3bb5" alt="" />
+            <article class="lift-card" style="--delay: 0.2s" data-reveal>
+              <img src="https://www.figma.com/api/mcp/asset/9f010cbc-fd80-435c-a5b0-584117b932f0" alt="" />
               <p>From concept to showcase: creative processes</p>
             </article>
           </div>
         </div>
       </section>
 
-      <section class="contact">
-        <h2>Let's talk</h2>
+      <section class="contact" data-reveal>
+        <h2>Let's Talk</h2>
         <div class="contact-panel">
-          <h3>Wanna start<br />right now?</h3>
+          <h3>联系方式</h3>
           <article>
-            <h4>E-mail</h4>
-            <p>General inquiries</p>
-            <a href="mailto:info@aerycreative.com">info@aerycreative.com</a>
-            <a class="text-action" href="mailto:info@aerycreative.com">Send Email</a>
+            <h4>邮箱</h4>
+            <p>13828947379@163.com</p>
+            <h4 class="sub-field">位置</h4>
+            <p>广东·广州·番禺</p>
           </article>
           <article>
-            <h4>Make a call</h4>
-            <p>Sales department</p>
-            <a href="tel:+18408412569">+1 840 841 25 69</a>
-            <a class="text-action" href="tel:+18408412569">Book a call</a>
+            <h4>微信</h4>
+            <p>Yu27007479</p>
+            <h4 class="sub-field">工作时间</h4>
+            <p>周一至周五 9:00-18:00</p>
           </article>
         </div>
       </section>
@@ -179,15 +164,23 @@
 
     <footer class="footer">
       <div class="footer-top">
-        <a class="brand" href="#">AERY</a>
-        <div class="footer-socials" aria-label="Social links">
-          <a href="#" aria-label="Instagram"></a>
-          <a href="#" aria-label="Twitter"></a>
-          <a href="#" aria-label="Behance"></a>
-          <a href="#" aria-label="Dribbble"></a>
+        <div class="footer-branding">
+          <p class="footer-name">菻桐昕</p>
+          <p class="footer-tagline">用创意连接想象 · 用设计创造价值</p>
+          <div class="footer-pills" aria-label="Social links">
+            <a href="#">小红书</a>
+            <a href="#">公众号</a>
+          </div>
+        </div>
+        <div class="footer-badge">
+          <img src="https://www.figma.com/api/mcp/asset/6dfd7f52-531c-44c6-9573-73508fe0035e" alt="" />
         </div>
       </div>
-      <p>Boldness</p>
+      <div class="footer-meta">
+        <span>@2026 CYBER FARM</span>
+        <span>Made with/by 菻桐昕</span>
+      </div>
     </footer>
+    <script src="./app.js" defer></script>
   </body>
 </html>

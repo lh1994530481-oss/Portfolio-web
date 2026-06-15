@@ -11,4 +11,4 @@ Open `index.html` directly in a browser.
 - `index.html` - page structure and content
 - `styles.css` - responsive layout and visual styling
 
-The page uses Figma MCP asset URLs for images and Google Fonts for the Bricolage Grotesque and Kumbh Sans typography.
+The page uses Figma MCP asset URLs for images and a local-first PingFang font stack for typography.

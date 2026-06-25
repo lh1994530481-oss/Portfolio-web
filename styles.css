@@ -123,17 +123,6 @@ img {
   letter-spacing: 0;
 }
 
-.site-logo-dot {
-  width: 38px;
-  height: 38px;
-  flex: none;
-  border-radius: 50%;
-  background:
-    radial-gradient(circle at 35% 35%, #ffffff 0 12%, transparent 13%),
-    linear-gradient(145deg, #fafafa, #9d9d9d 55%, #ffffff);
-  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.24);
-}
-
 .site-nav {
   display: flex;
   align-items: center;
@@ -586,11 +575,6 @@ img {
   .site-header {
     top: 18px;
     padding: 0 16px;
-  }
-
-  .site-logo-dot {
-    width: 30px;
-    height: 30px;
   }
 
   .site-nav {

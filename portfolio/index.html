@@ -3,19 +3,28 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Portfolio</title>
+    <title>Lin Tong Xin | Portfolio</title>
     <link rel="stylesheet" href="./portfolio.css" />
     <link rel="stylesheet" href="../assets/page-transition.css" />
   </head>
   <body class="portfolio-list-body">
-    <main class="portfolio-list-page">
-      <a class="portfolio-back" href="../index.html#portfolio">Back</a>
+    <header class="portfolio-page-header" aria-label="Portfolio navigation">
+      <div class="portfolio-page-header-inner">
+        <a class="portfolio-back" href="../index.html#top">Back</a>
+        <a class="portfolio-brand" href="../index.html">Lin Tong Xin</a>
+      </div>
+    </header>
 
-      <header class="portfolio-list-header">
-        <p class="portfolio-list-kicker">Selected Work</p>
-        <h1>Local project wall</h1>
-        <p class="portfolio-list-copy">Six projects, all linked to local detail pages.</p>
-      </header>
+    <main class="portfolio-list-page">
+      <section class="portfolio-list-hero" aria-labelledby="portfolio-title">
+        <h1 id="portfolio-title" class="portfolio-list-title">
+          <span>Design</span><span>Portfolio</span>
+        </h1>
+      </section>
+
+      <section class="portfolio-filter-section" aria-label="Portfolio filters">
+        <div id="portfolio-filter-bar" class="portfolio-filter-bar"></div>
+      </section>
 
       <section id="portfolio-list-grid" class="portfolio-list-grid" aria-label="Project wall"></section>
     </main>

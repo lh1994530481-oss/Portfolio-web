@@ -5,12 +5,12 @@
   const slug = params.get("slug");
   const fallbackBackHref = "../index.html#portfolio";
   const wallImages = {
-    "personnel-logistics-management-system": "../assets/project-wall/1.png",
-    "petro-mesh-international-dmcc": "../assets/project-wall/2.png",
-    "personnel-positioning-system": "../assets/project-wall/3.png",
-    "smart-park-management-system": "../assets/project-wall/4.png",
-    "human-resources-management-system": "../assets/project-wall/5.png",
-    "customer-management-system": "../assets/project-wall/6.png",
+    "personnel-logistics-management-system": "../assets/project-wall/1.webp",
+    "petro-mesh-international-dmcc": "../assets/project-wall/2.webp",
+    "personnel-positioning-system": "../assets/project-wall/3.webp",
+    "smart-park-management-system": "../assets/project-wall/4.webp",
+    "human-resources-management-system": "../assets/project-wall/5.webp",
+    "customer-management-system": "../assets/project-wall/6.webp",
   };
 
   const escapeAttr = (value) => String(value || "").replace(/"/g, "&quot;");

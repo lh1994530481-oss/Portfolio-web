@@ -7,7 +7,7 @@
 
   if (!root || !filterRoot) return;
 
-  const filters = ["All", "Mobile Design", "Web Design", "Data visualization", "Motion Effect Design"];
+  const filters = ["All", "UI Design", "Mobile Design", "Web Design", "Data visualization", "Motion Effect Design"];
   const featuredOrder = [
     "personnel-logistics-management-system",
     "human-resources-management-system",
@@ -15,20 +15,20 @@
   ];
 
   const wallImages = {
-    "personnel-logistics-management-system": "../assets/project-wall/1.png",
-    "petro-mesh-international-dmcc": "../assets/project-wall/2.png",
-    "personnel-positioning-system": "../assets/project-wall/3.png",
-    "smart-park-management-system": "../assets/project-wall/4.png",
-    "human-resources-management-system": "../assets/project-wall/5.png",
-    "customer-management-system": "../assets/project-wall/6.png",
+    "personnel-logistics-management-system": "../assets/project-wall/1.webp",
+    "petro-mesh-international-dmcc": "../assets/project-wall/2.webp",
+    "personnel-positioning-system": "../assets/project-wall/3.webp",
+    "smart-park-management-system": "../assets/project-wall/4.webp",
+    "human-resources-management-system": "../assets/project-wall/5.webp",
+    "customer-management-system": "../assets/project-wall/6.webp",
   };
 
   const projectMeta = {
     "personnel-logistics-management-system": {
-      title: "Personnel logistics management system",
-      category: "Web Design",
-      tags: ["Web Design"],
-      description: "A management interface for personnel scheduling, logistics coordination, task tracking, and operational data review.",
+      title: "智慧换电APP重构",
+      category: "UI Design",
+      tags: ["UI Design"],
+      description: "该智慧换电平台面向电动车用户及即时配送人员，提供高效的能源补给解决方案。通过“车-电-柜”一体化服务模式，覆盖商圈、社区及配送站等多场景。用户可通过APP实现自助换电与调度协同，降低充电时间与成本，提升安全性与便利性，优化整体补能体验。",
     },
     "petro-mesh-international-dmcc": {
       title: "Petro Mesh International DMCC",

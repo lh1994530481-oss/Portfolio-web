@@ -19,8 +19,10 @@ function initHeader() {
   if (!header) return;
 
   let lastY = window.scrollY;
+  let frameId = 0;
 
-  const onScroll = () => {
+  const update = () => {
+    frameId = 0;
     const currentY = Math.max(window.scrollY, 0);
     const delta = currentY - lastY;
 
@@ -36,7 +38,12 @@ function initHeader() {
     }
   };
 
-  onScroll();
+  const onScroll = () => {
+    if (frameId) return;
+    frameId = window.requestAnimationFrame(update);
+  };
+
+  update();
   window.addEventListener("scroll", onScroll, { passive: true });
   window.addEventListener("resize", onScroll);
 }
@@ -133,39 +140,87 @@ function initProjectWall() {
 }
 
 function initScrollScene() {
-  const root = document.documentElement;
+  const sceneShell = document.querySelector(".scene-shell");
+  const sceneRadial = document.querySelector(".scene-radial");
+  const progressBar = document.querySelector(".scroll-progress");
   const heroCopy = document.querySelector(".hero-copy");
   const aboutCopy = document.querySelector(".about-copy");
-  if (!heroCopy || !aboutCopy) return;
+  if (!sceneShell || !sceneRadial || !progressBar || !heroCopy || !aboutCopy) return;
 
-  const update = () => {
-    const viewport = window.innerHeight || 1;
-    const maxScroll = Math.max(document.documentElement.scrollHeight - viewport, 1);
-    const scrollY = window.scrollY || 0;
-    const progress = scrollY / viewport;
-    const drift = smoothstep(0, 1.05, progress);
-    const settle = smoothstep(1.08, 1.9, progress);
-    const shiftX = lerp(0, window.innerWidth * 0.014, drift) - lerp(0, window.innerWidth * 0.022, settle);
-    const shiftY = lerp(0, -window.innerHeight * 0.08, drift);
-    const scale = lerp(1.02, 1.14, smoothstep(0, 1.5, progress));
-    const heroOpacity = 1 - smoothstep(0.16, 0.56, progress);
-    const aboutFadeIn = smoothstep(0.92, 1.12, progress);
-    const aboutFadeOut = smoothstep(1.24, 1.62, progress);
-    const aboutOpacity = clamp01(aboutFadeIn * (1 - aboutFadeOut));
-    const radialOpacity = smoothstep(1.18, 1.78, progress) * 0.74;
+  let frameId = 0;
+  let viewportWidth = window.innerWidth || 1;
+  let viewportHeight = window.innerHeight || 1;
+  let renderedProgress = -1;
+  const current = {
+    sceneX: 0,
+    heroOpacity: 1,
+    aboutOpacity: 0,
+    radialOpacity: 0,
+  };
+  const target = { ...current, progress: 0 };
 
-    root.style.setProperty("--scene-x", shiftX.toFixed(2) + "px");
-    root.style.setProperty("--scene-y", shiftY.toFixed(2) + "px");
-    root.style.setProperty("--scene-scale", scale.toFixed(3));
-    root.style.setProperty("--hero-opacity", heroOpacity.toFixed(3));
-    root.style.setProperty("--about-opacity", aboutOpacity.toFixed(3));
-    root.style.setProperty("--radial-mask-opacity", radialOpacity.toFixed(3));
-    root.style.setProperty("--scroll-progress", String(Math.min(scrollY / maxScroll, 1)));
+  const approach = (value, destination, amount, epsilon) => {
+    if (Math.abs(destination - value) <= epsilon) return destination;
+    return lerp(value, destination, amount);
   };
 
-  update();
-  window.addEventListener("scroll", update, { passive: true });
-  window.addEventListener("resize", update);
+  const render = () => {
+    frameId = 0;
+    const easing = reduceMotion ? 1 : 0.2;
+
+    current.sceneX = approach(current.sceneX, target.sceneX, easing, 0.12);
+    current.heroOpacity = approach(current.heroOpacity, target.heroOpacity, easing, 0.002);
+    current.aboutOpacity = approach(current.aboutOpacity, target.aboutOpacity, easing, 0.002);
+    current.radialOpacity = approach(current.radialOpacity, target.radialOpacity, easing, 0.002);
+
+    sceneShell.style.transform = "translate3d(" + current.sceneX.toFixed(2) + "px, 0, 0) scale(1.02)";
+    heroCopy.style.opacity = current.heroOpacity.toFixed(3);
+    aboutCopy.style.opacity = current.aboutOpacity.toFixed(3);
+    sceneRadial.style.opacity = current.radialOpacity.toFixed(3);
+
+    if (Math.abs(target.progress - renderedProgress) > 0.0005) {
+      renderedProgress = target.progress;
+      progressBar.style.transform = "scaleX(" + renderedProgress.toFixed(4) + ")";
+    }
+
+    const unsettled =
+      current.sceneX !== target.sceneX ||
+      current.heroOpacity !== target.heroOpacity ||
+      current.aboutOpacity !== target.aboutOpacity ||
+      current.radialOpacity !== target.radialOpacity;
+
+    if (unsettled) frameId = window.requestAnimationFrame(render);
+  };
+
+  const updateTargets = () => {
+    const maxScroll = Math.max(document.documentElement.scrollHeight - viewportHeight, 1);
+    const scrollY = window.scrollY || 0;
+    const progress = scrollY / viewportHeight;
+    const aboutEnter = smoothstep(0.58, 1.05, progress);
+    const aboutExit = smoothstep(1.56, 2.08, progress);
+    const aboutPosition = clamp01(aboutEnter * (1 - aboutExit));
+    const sideRatio = viewportWidth < 768 ? -0.18 : viewportWidth < 1024 ? -0.21 : -0.24;
+    const aboutFadeIn = smoothstep(0.92, 1.12, progress);
+    const aboutFadeOut = smoothstep(1.24, 1.62, progress);
+
+    target.sceneX = viewportWidth * sideRatio * aboutPosition;
+    target.heroOpacity = 1 - smoothstep(0.16, 0.56, progress);
+    target.aboutOpacity = clamp01(aboutFadeIn * (1 - aboutFadeOut));
+    target.radialOpacity = smoothstep(1.18, 1.78, progress) * 0.74;
+    target.progress = Math.min(scrollY / maxScroll, 1);
+
+    if (!frameId) frameId = window.requestAnimationFrame(render);
+  };
+
+  const onResize = () => {
+    viewportWidth = window.innerWidth || 1;
+    viewportHeight = window.innerHeight || 1;
+    updateTargets();
+  };
+
+  updateTargets();
+  window.addEventListener("scroll", updateTargets, { passive: true });
+  window.addEventListener("resize", onResize);
 }
 
 window.addEventListener("DOMContentLoaded", () => {

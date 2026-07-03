@@ -61,9 +61,9 @@ window.PROJECT_DATA = [
   },
   {
     "slug": "smart-park-management-system",
-    "title": "智慧园区监测系统",
-    "category": "Data visualization",
-    "descriptionZh": "该项目围绕智慧园区实时监测场景展开，通过可视化大屏整合游客分布、区域状态、运营数据与风险提示。界面强调空间感、数据层级和态势识别效率，帮助管理者快速掌握园区运行状态。",
+    "title": "IP 设计",
+    "category": "IP Design",
+    "descriptionZh": "该项目为个人使用ai的练习ip设计",
     "cover": "../assets/project-wall/4.webp",
     "images": {
       "desktop": "../assets/project-wall/4.webp",
@@ -74,7 +74,7 @@ window.PROJECT_DATA = [
         "type": "image",
         "title": "Page 01",
         "src": "../assets/project-wall/4.webp",
-        "alt": "智慧园区监测系统 cover"
+        "alt": "IP 设计 cover"
       }
     ]
   },
@@ -99,9 +99,9 @@ window.PROJECT_DATA = [
   },
   {
     "slug": "customer-management-system",
-    "title": "客户管理系统",
-    "category": "Web Design",
-    "descriptionZh": "该项目围绕客户关系管理与业务跟进场景展开，整合客户档案、沟通记录、销售线索和运营数据。界面强调快速检索、状态识别和任务闭环，帮助团队更高效地完成客户维护与业务推进。",
+    "title": "一竺自助讲解小程序",
+    "category": "APP Design",
+    "descriptionZh": "景区自助讲解器",
     "cover": "../assets/project-wall/6.webp",
     "images": {
       "desktop": "../assets/project-wall/6.webp",
@@ -112,7 +112,7 @@ window.PROJECT_DATA = [
         "type": "image",
         "title": "Page 01",
         "src": "../assets/project-wall/6.webp",
-        "alt": "客户管理系统 cover"
+        "alt": "一竺自助讲解小程序 cover"
       }
     ]
   }

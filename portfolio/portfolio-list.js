@@ -7,7 +7,7 @@
 
   if (!root || !filterRoot) return;
 
-  const filters = ["All", "Mobile Design", "Web Design", "Data visualization", "Motion Effect Design"];
+  const filters = ["All", "APP Design", "Web Design", "Data visualization", "IP Design", "Exercises and Demos"];
   const featuredOrder = [
     "personnel-logistics-management-system",
     "human-resources-management-system",
@@ -43,10 +43,10 @@
       description: "该项目专为大中型城市换电网络的宏观调度、资产监控与网点运维打造。设计深入电柜潮汐预测、电池健康度（SOH）跟踪、故障秒级预警等核心协同场景。视觉上采用极具科技感的暗调数字孪生风格，将复杂的物联大数据进行结构化分级与空间映射，帮助管理层摆脱数据孤岛，实现“信息主动找人”的高效决策响应。",
     },
     "smart-park-management-system": {
-      title: "Smart park management system",
-      category: "Data visualization",
-      tags: ["Data visualization"],
-      description: "A smart park monitoring dashboard for visitor distribution, regional status, operational metrics, and risk awareness.",
+      title: "IP 设计",
+      category: "IP Design",
+      tags: ["IP Design"],
+      description: "该项目为个人使用ai的练习ip设计",
     },
     "human-resources-management-system": {
       title: "GoMenu 餐饮数字化经营系统",
@@ -55,10 +55,10 @@
       description: "该项目致力于重构传统餐饮的底层协同架构与门店资产链路。设计围绕多渠道聚合点餐、后厨 KDS 智能分单、多店收银及全链路供应链管理展开。通过建立规范的数据底层模型与强对比度的卡片式视觉规范，消除高频、快节奏场景下的信息冗余，在实现秒级多端同步的同时，用数字化手段为连锁餐饮企业沉淀核心经营资产。",
     },
     "customer-management-system": {
-      title: "Customer management system",
-      category: "Web Design",
-      tags: ["Web Design"],
-      description: "A customer relationship management interface for profiles, communication records, sales leads, and follow-up tasks.",
+      title: "一竺自助讲解小程序",
+      category: "APP Design",
+      tags: ["APP Design"],
+      description: "景区自助讲解器",
     },
   };
 

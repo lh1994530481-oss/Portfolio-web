@@ -7,7 +7,7 @@
 
   if (!root || !filterRoot) return;
 
-  const filters = ["All", "UI Design", "Mobile Design", "Web Design", "Data visualization", "Motion Effect Design"];
+  const filters = ["All", "Mobile Design", "Web Design", "Data visualization", "Motion Effect Design"];
   const featuredOrder = [
     "personnel-logistics-management-system",
     "human-resources-management-system",
@@ -26,21 +26,21 @@
   const projectMeta = {
     "personnel-logistics-management-system": {
       title: "智慧换电APP重构",
-      category: "UI Design",
-      tags: ["UI Design"],
-      description: "该智慧换电平台面向电动车用户及即时配送人员，提供高效的能源补给解决方案。通过“车-电-柜”一体化服务模式，覆盖商圈、社区及配送站等多场景。用户可通过APP实现自助换电与调度协同，降低充电时间与成本，提升安全性与便利性，优化整体补能体验。",
+      category: "APP Design",
+      tags: ["APP Design"],
+      description: "该项目针对骑手及大众用户在户外、弱网、低电量等极端场景下的急迫换电痛点进行全盘重塑。重构设计以“地图找柜”为核心视觉中枢，全面优化核心换电与路线导航链路。通过建立高亮度的户外视觉规范，实现信息的高效过滤与极速闭环，大幅缩减用户的街头决策时间，让换电体验更直观、更安全。",
     },
     "petro-mesh-international-dmcc": {
-      title: "Petro Mesh International DMCC",
-      category: "Web Design",
-      tags: ["Web Design"],
-      description: "A corporate website experience for an international energy trading business, focused on capability, trust, and global reach.",
+      title: "GoMenu 智能餐饮消费客户端",
+      category: "APP Design",
+      tags: ["APP Design"],
+      description: "该项目聚焦于打造端到端的极致就餐与会员复购体验。设计打破传统点餐软件的繁琐流程，深度打通智能推荐、动态库存联动与精细化会员营销（CRM）。界面采用极简降噪的视觉美学与丝滑的微动效引导，贯穿用户从入座、点单、结账到售后评价的全生命周期，以无感的流畅交互赋能品牌客单价与留存率的双向增长。",
     },
     "personnel-positioning-system": {
-      title: "Personnel positioning system",
+      title: "ATN 智慧换电实时资产看板",
       category: "Data visualization",
-      tags: ["Web Design", "Data visualization"],
-      description: "A real-time positioning dashboard that brings map views, movement trails, area status, and safety alerts into one workflow.",
+      tags: ["Data visualization"],
+      description: "该项目专为大中型城市换电网络的宏观调度、资产监控与网点运维打造。设计深入电柜潮汐预测、电池健康度（SOH）跟踪、故障秒级预警等核心协同场景。视觉上采用极具科技感的暗调数字孪生风格，将复杂的物联大数据进行结构化分级与空间映射，帮助管理层摆脱数据孤岛，实现“信息主动找人”的高效决策响应。",
     },
     "smart-park-management-system": {
       title: "Smart park management system",
@@ -49,10 +49,10 @@
       description: "A smart park monitoring dashboard for visitor distribution, regional status, operational metrics, and risk awareness.",
     },
     "human-resources-management-system": {
-      title: "Human resources management system",
+      title: "GoMenu 餐饮数字化经营系统",
       category: "Web Design",
       tags: ["Web Design"],
-      description: "An HR operations system covering organization structure, employee records, approval flows, and management statistics.",
+      description: "该项目致力于重构传统餐饮的底层协同架构与门店资产链路。设计围绕多渠道聚合点餐、后厨 KDS 智能分单、多店收银及全链路供应链管理展开。通过建立规范的数据底层模型与强对比度的卡片式视觉规范，消除高频、快节奏场景下的信息冗余，在实现秒级多端同步的同时，用数字化手段为连锁餐饮企业沉淀核心经营资产。",
     },
     "customer-management-system": {
       title: "Customer management system",

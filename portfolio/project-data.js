@@ -2,8 +2,8 @@ window.PROJECT_DATA = [
   {
     "slug": "personnel-logistics-management-system",
     "title": "智慧换电APP重构",
-    "category": "UI Design",
-    "descriptionZh": "该智慧换电平台面向电动车用户及即时配送人员，提供高效的能源补给解决方案。通过“车-电-柜”一体化服务模式，覆盖商圈、社区及配送站等多场景。用户可通过APP实现自助换电与调度协同，降低充电时间与成本，提升安全性与便利性，优化整体补能体验。",
+    "category": "APP Design",
+    "descriptionZh": "该项目针对骑手及大众用户在户外、弱网、低电量等极端场景下的急迫换电痛点进行全盘重塑。重构设计以“地图找柜”为核心视觉中枢，全面优化核心换电与路线导航链路。通过建立高亮度的户外视觉规范，实现信息的高效过滤与极速闭环，大幅缩减用户的街头决策时间，让换电体验更直观、更安全。",
     "cover": "../assets/project-wall/1.webp",
     "images": {
       "desktop": "../assets/project-wall/1.webp",
@@ -20,9 +20,9 @@ window.PROJECT_DATA = [
   },
   {
     "slug": "petro-mesh-international-dmcc",
-    "title": "PETRO MESH INTERNATIONAL DMCC",
-    "category": "Web Design",
-    "descriptionZh": "该项目围绕国际能源贸易企业的品牌官网体验展开，重点呈现企业能力、业务范围、行业资源和合作信任感。页面通过稳重的视觉系统、清晰内容结构和商务化表达，强化企业的专业形象与全球业务属性。",
+    "title": "GoMenu 智能餐饮消费客户端",
+    "category": "APP Design",
+    "descriptionZh": "该项目聚焦于打造端到端的极致就餐与会员复购体验。设计打破传统点餐软件的繁琐流程，深度打通智能推荐、动态库存联动与精细化会员营销（CRM）。界面采用极简降噪的视觉美学与丝滑的微动效引导，贯穿用户从入座、点单、结账到售后评价的全生命周期，以无感的流畅交互赋能品牌客单价与留存率的双向增长。",
     "cover": "../assets/project-wall/2.webp",
     "images": {
       "desktop": "../assets/project-wall/2.webp",
@@ -33,19 +33,18 @@ window.PROJECT_DATA = [
         "type": "image",
         "title": "Page 01",
         "src": "../assets/project-wall/2.webp",
-        "alt": "PETRO MESH INTERNATIONAL DMCC cover"
+        "alt": "GoMenu 智能餐饮消费客户端 cover"
       }
     ]
   },
   {
     "slug": "personnel-positioning-system",
-    "title": "人员定位管理系统",
-    "category": "Web Design",
+    "title": "ATN 智慧换电实时资产看板",
+    "category": "Data visualization",
     "tags": [
-      "Web Design",
       "Data visualization"
     ],
-    "descriptionZh": "该项目围绕人员实时定位与安全管理场景展开，通过地图视图、轨迹追踪、区域状态和异常提醒整合人员动态信息。界面强调快速定位、层级清晰和风险识别效率，帮助管理者及时掌握现场人员分布。",
+    "descriptionZh": "该项目专为大中型城市换电网络的宏观调度、资产监控与网点运维打造。设计深入电柜潮汐预测、电池健康度（SOH）跟踪、故障秒级预警等核心协同场景。视觉上采用极具科技感的暗调数字孪生风格，将复杂的物联大数据进行结构化分级与空间映射，帮助管理层摆脱数据孤岛，实现“信息主动找人”的高效决策响应。",
     "cover": "../assets/project-wall/3.webp",
     "images": {
       "desktop": "../assets/project-wall/3.webp",
@@ -56,7 +55,7 @@ window.PROJECT_DATA = [
         "type": "image",
         "title": "Page 01",
         "src": "../assets/project-wall/3.webp",
-        "alt": "人员定位管理系统 cover"
+        "alt": "ATN 智慧换电实时资产看板 cover"
       }
     ]
   },
@@ -81,9 +80,9 @@ window.PROJECT_DATA = [
   },
   {
     "slug": "human-resources-management-system",
-    "title": "人力资源管理系统",
+    "title": "GoMenu 餐饮数字化经营系统",
     "category": "Web Design",
-    "descriptionZh": "该项目围绕企业人力资源管理流程展开，覆盖组织架构、员工档案、审批协同、数据统计等核心场景。界面通过清晰的信息层级和稳定的表单体验，降低高频管理操作的理解成本与执行成本。",
+    "descriptionZh": "该项目致力于重构传统餐饮的底层协同架构与门店资产链路。设计围绕多渠道聚合点餐、后厨 KDS 智能分单、多店收银及全链路供应链管理展开。通过建立规范的数据底层模型与强对比度的卡片式视觉规范，消除高频、快节奏场景下的信息冗余，在实现秒级多端同步的同时，用数字化手段为连锁餐饮企业沉淀核心经营资产。",
     "cover": "../assets/project-wall/5.webp",
     "images": {
       "desktop": "../assets/project-wall/5.webp",
@@ -94,7 +93,7 @@ window.PROJECT_DATA = [
         "type": "image",
         "title": "Page 01",
         "src": "../assets/project-wall/5.webp",
-        "alt": "人力资源管理系统 cover"
+        "alt": "GoMenu 餐饮数字化经营系统 cover"
       }
     ]
   },

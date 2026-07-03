@@ -139,6 +139,30 @@ function initProjectWall() {
   });
 }
 
+function initAboutWords() {
+  const aboutCopy = document.querySelector(".about-copy");
+  if (!aboutCopy || aboutCopy.querySelector(".about-word")) return;
+
+  const text = aboutCopy.textContent.replace(/\s+/g, " ").trim();
+  if (!text) return;
+
+  const fragment = document.createDocumentFragment();
+  const words = text.split(" ");
+  aboutCopy.setAttribute("aria-label", text);
+
+  words.forEach((word, index) => {
+    const span = document.createElement("span");
+    span.className = "about-word";
+    span.setAttribute("aria-hidden", "true");
+    span.style.setProperty("--word-index", index);
+    span.textContent = word;
+    fragment.appendChild(span);
+    if (index < words.length - 1) fragment.appendChild(document.createTextNode(" "));
+  });
+
+  aboutCopy.replaceChildren(fragment);
+}
+
 function initScrollScene() {
   const sceneShell = document.querySelector(".scene-shell");
   const sceneRadial = document.querySelector(".scene-radial");
@@ -151,10 +175,12 @@ function initScrollScene() {
   let viewportWidth = window.innerWidth || 1;
   let viewportHeight = window.innerHeight || 1;
   let renderedProgress = -1;
+  let lastFrameTime = 0;
   const current = {
     sceneX: 0,
+    sceneY: 0,
+    sceneScale: 1,
     heroOpacity: 1,
-    aboutOpacity: 0,
     radialOpacity: 0,
   };
   const target = { ...current, progress: 0 };
@@ -164,18 +190,24 @@ function initScrollScene() {
     return lerp(value, destination, amount);
   };
 
-  const render = () => {
+  const render = (timestamp) => {
     frameId = 0;
-    const easing = reduceMotion ? 1 : 0.2;
+    const delta = lastFrameTime ? Math.min(timestamp - lastFrameTime, 32) : 16.67;
+    const easing = reduceMotion ? 1 : 1 - Math.exp(-delta / 55);
+    const verticalEasing = reduceMotion ? 1 : 1 - Math.exp(-delta / 28);
+    const scaleEasing = reduceMotion ? 1 : 1 - Math.exp(-delta / 42);
+    lastFrameTime = timestamp;
 
     current.sceneX = approach(current.sceneX, target.sceneX, easing, 0.12);
+    current.sceneY = approach(current.sceneY, target.sceneY, verticalEasing, 0.12);
+    current.sceneScale = approach(current.sceneScale, target.sceneScale, scaleEasing, 0.001);
     current.heroOpacity = approach(current.heroOpacity, target.heroOpacity, easing, 0.002);
-    current.aboutOpacity = approach(current.aboutOpacity, target.aboutOpacity, easing, 0.002);
     current.radialOpacity = approach(current.radialOpacity, target.radialOpacity, easing, 0.002);
 
-    sceneShell.style.transform = "translate3d(" + current.sceneX.toFixed(2) + "px, 0, 0) scale(1.02)";
+    sceneShell.style.transform =
+      "translate3d(" + current.sceneX.toFixed(2) + "px, " + current.sceneY.toFixed(2) +
+      "px, 0) scale(" + current.sceneScale.toFixed(4) + ")";
     heroCopy.style.opacity = current.heroOpacity.toFixed(3);
-    aboutCopy.style.opacity = current.aboutOpacity.toFixed(3);
     sceneRadial.style.opacity = current.radialOpacity.toFixed(3);
 
     if (Math.abs(target.progress - renderedProgress) > 0.0005) {
@@ -185,31 +217,48 @@ function initScrollScene() {
 
     const unsettled =
       current.sceneX !== target.sceneX ||
+      current.sceneY !== target.sceneY ||
+      current.sceneScale !== target.sceneScale ||
       current.heroOpacity !== target.heroOpacity ||
-      current.aboutOpacity !== target.aboutOpacity ||
       current.radialOpacity !== target.radialOpacity;
 
-    if (unsettled) frameId = window.requestAnimationFrame(render);
+    if (unsettled) {
+      frameId = window.requestAnimationFrame(render);
+    } else {
+      lastFrameTime = 0;
+    }
   };
 
   const updateTargets = () => {
     const maxScroll = Math.max(document.documentElement.scrollHeight - viewportHeight, 1);
     const scrollY = window.scrollY || 0;
     const progress = scrollY / viewportHeight;
-    const aboutEnter = smoothstep(0.58, 1.05, progress);
-    const aboutExit = smoothstep(1.56, 2.08, progress);
-    const aboutPosition = clamp01(aboutEnter * (1 - aboutExit));
-    const sideRatio = viewportWidth < 768 ? -0.18 : viewportWidth < 1024 ? -0.21 : -0.24;
-    const aboutFadeIn = smoothstep(0.92, 1.12, progress);
-    const aboutFadeOut = smoothstep(1.24, 1.62, progress);
+    const aboutEnter = smoothstep(0.7, 0.98, progress);
+    const projectRestore = smoothstep(1.34, 1.72, progress);
+    const aboutPosition = clamp01(aboutEnter * (1 - projectRestore));
+    const sideRatio = viewportWidth < 768 ? -0.12 : viewportWidth < 1024 ? -0.17 : -0.2;
+    const verticalRatio = viewportWidth < 768 ? -0.06 : 0;
+    const aboutScale = viewportWidth < 768 ? 1.48 : viewportWidth < 1024 ? 1.61 : 1.74;
+    const mobile = viewportWidth < 768;
+    const aboutFadeIn = smoothstep(mobile ? 0.62 : 0.82, mobile ? 0.76 : 0.98, progress);
+    const aboutFadeOut = smoothstep(mobile ? 1.28 : 1.18, mobile ? 1.54 : 1.5, progress);
+    const aboutVisible = aboutFadeIn > 0.02 && aboutFadeOut < 0.98;
+    const aboutExiting = aboutFadeOut > 0.02 && aboutFadeOut < 0.98;
 
     target.sceneX = viewportWidth * sideRatio * aboutPosition;
+    target.sceneY = viewportHeight * verticalRatio * aboutPosition;
+    target.sceneScale = lerp(1, aboutScale, aboutPosition);
     target.heroOpacity = 1 - smoothstep(0.16, 0.56, progress);
-    target.aboutOpacity = clamp01(aboutFadeIn * (1 - aboutFadeOut));
-    target.radialOpacity = smoothstep(1.18, 1.78, progress) * 0.74;
+    target.radialOpacity = smoothstep(1.66, 2.08, progress) * 0.42;
     target.progress = Math.min(scrollY / maxScroll, 1);
 
-    if (!frameId) frameId = window.requestAnimationFrame(render);
+    aboutCopy.classList.toggle("is-visible", aboutVisible);
+    aboutCopy.classList.toggle("is-exiting", aboutExiting);
+
+    if (!frameId) {
+      lastFrameTime = 0;
+      frameId = window.requestAnimationFrame(render);
+    }
   };
 
   const onResize = () => {
@@ -228,5 +277,6 @@ window.addEventListener("DOMContentLoaded", () => {
   initReveal();
   initMagnetic();
   initProjectWall();
+  initAboutWords();
   initScrollScene();
 });

@@ -143,21 +143,33 @@ function initAboutWords() {
   const aboutCopy = document.querySelector(".about-copy");
   if (!aboutCopy || aboutCopy.querySelector(".about-word")) return;
 
-  const text = aboutCopy.textContent.replace(/\s+/g, " ").trim();
+  const cjkRange = "\u3400-\u9fff\uf900-\ufaff";
+  const text = aboutCopy.textContent
+    .replace(/\s+/g, " ")
+    .replace(new RegExp("([" + cjkRange + "])\\s+(?=[A-Za-z0-9])", "g"), "$1")
+    .replace(new RegExp("([A-Za-z0-9/+.-])\\s+(?=[" + cjkRange + "])", "g"), "$1")
+    .trim();
   if (!text) return;
 
   const fragment = document.createDocumentFragment();
-  const words = text.split(" ");
   aboutCopy.setAttribute("aria-label", text);
 
-  words.forEach((word, index) => {
+  const segments = text.match(/[A-Za-z0-9]+(?:[/.+-][A-Za-z0-9]+)*|\s+|./g) || [];
+  let wordIndex = 0;
+
+  segments.forEach((segment) => {
+    if (/^\s+$/.test(segment)) {
+      fragment.appendChild(document.createTextNode(segment));
+      return;
+    }
+
     const span = document.createElement("span");
     span.className = "about-word";
     span.setAttribute("aria-hidden", "true");
-    span.style.setProperty("--word-index", index);
-    span.textContent = word;
+    span.style.setProperty("--word-index", wordIndex);
+    span.textContent = segment;
     fragment.appendChild(span);
-    if (index < words.length - 1) fragment.appendChild(document.createTextNode(" "));
+    wordIndex += 1;
   });
 
   aboutCopy.replaceChildren(fragment);
@@ -193,9 +205,9 @@ function initScrollScene() {
   const render = (timestamp) => {
     frameId = 0;
     const delta = lastFrameTime ? Math.min(timestamp - lastFrameTime, 32) : 16.67;
-    const easing = reduceMotion ? 1 : 1 - Math.exp(-delta / 55);
-    const verticalEasing = reduceMotion ? 1 : 1 - Math.exp(-delta / 28);
-    const scaleEasing = reduceMotion ? 1 : 1 - Math.exp(-delta / 42);
+    const easing = reduceMotion ? 1 : 1 - Math.exp(-delta / 14);
+    const verticalEasing = reduceMotion ? 1 : 1 - Math.exp(-delta / 10);
+    const scaleEasing = reduceMotion ? 1 : 1 - Math.exp(-delta / 16);
     lastFrameTime = timestamp;
 
     current.sceneX = approach(current.sceneX, target.sceneX, easing, 0.12);
@@ -233,8 +245,8 @@ function initScrollScene() {
     const maxScroll = Math.max(document.documentElement.scrollHeight - viewportHeight, 1);
     const scrollY = window.scrollY || 0;
     const progress = scrollY / viewportHeight;
-    const aboutEnter = smoothstep(0.7, 0.98, progress);
-    const projectRestore = smoothstep(1.34, 1.72, progress);
+    const aboutEnter = smoothstep(0.66, 0.82, progress);
+    const projectRestore = smoothstep(1.3, 1.44, progress);
     const aboutPosition = clamp01(aboutEnter * (1 - projectRestore));
     const sideRatio = viewportWidth < 768 ? -0.12 : viewportWidth < 1024 ? -0.17 : -0.2;
     const verticalRatio = viewportWidth < 768 ? -0.06 : 0;

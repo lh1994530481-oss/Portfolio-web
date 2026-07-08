@@ -149,7 +149,8 @@ img {
   transform-origin: 50% 50%;
   background: #000000;
   backface-visibility: hidden;
-  contain: paint;
+  contain: layout paint style;
+  isolation: isolate;
   pointer-events: none;
   will-change: transform;
 }
@@ -159,8 +160,10 @@ img {
   width: 100%;
   height: 100%;
   transform: translateZ(0);
+  backface-visibility: hidden;
   opacity: 1;
   pointer-events: none;
+  will-change: transform;
 }
 
 .scene-gradient,
@@ -295,14 +298,14 @@ img {
 .about-copy.is-visible .about-word {
   opacity: 1;
   transform: translateY(0);
-  transition-delay: calc(var(--word-index) * 54ms);
+  transition-delay: calc(var(--word-index) * 22ms);
 }
 
 .about-copy.is-exiting .about-word {
   opacity: 0;
   filter: blur(10px);
   transform: translateY(-24px);
-  transition-delay: calc(var(--word-index) * 12ms);
+  transition-delay: calc(var(--word-index) * 5ms);
 }
 
 .projects-section,

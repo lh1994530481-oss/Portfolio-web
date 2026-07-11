@@ -4,7 +4,7 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Lin Tong Xin | Portfolio</title>
-    <link rel="stylesheet" href="./styles.css?v=20260703-20" />
+    <link rel="stylesheet" href="./styles.css?v=20260711-2" />
     <link rel="stylesheet" href="./assets/page-transition.css" />
     <script
       type="module"
@@ -165,7 +165,12 @@
               target="_blank"
               rel="noopener noreferrer"
             >小红书</a>
-            <span class="contact-social-tag">公众号</span>
+            <button
+              class="contact-social-tag contact-social-button"
+              type="button"
+              data-wechat-dialog-open
+              aria-haspopup="dialog"
+            >公众号</button>
           </div>
         </section>
 
@@ -200,7 +205,19 @@
       </div>
     </footer>
 
-    <script src="./app.js?v=20260703-21" defer></script>
+    <dialog class="wechat-dialog" aria-labelledby="wechat-dialog-title">
+      <button class="wechat-dialog-close" type="button" aria-label="关闭二维码弹窗" data-wechat-dialog-close>×</button>
+      <img
+        class="wechat-dialog-qr"
+        src="./assets/contact/wechat-official-account-qr.jpg"
+        width="140"
+        height="140"
+        alt="公众号二维码"
+      />
+      <p id="wechat-dialog-title">扫码关注，获得更多信息。</p>
+    </dialog>
+
+    <script src="./app.js?v=20260711-2" defer></script>
     <script src="./assets/page-transition.js" defer></script>
   </body>
 </html>

@@ -139,6 +139,33 @@ function initProjectWall() {
   });
 }
 
+function initWechatDialog() {
+  const dialog = document.querySelector(".wechat-dialog");
+  const openButton = document.querySelector("[data-wechat-dialog-open]");
+  const closeButton = document.querySelector("[data-wechat-dialog-close]");
+  if (!dialog || !openButton || !closeButton || typeof dialog.showModal !== "function") return;
+
+  const closeDialog = () => {
+    if (dialog.open) dialog.close();
+  };
+
+  openButton.addEventListener("click", () => {
+    if (!dialog.open) dialog.showModal();
+  });
+
+  closeButton.addEventListener("click", closeDialog);
+  dialog.addEventListener("click", (event) => {
+    if (event.target !== dialog) return;
+    const rect = dialog.getBoundingClientRect();
+    const outside =
+      event.clientX < rect.left ||
+      event.clientX > rect.right ||
+      event.clientY < rect.top ||
+      event.clientY > rect.bottom;
+    if (outside) closeDialog();
+  });
+}
+
 function initAboutWords() {
   const aboutCopy = document.querySelector(".about-copy");
   if (!aboutCopy || aboutCopy.querySelector(".about-word")) return;
@@ -188,6 +215,8 @@ function initScrollScene() {
   let viewportHeight = window.innerHeight || 1;
   let renderedProgress = -1;
   let lastFrameTime = 0;
+  let latestScrollY = window.scrollY || 0;
+  let targetsDirty = true;
   const current = {
     sceneX: 0,
     sceneY: 0,
@@ -204,10 +233,15 @@ function initScrollScene() {
 
   const render = (timestamp) => {
     frameId = 0;
-    const delta = lastFrameTime ? Math.min(timestamp - lastFrameTime, 32) : 16.67;
-    const easing = reduceMotion ? 1 : 1 - Math.exp(-delta / 14);
-    const verticalEasing = reduceMotion ? 1 : 1 - Math.exp(-delta / 10);
-    const scaleEasing = reduceMotion ? 1 : 1 - Math.exp(-delta / 16);
+    if (targetsDirty) {
+      updateTargets();
+      targetsDirty = false;
+    }
+
+    const delta = lastFrameTime ? Math.min(timestamp - lastFrameTime, 34) : 16.67;
+    const easing = reduceMotion ? 1 : 1 - Math.exp(-delta / 10);
+    const verticalEasing = reduceMotion ? 1 : 1 - Math.exp(-delta / 8);
+    const scaleEasing = reduceMotion ? 1 : 1 - Math.exp(-delta / 11);
     lastFrameTime = timestamp;
 
     current.sceneX = approach(current.sceneX, target.sceneX, easing, 0.12);
@@ -243,7 +277,7 @@ function initScrollScene() {
 
   const updateTargets = () => {
     const maxScroll = Math.max(document.documentElement.scrollHeight - viewportHeight, 1);
-    const scrollY = window.scrollY || 0;
+    const scrollY = latestScrollY;
     const progress = scrollY / viewportHeight;
     const aboutEnter = smoothstep(0.66, 0.82, progress);
     const projectRestore = smoothstep(1.3, 1.44, progress);
@@ -267,20 +301,28 @@ function initScrollScene() {
     aboutCopy.classList.toggle("is-visible", aboutVisible);
     aboutCopy.classList.toggle("is-exiting", aboutExiting);
 
-    if (!frameId) {
-      lastFrameTime = 0;
-      frameId = window.requestAnimationFrame(render);
-    }
+  };
+
+  const requestRender = () => {
+    if (!frameId) frameId = window.requestAnimationFrame(render);
+  };
+
+  const onScroll = () => {
+    latestScrollY = window.scrollY || 0;
+    targetsDirty = true;
+    requestRender();
   };
 
   const onResize = () => {
     viewportWidth = window.innerWidth || 1;
     viewportHeight = window.innerHeight || 1;
-    updateTargets();
+    latestScrollY = window.scrollY || 0;
+    targetsDirty = true;
+    requestRender();
   };
 
-  updateTargets();
-  window.addEventListener("scroll", updateTargets, { passive: true });
+  requestRender();
+  window.addEventListener("scroll", onScroll, { passive: true });
   window.addEventListener("resize", onResize);
 }
 
@@ -289,6 +331,7 @@ window.addEventListener("DOMContentLoaded", () => {
   initReveal();
   initMagnetic();
   initProjectWall();
+  initWechatDialog();
   initAboutWords();
   initScrollScene();
 });

@@ -21,6 +21,7 @@
     "smart-park-management-system": "../assets/project-wall/4.webp",
     "human-resources-management-system": "../assets/project-wall/5.webp",
     "customer-management-system": "../assets/project-wall/6.webp",
+    "homi-smart-home-prototype": "../assets/project-wall/7.webp",
   };
 
   const projectMeta = {
@@ -59,6 +60,12 @@
       category: "APP Design",
       tags: ["APP Design"],
       description: "景区自助讲解器",
+    },
+    "homi-smart-home-prototype": {
+      title: "HOMI 智家可交互原型",
+      category: "Exercises and Demos",
+      tags: ["Exercises and Demos"],
+      description: "该项目是一套面向家庭成员与家庭管理员的智能家居可交互产品原型，覆盖设备控制、设备配网、场景自动化、安防告警、摄像头、能源管理及家庭权限管理，并通过跨页面状态联动完整呈现真实业务流程。",
     },
   };
 
@@ -199,11 +206,12 @@
         const tags = getProjectTags(project);
         const title = meta.title || project.title;
         const description = meta.description || project.descriptionZh || "";
+        const projectHref = project.prototypeHref || "./project-detail.html?slug=" + project.slug;
         const isReversed = index % 2 === 1;
 
         return [
           '<article class="portfolio-project' + (isReversed ? " is-reversed" : "") + '" style="--item-delay: ' + index * 90 + 'ms">',
-          '  <a class="portfolio-project-image-dock" href="./project-detail.html?slug=' + project.slug + '" aria-label="View ' + escapeAttr(title) + ' project">',
+          '  <a class="portfolio-project-image-dock" href="' + escapeAttr(projectHref) + '" aria-label="View ' + escapeAttr(title) + ' project">',
           '    <img class="portfolio-project-image" src="' + imageSrc + '" alt="' + escapeAttr(title) + ' - Desktop view" loading="' + (index === 0 ? "eager" : "lazy") + '" decoding="async" />',
           "  </a>",
           '  <div class="portfolio-project-details">',
@@ -217,11 +225,11 @@
           "    </div>",
           '    <div class="portfolio-project-title-row">',
           '      <h2 class="portfolio-project-title">' + title + "</h2>",
-          '      <a class="portfolio-project-open" href="./project-detail.html?slug=' + project.slug + '" aria-label="Open ' + escapeAttr(title) + '">↗</a>',
+          '      <a class="portfolio-project-open" href="' + escapeAttr(projectHref) + '" aria-label="Open ' + escapeAttr(title) + '">↗</a>',
           "    </div>",
           '    <p class="portfolio-project-copy">' + description + "</p>",
           '    <div class="portfolio-project-cta-wrap">',
-          '      <a class="portfolio-project-cta-dock" href="./project-detail.html?slug=' + project.slug + '">',
+          '      <a class="portfolio-project-cta-dock" href="' + escapeAttr(projectHref) + '">',
           "        <span>View Project</span>",
           "        <span aria-hidden=\"true\">↗</span>",
           "      </a>",

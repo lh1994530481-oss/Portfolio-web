@@ -115,5 +115,28 @@ window.PROJECT_DATA = [
         "alt": "一竺自助讲解小程序 cover"
       }
     ]
+  },
+  {
+    "slug": "homi-smart-home-prototype",
+    "title": "HOMI 智家可交互原型",
+    "category": "Exercises and Demos",
+    "tags": [
+      "Exercises and Demos"
+    ],
+    "descriptionZh": "该项目是一套面向家庭成员与家庭管理员的智能家居可交互产品原型，覆盖设备控制、设备配网、场景自动化、安防告警、摄像头、能源管理及家庭权限管理，并通过跨页面状态联动完整呈现真实业务流程。",
+    "cover": "../assets/project-wall/7.webp",
+    "prototypeHref": "../prototypes/homi/index.html",
+    "images": {
+      "desktop": "../assets/project-wall/7.webp",
+      "mobile": "../assets/project-wall/7.webp"
+    },
+    "media": [
+      {
+        "type": "image",
+        "title": "Interactive Prototype",
+        "src": "../assets/project-wall/7.webp",
+        "alt": "HOMI 智家可交互原型"
+      }
+    ]
   }
 ];

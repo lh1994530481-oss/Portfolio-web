@@ -287,10 +287,8 @@
     authStatus.textContent = "正在验证…";
     const values = serializeForm(loginForm);
     try {
-      if (values.username !== api.config.adminUsername || values.password !== api.config.adminPassword) {
-        throw new Error("账号或密码错误");
-      }
-      await api.signIn(api.config.supabaseAuthEmail, api.config.adminPassword);
+      if (values.username !== api.config.adminUsername) throw new Error("账号或密码错误");
+      await api.signIn(api.config.supabaseAuthEmail, values.password);
       window.sessionStorage.setItem(fixedLoginKey, "true");
       authStatus.textContent = "";
       await showApp();

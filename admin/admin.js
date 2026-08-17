@@ -2,6 +2,7 @@
   const api = window.ContentAPI;
   const defaultProjects = Array.isArray(window.PROJECT_DATA) ? window.PROJECT_DATA : [];
   const defaultArticles = Array.isArray(window.ARTICLE_DATA) ? window.ARTICLE_DATA : [];
+  const fixedLoginKey = "lin-tong-xin-cms:authenticated";
 
   const authScreen = document.getElementById("auth-screen");
   const adminApp = document.getElementById("admin-app");
@@ -286,7 +287,11 @@
     authStatus.textContent = "正在验证…";
     const values = serializeForm(loginForm);
     try {
-      await api.signIn(values.email, values.password);
+      if (values.username !== api.config.adminUsername || values.password !== api.config.adminPassword) {
+        throw new Error("账号或密码错误");
+      }
+      await api.signIn(api.config.supabaseAuthEmail, api.config.adminPassword);
+      window.sessionStorage.setItem(fixedLoginKey, "true");
       authStatus.textContent = "";
       await showApp();
     } catch (error) {
@@ -299,8 +304,10 @@
   document.getElementById("mobile-menu").addEventListener("click", () => sidebar.classList.toggle("is-open"));
   document.getElementById("logout-button").addEventListener("click", async () => {
     await api.signOut();
+    window.sessionStorage.removeItem(fixedLoginKey);
     adminApp.hidden = true;
     authScreen.hidden = false;
+    loginForm.reset();
   });
   document.querySelectorAll("[data-create]").forEach((button) => button.addEventListener("click", () => openEditor(button.dataset.create)));
   projectList.addEventListener("click", (event) => handleListAction(event).catch((error) => { setSync("保存失败", "error"); showToast(error.message, true); }));
@@ -380,10 +387,10 @@
       authStatus.textContent = "尚未连接 Supabase，可先使用本地预览模式。";
       return;
     }
-    const email = document.getElementById("login-email");
-    if (api.config.adminEmail) email.value = api.config.adminEmail;
+    if (window.sessionStorage.getItem(fixedLoginKey) !== "true") return;
     const session = await api.getSession();
     if (session && (!api.config.adminEmail || session.user.email === api.config.adminEmail)) await showApp();
+    else window.sessionStorage.removeItem(fixedLoginKey);
   };
 
   start().catch((error) => {

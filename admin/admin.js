@@ -2,6 +2,7 @@
   const api = window.ContentAPI;
   const defaultProjects = Array.isArray(window.PROJECT_DATA) ? window.PROJECT_DATA : [];
   const defaultArticles = Array.isArray(window.ARTICLE_DATA) ? window.ARTICLE_DATA : [];
+  const defaultNavigation = Array.isArray(api.defaultNavigation) ? api.defaultNavigation : [];
   const fixedLoginKey = "lin-tong-xin-cms:authenticated";
 
   const authScreen = document.getElementById("auth-screen");
@@ -15,6 +16,7 @@
   const syncStatus = document.getElementById("sync-status");
   const projectList = document.getElementById("project-list");
   const articleList = document.getElementById("article-list");
+  const navigationList = document.getElementById("navigation-list");
   const settingsForm = document.getElementById("settings-form");
   const editorDialog = document.getElementById("editor-dialog");
   const editorForm = document.getElementById("editor-form");
@@ -24,6 +26,7 @@
   const state = {
     projects: [],
     articles: [],
+    navigation: [],
     settings: { ...api.defaultSettings },
     activeSection: "overview",
     toastTimer: 0,
@@ -33,6 +36,7 @@
     overview: "概览",
     projects: "项目管理",
     articles: "文章管理",
+    navigation: "导航管理",
     settings: "站点信息",
     media: "素材上传",
     setup: "后台设置",
@@ -74,13 +78,15 @@
 
   const loadData = async () => {
     setSync("读取内容", "busy");
-    const [projects, articles, settings] = await Promise.all([
+    const [projects, articles, navigation, settings] = await Promise.all([
       api.listProjects(defaultProjects, true),
       api.listArticles(defaultArticles, true),
+      api.listNavigation(defaultNavigation, true),
       api.getSettings(),
     ]);
     state.projects = projects;
     state.articles = articles;
+    state.navigation = navigation;
     state.settings = settings;
     renderAll();
     setSync(api.getMode() === "local" ? "本地已保存" : "已同步", "");
@@ -157,6 +163,22 @@
     }).join("");
   };
 
+  const renderNavigationList = () => {
+    if (!state.navigation.length) return '<div class="empty-state">还没有导航，点击右上角新增。</div>';
+    return state.navigation.map((item) => [
+      '<article class="content-row navigation-row">',
+      '  <div class="content-main"><span class="content-thumb content-placeholder"><i data-lucide="link"></i></span><div class="content-main-text"><strong>' + escapeHtml(item.label) + '</strong><small>' + escapeHtml(item.href) + '</small></div></div>',
+      '  <div class="content-category content-cell">' + (item.openNewTab ? "新窗口" : "当前窗口") + '</div>',
+      '  <div class="content-order content-cell">#' + Number(item.sortOrder || 0) + '</div>',
+      '  <span class="status-pill' + (item.published === false ? " is-draft" : "") + '">' + (item.published === false ? "已隐藏" : "显示中") + '</span>',
+      '  <div class="row-actions">',
+      '    <button class="icon-button" type="button" data-edit="navigation" data-id="' + escapeHtml(item.id) + '" aria-label="编辑"><i data-lucide="pencil"></i></button>',
+      '    <button class="icon-button is-danger" type="button" data-delete="navigation" data-id="' + escapeHtml(item.id) + '" aria-label="删除"><i data-lucide="trash-2"></i></button>',
+      '  </div>',
+      '</article>',
+    ].join("\n")).join("");
+  };
+
   const renderSettings = () => {
     Object.keys(api.defaultSettings).forEach((key) => {
       const field = settingsForm.elements.namedItem(key);
@@ -181,6 +203,7 @@
     renderOverview();
     projectList.innerHTML = renderContentList(state.projects, "project");
     articleList.innerHTML = renderContentList(state.articles, "article");
+    navigationList.innerHTML = renderNavigationList();
     renderSettings();
     renderSetup();
     refreshIcons();
@@ -211,15 +234,27 @@
     '<label class="toggle-field field-wide"><span>公开发布</span><input name="published" type="checkbox"' + (item.published === false ? "" : " checked") + " /></label>",
   ].join("\n");
 
+  const navigationFields = (item) => [
+    '<label class="field"><span>导航名称</span><input name="label" required value="' + escapeHtml(item.label || "") + '" placeholder="例如：服务" /></label>',
+    '<label class="field"><span>排序</span><input name="sortOrder" type="number" min="0" value="' + Number(item.sortOrder || 0) + '" /></label>',
+    '<label class="field field-wide"><span>跳转链接</span><input name="href" required value="' + escapeHtml(item.href || "") + '" placeholder="站内路径、#区块 或 https:// 链接" /></label>',
+    '<label class="toggle-field"><span>显示在网站</span><input name="published" type="checkbox"' + (item.published === false ? "" : " checked") + ' /></label>',
+    '<label class="toggle-field"><span>新窗口打开</span><input name="openNewTab" type="checkbox"' + (item.openNewTab ? " checked" : "") + ' /></label>',
+  ].join("\n");
+
   const openEditor = (type, item) => {
     const editing = Boolean(item);
     const value = item || (type === "project"
       ? { category: "APP Design", sortOrder: state.projects.length, published: true }
-      : { category: "AI", sortOrder: state.articles.length, published: true, blocks: [] });
+      : type === "article"
+        ? { category: "AI", sortOrder: state.articles.length, published: true, blocks: [] }
+        : { sortOrder: state.navigation.length, published: true, openNewTab: false });
     editorForm.dataset.type = type;
-    document.getElementById("editor-eyebrow").textContent = type === "project" ? "Portfolio" : "Article";
-    document.getElementById("editor-title").textContent = (editing ? "编辑" : "新建") + (type === "project" ? "项目" : "文章");
-    editorBody.innerHTML = type === "project" ? projectFields(value, editing) : articleFields(value, editing);
+    document.getElementById("editor-eyebrow").textContent = type === "project" ? "Portfolio" : type === "article" ? "Article" : "Navigation";
+    document.getElementById("editor-title").textContent = (editing ? "编辑" : "新建") + (type === "project" ? "项目" : type === "article" ? "文章" : "导航");
+    editorBody.innerHTML = type === "project" ? projectFields(value, editing) : type === "article" ? articleFields(value, editing) : navigationFields(value);
+    if (type === "navigation" && value.id) editorForm.dataset.itemId = value.id;
+    else delete editorForm.dataset.itemId;
     editorDialog.showModal();
     refreshIcons();
   };
@@ -239,7 +274,7 @@
     if (type === "project") {
       values.tags = [values.category];
       await api.saveProject(values, defaultProjects);
-    } else {
+    } else if (type === "article") {
       try {
         values.blocks = JSON.parse(values.blocks || "[]");
       } catch (error) {
@@ -247,6 +282,10 @@
       }
       if (!Array.isArray(values.blocks)) throw new Error("正文区块必须是数组");
       await api.saveArticle(values, defaultArticles);
+    } else {
+      values.id = editorForm.dataset.itemId || undefined;
+      values.openNewTab = Boolean(editorForm.elements.namedItem("openNewTab").checked);
+      await api.saveNavigationItem(values, defaultNavigation);
     }
     closeEditor();
     await loadData();
@@ -257,19 +296,25 @@
     const edit = event.target.closest("[data-edit]");
     if (edit) {
       const type = edit.dataset.edit;
-      const items = type === "project" ? state.projects : state.articles;
-      openEditor(type, items.find((item) => item.slug === edit.dataset.slug));
+      const items = type === "project" ? state.projects : type === "article" ? state.articles : state.navigation;
+      const item = type === "navigation"
+        ? items.find((entry) => entry.id === edit.dataset.id)
+        : items.find((entry) => entry.slug === edit.dataset.slug);
+      openEditor(type, item);
       return;
     }
     const remove = event.target.closest("[data-delete]");
     if (!remove) return;
     const type = remove.dataset.delete;
-    const items = type === "project" ? state.projects : state.articles;
-    const item = items.find((entry) => entry.slug === remove.dataset.slug);
-    if (!item || !window.confirm("确认删除“" + item.title + "”吗？此操作无法撤销。")) return;
+    const items = type === "project" ? state.projects : type === "article" ? state.articles : state.navigation;
+    const item = type === "navigation"
+      ? items.find((entry) => entry.id === remove.dataset.id)
+      : items.find((entry) => entry.slug === remove.dataset.slug);
+    if (!item || !window.confirm("确认删除“" + (item.title || item.label) + "”吗？此操作无法撤销。")) return;
     setSync("删除中", "busy");
     if (type === "project") await api.deleteProject(item.slug, defaultProjects);
-    else await api.deleteArticle(item.slug, defaultArticles);
+    else if (type === "article") await api.deleteArticle(item.slug, defaultArticles);
+    else await api.deleteNavigationItem(item.id, defaultNavigation);
     await loadData();
     showToast("内容已删除");
   };
@@ -310,6 +355,7 @@
   document.querySelectorAll("[data-create]").forEach((button) => button.addEventListener("click", () => openEditor(button.dataset.create)));
   projectList.addEventListener("click", (event) => handleListAction(event).catch((error) => { setSync("保存失败", "error"); showToast(error.message, true); }));
   articleList.addEventListener("click", (event) => handleListAction(event).catch((error) => { setSync("保存失败", "error"); showToast(error.message, true); }));
+  navigationList.addEventListener("click", (event) => handleListAction(event).catch((error) => { setSync("保存失败", "error"); showToast(error.message, true); }));
   document.querySelectorAll("[data-close-editor]").forEach((button) => button.addEventListener("click", closeEditor));
   editorDialog.addEventListener("click", (event) => {
     if (event.target !== editorDialog) return;
@@ -368,7 +414,7 @@
   document.getElementById("import-content").addEventListener("click", async () => {
     try {
       setSync("导入中", "busy");
-      await api.importDefaults(defaultProjects, defaultArticles, api.defaultSettings);
+      await api.importDefaults(defaultProjects, defaultArticles, api.defaultSettings, defaultNavigation);
       await loadData();
       showToast("现有网站内容已导入");
     } catch (error) {

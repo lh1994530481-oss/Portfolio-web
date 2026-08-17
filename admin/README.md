@@ -38,6 +38,7 @@ The admin panel lives at `/admin/`. Without a Supabase connection it runs in loc
 
 - Projects are shared by the homepage project wall, `/portfolio/`, and project detail pages.
 - Articles are shared by `/articles/` and article detail pages.
+- Navigation items manage the homepage menu, including order, visibility, destination, and new-window behavior.
 - Site settings manage the about text, contact details, social link, and WeChat QR image.
 - Uploaded images are stored in the public `portfolio-media` bucket.
 - Draft content stays hidden from the public site.

@@ -15,6 +15,13 @@
     wechatQrUrl: "./assets/contact/wechat-official-account-qr.jpg",
   };
 
+  const defaultNavigation = [
+    { id: "10000000-0000-4000-8000-000000000001", label: "首页", href: "#top", sortOrder: 0, published: true, openNewTab: false },
+    { id: "10000000-0000-4000-8000-000000000002", label: "作品集", href: "./portfolio/index.html", sortOrder: 1, published: true, openNewTab: false },
+    { id: "10000000-0000-4000-8000-000000000003", label: "文章", href: "./articles/index.html", sortOrder: 2, published: true, openNewTab: false },
+    { id: "10000000-0000-4000-8000-000000000004", label: "联系", href: "#contact", sortOrder: 3, published: true, openNewTab: false },
+  ];
+
   const isConfigured = () => Boolean(config.supabaseUrl && (config.publishableKey || config.anonKey));
   const getKey = () => config.publishableKey || config.anonKey || "";
 
@@ -107,6 +114,24 @@
     sort_order: Number(article.sortOrder || 0),
   });
 
+  const navigationFromRow = (row) => ({
+    id: row.id,
+    label: row.label,
+    href: row.href,
+    sortOrder: Number(row.sort_order || 0),
+    published: row.published !== false,
+    openNewTab: row.open_new_tab === true,
+  });
+
+  const navigationToRow = (item) => ({
+    label: item.label,
+    href: item.href,
+    sort_order: Number(item.sortOrder || 0),
+    published: item.published !== false,
+    open_new_tab: item.openNewTab === true,
+    updated_at: new Date().toISOString(),
+  });
+
   const settingsFromRow = (row) => ({
     id: "main",
     aboutText: row.about_text || defaultSettings.aboutText,
@@ -169,6 +194,28 @@
     }
   };
 
+  const listNavigation = async (fallback, includeDrafts) => {
+    const defaults = (fallback || defaultNavigation).map((item, index) => ({
+      ...item,
+      published: item.published !== false,
+      openNewTab: item.openNewTab === true,
+      sortOrder: item.sortOrder ?? index,
+    }));
+    if (!isConfigured()) return sortContent(readLocal("navigation", defaults)).filter((item) => includeDrafts || item.published !== false);
+
+    try {
+      if (includeDrafts) {
+        const { data, error } = await getClient().from("navigation_items").select("*").order("sort_order", { ascending: true });
+        if (error) throw error;
+        return data.map(navigationFromRow);
+      }
+      const rows = await publicRequest("navigation_items?select=*&published=eq.true&order=sort_order.asc");
+      return rows.map(navigationFromRow);
+    } catch (error) {
+      return defaults.filter((item) => includeDrafts || item.published !== false);
+    }
+  };
+
   const getSettings = async () => {
     if (!isConfigured()) return { ...defaultSettings, ...readLocal("settings", {}) };
     try {
@@ -214,6 +261,29 @@
   const deleteArticle = async (slug, fallback) => {
     if (!isConfigured()) return writeLocal("articles", (await listArticles(fallback, true)).filter((item) => item.slug !== slug));
     const { error } = await getClient().from("articles").delete().eq("slug", slug);
+    if (error) throw error;
+  };
+
+  const saveNavigationItem = async (item, fallback) => {
+    if (!isConfigured()) {
+      const items = await listNavigation(fallback, true);
+      const index = items.findIndex((entry) => entry.id === item.id);
+      if (index >= 0) items[index] = { ...items[index], ...item };
+      else items.push({ ...item, id: "local-" + Date.now() });
+      return writeLocal("navigation", items);
+    }
+    const row = navigationToRow(item);
+    const request = item.id
+      ? getClient().from("navigation_items").upsert({ ...row, id: item.id }).select().single()
+      : getClient().from("navigation_items").insert(row).select().single();
+    const { data, error } = await request;
+    if (error) throw error;
+    return navigationFromRow(data);
+  };
+
+  const deleteNavigationItem = async (id, fallback) => {
+    if (!isConfigured()) return writeLocal("navigation", (await listNavigation(fallback, true)).filter((item) => item.id !== id));
+    const { error } = await getClient().from("navigation_items").delete().eq("id", id);
     if (error) throw error;
   };
 
@@ -264,20 +334,26 @@
     return data.session;
   };
 
-  const importDefaults = async (projects, articles, settings) => {
+  const importDefaults = async (projects, articles, settings, navigation) => {
     if (!isConfigured()) {
       writeLocal("projects", projects.map((item, index) => ({ ...item, published: item.published !== false, sortOrder: item.sortOrder ?? index })));
       writeLocal("articles", articles.map((item, index) => ({ ...item, published: item.published !== false, sortOrder: item.sortOrder ?? index })));
       writeLocal("settings", settings || defaultSettings);
+      writeLocal("navigation", navigation || defaultNavigation);
       return;
     }
     const database = getClient();
     const projectRows = projects.map((item, index) => projectToRow({ ...item, sortOrder: item.sortOrder ?? index }));
     const articleRows = articles.map((item, index) => articleToRow({ ...item, sortOrder: item.sortOrder ?? index }));
+    const navigationRows = (navigation || defaultNavigation).map((item, index) => ({
+      ...navigationToRow({ ...item, sortOrder: item.sortOrder ?? index }),
+      id: item.id,
+    }));
     const operations = await Promise.all([
       database.from("projects").upsert(projectRows, { onConflict: "slug" }),
       database.from("articles").upsert(articleRows, { onConflict: "slug" }),
       database.from("site_settings").upsert(settingsToRow(settings || defaultSettings)),
+      database.from("navigation_items").upsert(navigationRows),
     ]);
     const failed = operations.find((item) => item.error);
     if (failed) throw failed.error;
@@ -286,6 +362,7 @@
   window.ContentAPI = {
     config,
     defaultSettings,
+    defaultNavigation,
     isConfigured,
     getMode: () => (isConfigured() ? "supabase" : "local"),
     getClient,
@@ -294,11 +371,14 @@
     signOut,
     listProjects,
     listArticles,
+    listNavigation,
     getSettings,
     saveProject,
     deleteProject,
     saveArticle,
     deleteArticle,
+    saveNavigationItem,
+    deleteNavigationItem,
     saveSettings,
     uploadMedia,
     importDefaults,

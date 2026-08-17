@@ -54,10 +54,25 @@ create table if not exists public.site_settings (
   updated_at timestamptz not null default now()
 );
 
+create table if not exists public.navigation_items (
+  id uuid primary key default gen_random_uuid(),
+  label text not null,
+  href text not null,
+  sort_order integer not null default 0,
+  published boolean not null default true,
+  open_new_tab boolean not null default false,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+
+create index if not exists navigation_items_sort_order_idx
+on public.navigation_items (sort_order, created_at);
+
 alter table public.portfolio_admins enable row level security;
 alter table public.projects enable row level security;
 alter table public.articles enable row level security;
 alter table public.site_settings enable row level security;
+alter table public.navigation_items enable row level security;
 
 create or replace function private.is_portfolio_admin()
 returns boolean
@@ -121,10 +136,35 @@ to authenticated
 using ((select private.is_portfolio_admin()))
 with check ((select private.is_portfolio_admin()));
 
+drop policy if exists "Public reads published navigation" on public.navigation_items;
+create policy "Public reads published navigation"
+on public.navigation_items
+for select
+to anon, authenticated
+using (published or (select private.is_portfolio_admin()));
+
+drop policy if exists "Admins manage navigation" on public.navigation_items;
+create policy "Admins manage navigation"
+on public.navigation_items
+for all
+to authenticated
+using ((select private.is_portfolio_admin()))
+with check ((select private.is_portfolio_admin()));
+
 grant usage on schema public to anon, authenticated;
 grant select on public.projects, public.articles, public.site_settings to anon, authenticated;
 grant insert, update, delete on public.projects, public.articles, public.site_settings to authenticated;
+grant select on public.navigation_items to anon, authenticated;
+grant insert, update, delete on public.navigation_items to authenticated;
 revoke all on public.portfolio_admins from anon, authenticated;
+
+insert into public.navigation_items (id, label, href, sort_order, published, open_new_tab)
+values
+  ('10000000-0000-4000-8000-000000000001', '首页', '#top', 0, true, false),
+  ('10000000-0000-4000-8000-000000000002', '作品集', './portfolio/index.html', 1, true, false),
+  ('10000000-0000-4000-8000-000000000003', '文章', './articles/index.html', 2, true, false),
+  ('10000000-0000-4000-8000-000000000004', '联系', '#contact', 3, true, false)
+on conflict (id) do nothing;
 
 insert into storage.buckets (id, name, public)
 values ('portfolio-media', 'portfolio-media', true)

@@ -143,10 +143,33 @@ async function initManagedContent() {
   if (!window.ContentAPI) return;
 
   const fallbackProjects = Array.isArray(window.PROJECT_DATA) ? window.PROJECT_DATA : [];
-  const [settings, projects] = await Promise.all([
+  const [settings, projects, navigation] = await Promise.all([
     window.ContentAPI.getSettings(),
     window.ContentAPI.listProjects(fallbackProjects, false),
+    window.ContentAPI.listNavigation(window.ContentAPI.defaultNavigation, false),
   ]);
+
+  const navigationRoot = document.querySelector("[data-managed-navigation]");
+  if (navigationRoot) {
+    const safeHref = (value) => {
+      const href = String(value || "").trim();
+      const protocolCandidate = href.replace(/[\u0000-\u0020]/g, "");
+      return /^(?:javascript|data|vbscript):/i.test(protocolCandidate) ? "#" : (href || "#");
+    };
+    const fragment = document.createDocumentFragment();
+    navigation.forEach((item) => {
+      const link = document.createElement("a");
+      link.className = "nav-link magnetic";
+      link.href = safeHref(item.href);
+      link.textContent = item.label;
+      if (item.openNewTab) {
+        link.target = "_blank";
+        link.rel = "noopener";
+      }
+      fragment.appendChild(link);
+    });
+    navigationRoot.replaceChildren(fragment);
+  }
 
   document.querySelectorAll("[data-content]").forEach((node) => {
     const value = settings[node.dataset.content];
@@ -389,8 +412,8 @@ function initScrollScene() {
 window.addEventListener("DOMContentLoaded", async () => {
   initHeader();
   initReveal();
-  initMagnetic();
   await initManagedContent();
+  initMagnetic();
   initProjectWall();
   initWechatDialog();
   initAboutWords();

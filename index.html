@@ -50,7 +50,7 @@
       </section>
 
       <section class="about-section">
-        <p class="about-copy">
+        <p class="about-copy" data-content="aboutText">
           拥有5年以上多端UI/UX体验设计经验，具备深厚的B端SaaS系统与C端移动产品设计实战积累。拥有极强的业务洞察力与产品思维，能独立完成从“需求分析-逻辑梳理-视觉表达-资产交付”的全流程工作。
         </p>
       </section>
@@ -74,7 +74,7 @@
           </a>
         </div>
 
-        <div class="projects-grid" data-reveal>
+        <div class="projects-grid" data-reveal data-managed-projects>
           <a
             class="project-card"
             href="./portfolio/project-detail.html?slug=personnel-logistics-management-system"
@@ -155,12 +155,13 @@
         <section class="footer-column footer-column-primary" data-reveal>
           <p class="footer-kicker">Contact</p>
           <h2>联系方式</h2>
-          <p>
+          <p data-content="contactIntro">
             如果你也在做品牌体验、数字产品或视觉叙事相关的项目，我们可以聊聊。
           </p>
           <div class="contact-socials" aria-label="社交平台">
             <a
               class="contact-social-tag"
+              data-content-link="xiaohongshuUrl"
               href="https://www.xiaohongshu.com/user/profile/654ddf25000000000802faa7?xsec_token=AB8a8l2qx6DnMLG1aJjLFXPccDnBoKuproZpqZSO86rrE%3D&amp;xsec_source=pc_search"
               target="_blank"
               rel="noopener noreferrer"
@@ -177,19 +178,19 @@
         <div class="footer-contact-grid" data-reveal>
           <article class="footer-contact-card">
             <span>邮箱</span>
-            <a href="mailto:13828947379@163.com">13828947379@163.com</a>
+            <a href="mailto:13828947379@163.com" data-content="email" data-content-mail="email">13828947379@163.com</a>
           </article>
           <article class="footer-contact-card">
             <span>位置</span>
-            <strong>广东·广州·番禺</strong>
+            <strong data-content="location">广东·广州·番禺</strong>
           </article>
           <article class="footer-contact-card">
             <span>微信</span>
-            <strong>Yu27007479</strong>
+            <strong data-content="wechat">Yu27007479</strong>
           </article>
           <article class="footer-contact-card">
             <span>工作时间</span>
-            <strong>周一至周五 9:00-18:00</strong>
+            <strong data-content="workHours">周一至周五 9:00-18:00</strong>
           </article>
         </div>
       </div>
@@ -209,6 +210,7 @@
       <button class="wechat-dialog-close" type="button" aria-label="关闭二维码弹窗" data-wechat-dialog-close>×</button>
       <img
         class="wechat-dialog-qr"
+        data-content-image="wechatQrUrl"
         src="./assets/contact/wechat-official-account-qr.jpg"
         width="140"
         height="140"
@@ -217,7 +219,10 @@
       <p id="wechat-dialog-title">扫码关注，获得更多信息。</p>
     </dialog>
 
-    <script src="./app.js?v=20260711-2" defer></script>
+    <script src="./portfolio/project-data.js?v=20260729-1"></script>
+    <script src="./admin/config.js"></script>
+    <script src="./shared/content-api.js?v=20260814-1"></script>
+    <script src="./app.js?v=20260814-1" defer></script>
     <script src="./assets/page-transition.js" defer></script>
   </body>
 </html>

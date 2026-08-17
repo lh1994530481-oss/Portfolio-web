@@ -139,6 +139,66 @@ function initProjectWall() {
   });
 }
 
+async function initManagedContent() {
+  if (!window.ContentAPI) return;
+
+  const fallbackProjects = Array.isArray(window.PROJECT_DATA) ? window.PROJECT_DATA : [];
+  const [settings, projects] = await Promise.all([
+    window.ContentAPI.getSettings(),
+    window.ContentAPI.listProjects(fallbackProjects, false),
+  ]);
+
+  document.querySelectorAll("[data-content]").forEach((node) => {
+    const value = settings[node.dataset.content];
+    if (value) node.textContent = value;
+  });
+
+  document.querySelectorAll("[data-content-link]").forEach((node) => {
+    const value = settings[node.dataset.contentLink];
+    if (value) node.href = value;
+  });
+
+  document.querySelectorAll("[data-content-mail]").forEach((node) => {
+    const value = settings[node.dataset.contentMail];
+    if (value) node.href = "mailto:" + value;
+  });
+
+  document.querySelectorAll("[data-content-image]").forEach((node) => {
+    const value = settings[node.dataset.contentImage];
+    if (value) node.src = value;
+  });
+
+  const grid = document.querySelector("[data-managed-projects]");
+  if (!grid || !projects.length) return;
+
+  const escapeAttr = (value) =>
+    String(value || "")
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;");
+  const homePath = (value) => {
+    const path = String(value || "");
+    if (/^(https?:|data:|\/)/.test(path)) return path;
+    return path.replace(/^\.\.\//, "./");
+  };
+
+  grid.innerHTML = projects.slice(0, 6).map((project, index) => {
+    const href = project.prototypeHref
+      ? homePath(project.prototypeHref)
+      : "./portfolio/project-detail.html?slug=" + encodeURIComponent(project.slug);
+    const cover = homePath(project.cover);
+    const title = escapeAttr(project.title);
+    const hiddenClass = index === 3 || index === 5 ? " project-card-mobile-hidden" : "";
+    return [
+      '<a class="project-card' + hiddenClass + '" href="' + escapeAttr(href) + '" data-column="' + ((index % 3) + 1) + '" aria-label="' + title + '">',
+      '  <div class="project-image-dock"><img src="' + escapeAttr(cover) + '" alt="' + title + '" loading="lazy" decoding="async" /></div>',
+      '  <span class="project-meta-label">' + title + "</span>",
+      "</a>",
+    ].join("\n");
+  }).join("\n");
+}
+
 function initWechatDialog() {
   const dialog = document.querySelector(".wechat-dialog");
   const openButton = document.querySelector("[data-wechat-dialog-open]");
@@ -326,10 +386,11 @@ function initScrollScene() {
   window.addEventListener("resize", onResize);
 }
 
-window.addEventListener("DOMContentLoaded", () => {
+window.addEventListener("DOMContentLoaded", async () => {
   initHeader();
   initReveal();
   initMagnetic();
+  await initManagedContent();
   initProjectWall();
   initWechatDialog();
   initAboutWords();

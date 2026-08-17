@@ -1,7 +1,10 @@
-(function () {
+(async function () {
   const root = document.getElementById("portfolio-list-grid");
   const filterRoot = document.getElementById("portfolio-filter-bar");
-  const projects = Array.isArray(window.PROJECT_DATA) ? window.PROJECT_DATA : [];
+  const fallbackProjects = Array.isArray(window.PROJECT_DATA) ? window.PROJECT_DATA : [];
+  const projects = window.ContentAPI
+    ? await window.ContentAPI.listProjects(fallbackProjects, false)
+    : fallbackProjects;
   const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
   const pointerFine = window.matchMedia("(hover: hover) and (pointer: fine)").matches;
 
@@ -73,7 +76,7 @@
 
   const getProjectTags = (project) => {
     const meta = projectMeta[project.slug] || {};
-    return meta.tags || project.tags || [meta.category || project.category];
+    return project.tags || meta.tags || [project.category || meta.category];
   };
 
   const getOrderedProjects = () =>
@@ -202,10 +205,10 @@
     root.innerHTML = visibleProjects
       .map(function (project, index) {
         const meta = projectMeta[project.slug] || {};
-        const imageSrc = wallImages[project.slug] || project.cover;
+        const imageSrc = project.cover || wallImages[project.slug];
         const tags = getProjectTags(project);
-        const title = meta.title || project.title;
-        const description = meta.description || project.descriptionZh || "";
+        const title = project.title || meta.title;
+        const description = project.descriptionZh || meta.description || "";
         const projectHref = project.prototypeHref || "./project-detail.html?slug=" + project.slug;
         const isReversed = index % 2 === 1;
 

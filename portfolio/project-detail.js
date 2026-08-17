@@ -1,6 +1,9 @@
-(function () {
+(async function () {
   const root = document.getElementById("project-detail-root");
-  const projects = Array.isArray(window.PROJECT_DATA) ? window.PROJECT_DATA : [];
+  const fallbackProjects = Array.isArray(window.PROJECT_DATA) ? window.PROJECT_DATA : [];
+  const projects = window.ContentAPI
+    ? await window.ContentAPI.listProjects(fallbackProjects, false)
+    : fallbackProjects;
   const params = new URLSearchParams(window.location.search);
   const slug = params.get("slug");
   const fallbackBackHref = "../index.html#portfolio";
@@ -50,7 +53,7 @@
   const backHref = getBackHref();
 
   const tags = Array.from(new Set(project.tags && project.tags.length ? project.tags : [project.category]));
-  const coverImage = wallImages[project.slug] || project.cover;
+  const coverImage = project.cover || wallImages[project.slug];
   const mediaHtml = [
     '<article class="project-media">',
     '  <img class="project-media-image" src="' + coverImage + '" alt="' + escapeAttr(project.title) + '" loading="eager" decoding="async" />',

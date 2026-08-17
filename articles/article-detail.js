@@ -1,6 +1,9 @@
-(function () {
+(async function () {
   const root = document.getElementById("article-detail-root");
-  const articles = Array.isArray(window.ARTICLE_DATA) ? window.ARTICLE_DATA : [];
+  const fallbackArticles = Array.isArray(window.ARTICLE_DATA) ? window.ARTICLE_DATA : [];
+  const articles = window.ContentAPI
+    ? await window.ContentAPI.listArticles(fallbackArticles, false)
+    : fallbackArticles;
   const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
   if (!root) return;

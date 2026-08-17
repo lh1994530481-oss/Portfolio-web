@@ -1,8 +1,11 @@
-(function () {
+(async function () {
   const root = document.getElementById("article-list-grid");
   const filterRoot = document.getElementById("article-filter-bar");
   const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-  const articles = Array.isArray(window.ARTICLE_DATA) ? window.ARTICLE_DATA : [];
+  const fallbackArticles = Array.isArray(window.ARTICLE_DATA) ? window.ARTICLE_DATA : [];
+  const articles = window.ContentAPI
+    ? await window.ContentAPI.listArticles(fallbackArticles, false)
+    : fallbackArticles;
 
   if (!root || !filterRoot) return;
 

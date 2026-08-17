@@ -1,0 +1,198 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="robots" content="noindex, nofollow" />
+    <title>Portfolio CMS</title>
+    <link rel="stylesheet" href="./admin.css?v=20260814-1" />
+  </head>
+  <body>
+    <main class="auth-screen" id="auth-screen">
+      <section class="auth-panel" aria-labelledby="auth-title">
+        <a class="auth-brand" href="../index.html">Lin Tong Xin</a>
+        <div class="auth-copy">
+          <p class="eyebrow">Portfolio CMS</p>
+          <h1 id="auth-title">内容管理后台</h1>
+          <p>管理项目、文章、站点信息和图片素材。</p>
+        </div>
+
+        <form class="auth-form" id="login-form">
+          <label>
+            <span>管理员邮箱</span>
+            <input id="login-email" name="email" type="email" autocomplete="username" placeholder="name@example.com" required />
+          </label>
+          <label>
+            <span>密码</span>
+            <input id="login-password" name="password" type="password" autocomplete="current-password" placeholder="输入密码" required />
+          </label>
+          <button class="button button-primary" type="submit">
+            <span>登录后台</span>
+            <i data-lucide="arrow-right" aria-hidden="true"></i>
+          </button>
+        </form>
+
+        <button class="local-entry" id="local-entry" type="button" hidden>
+          <i data-lucide="monitor-cog" aria-hidden="true"></i>
+          <span><strong>进入本地预览模式</strong><small>数据仅保存在当前浏览器</small></span>
+        </button>
+        <p class="auth-status" id="auth-status" role="status"></p>
+      </section>
+    </main>
+
+    <div class="admin-app" id="admin-app" hidden>
+      <aside class="admin-sidebar">
+        <div class="sidebar-brand">
+          <span class="brand-mark">LT</span>
+          <div><strong>Portfolio</strong><small>Content Manager</small></div>
+        </div>
+
+        <nav class="sidebar-nav" aria-label="后台导航">
+          <button class="nav-item is-active" type="button" data-section="overview">
+            <i data-lucide="layout-dashboard" aria-hidden="true"></i><span>概览</span>
+          </button>
+          <button class="nav-item" type="button" data-section="projects">
+            <i data-lucide="panels-top-left" aria-hidden="true"></i><span>项目管理</span>
+          </button>
+          <button class="nav-item" type="button" data-section="articles">
+            <i data-lucide="notebook-pen" aria-hidden="true"></i><span>文章管理</span>
+          </button>
+          <button class="nav-item" type="button" data-section="settings">
+            <i data-lucide="contact" aria-hidden="true"></i><span>站点信息</span>
+          </button>
+          <button class="nav-item" type="button" data-section="media">
+            <i data-lucide="images" aria-hidden="true"></i><span>素材上传</span>
+          </button>
+          <button class="nav-item" type="button" data-section="setup">
+            <i data-lucide="database" aria-hidden="true"></i><span>后台设置</span>
+          </button>
+        </nav>
+
+        <div class="sidebar-footer">
+          <a href="../index.html" target="_blank" rel="noopener">
+            <i data-lucide="external-link" aria-hidden="true"></i><span>查看网站</span>
+          </a>
+          <button id="logout-button" type="button">
+            <i data-lucide="log-out" aria-hidden="true"></i><span>退出</span>
+          </button>
+        </div>
+      </aside>
+
+      <div class="admin-main">
+        <header class="admin-header">
+          <button class="mobile-menu" id="mobile-menu" type="button" aria-label="打开后台导航">
+            <i data-lucide="menu" aria-hidden="true"></i>
+          </button>
+          <div>
+            <p class="header-label">Portfolio CMS</p>
+            <h1 id="section-title">概览</h1>
+          </div>
+          <div class="header-actions">
+            <span class="mode-badge" id="mode-badge"></span>
+            <span class="sync-status" id="sync-status"><i data-lucide="check-circle-2" aria-hidden="true"></i>已同步</span>
+          </div>
+        </header>
+
+        <div class="admin-content">
+          <section class="admin-section is-active" data-panel="overview">
+            <div class="metric-grid" id="metric-grid"></div>
+            <div class="overview-grid">
+              <section class="surface recent-surface">
+                <div class="surface-heading"><div><p class="eyebrow">Content</p><h2>最近内容</h2></div></div>
+                <div id="recent-content"></div>
+              </section>
+              <section class="surface status-surface">
+                <div class="surface-heading"><div><p class="eyebrow">Status</p><h2>发布状态</h2></div></div>
+                <div id="publish-status"></div>
+              </section>
+            </div>
+          </section>
+
+          <section class="admin-section" data-panel="projects">
+            <div class="section-toolbar">
+              <div><p class="eyebrow">Portfolio</p><h2>项目内容</h2><p>管理作品集、练习原型和项目排序。</p></div>
+              <button class="button button-primary" type="button" data-create="project"><i data-lucide="plus" aria-hidden="true"></i><span>新建项目</span></button>
+            </div>
+            <div class="content-list" id="project-list"></div>
+          </section>
+
+          <section class="admin-section" data-panel="articles">
+            <div class="section-toolbar">
+              <div><p class="eyebrow">Articles</p><h2>文章内容</h2><p>编辑文章摘要、正文结构与发布状态。</p></div>
+              <button class="button button-primary" type="button" data-create="article"><i data-lucide="plus" aria-hidden="true"></i><span>新建文章</span></button>
+            </div>
+            <div class="content-list" id="article-list"></div>
+          </section>
+
+          <section class="admin-section" data-panel="settings">
+            <div class="section-toolbar"><div><p class="eyebrow">Website</p><h2>站点信息</h2><p>更新首页介绍和底部联系方式。</p></div></div>
+            <form class="settings-form surface" id="settings-form">
+              <label class="field field-wide"><span>关于我</span><textarea name="aboutText" rows="6"></textarea></label>
+              <label class="field field-wide"><span>联系介绍</span><textarea name="contactIntro" rows="3"></textarea></label>
+              <label class="field"><span>邮箱</span><input name="email" type="email" /></label>
+              <label class="field"><span>位置</span><input name="location" type="text" /></label>
+              <label class="field"><span>微信号</span><input name="wechat" type="text" /></label>
+              <label class="field"><span>工作时间</span><input name="workHours" type="text" /></label>
+              <label class="field field-wide"><span>小红书链接</span><input name="xiaohongshuUrl" type="url" /></label>
+              <label class="field field-wide"><span>公众号二维码地址</span><input name="wechatQrUrl" type="text" /></label>
+              <div class="form-actions field-wide"><button class="button button-primary" type="submit"><i data-lucide="save" aria-hidden="true"></i><span>保存站点信息</span></button></div>
+            </form>
+          </section>
+
+          <section class="admin-section" data-panel="media">
+            <div class="section-toolbar"><div><p class="eyebrow">Media</p><h2>素材上传</h2><p>上传封面、文章图片和二维码，复制生成的地址使用。</p></div></div>
+            <div class="media-layout">
+              <form class="surface upload-zone" id="media-form">
+                <input id="media-file" type="file" accept="image/png,image/jpeg,image/webp,image/gif" hidden />
+                <label for="media-file" class="drop-label">
+                  <i data-lucide="upload-cloud" aria-hidden="true"></i>
+                  <strong>选择图片上传</strong>
+                  <span>PNG、JPG、WebP 或 GIF</span>
+                </label>
+                <button class="button button-primary" type="submit"><i data-lucide="upload" aria-hidden="true"></i><span>开始上传</span></button>
+              </form>
+              <section class="surface media-result" id="media-result">
+                <div class="empty-media"><i data-lucide="image" aria-hidden="true"></i><p>上传完成后，这里会显示图片与公开地址。</p></div>
+              </section>
+            </div>
+          </section>
+
+          <section class="admin-section" data-panel="setup">
+            <div class="section-toolbar"><div><p class="eyebrow">Backend</p><h2>后台设置</h2><p>检查连接状态并导入当前网站内容。</p></div></div>
+            <div class="setup-layout">
+              <section class="surface setup-status" id="setup-status"></section>
+              <section class="surface setup-steps">
+                <h3>正式启用步骤</h3>
+                <ol>
+                  <li>在 Supabase SQL Editor 执行 <code>admin/supabase-schema.sql</code>。</li>
+                  <li>在 Authentication 创建管理员账号，并将 User UID 写入 <code>portfolio_admins</code>。</li>
+                  <li>在 <code>admin/config.js</code> 填入 Project URL、Publishable Key 和管理员邮箱。</li>
+                  <li>登录本后台，点击“导入现有网站内容”。</li>
+                </ol>
+                <button class="button button-secondary" id="import-content" type="button"><i data-lucide="database-backup" aria-hidden="true"></i><span>导入现有网站内容</span></button>
+              </section>
+            </div>
+          </section>
+        </div>
+      </div>
+    </div>
+
+    <dialog class="editor-dialog" id="editor-dialog">
+      <form class="editor-form" id="editor-form" method="dialog">
+        <header class="editor-header"><div><p class="eyebrow" id="editor-eyebrow">Content</p><h2 id="editor-title">编辑内容</h2></div><button class="icon-button" type="button" data-close-editor aria-label="关闭编辑器"><i data-lucide="x" aria-hidden="true"></i></button></header>
+        <div class="editor-body" id="editor-body"></div>
+        <footer class="editor-footer"><button class="button button-ghost" type="button" data-close-editor>取消</button><button class="button button-primary" type="submit"><i data-lucide="save" aria-hidden="true"></i><span>保存</span></button></footer>
+      </form>
+    </dialog>
+
+    <div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+    <script src="../portfolio/project-data.js"></script>
+    <script src="../articles/articles-data.js"></script>
+    <script src="./config.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="../shared/content-api.js?v=20260814-1"></script>
+    <script src="https://unpkg.com/lucide@0.468.0/dist/umd/lucide.min.js"></script>
+    <script src="./admin.js?v=20260814-1" defer></script>
+  </body>
+</html>

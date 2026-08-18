@@ -821,6 +821,16 @@
     await loadData();
   };
 
+  const showAppWithAuthRetry = async () => {
+    try {
+      await showApp();
+    } catch (error) {
+      if (!/JWT issued at future/i.test(error.message || "")) throw error;
+      await new Promise((resolve) => window.setTimeout(resolve, 1200));
+      await showApp();
+    }
+  };
+
   loginForm.addEventListener("submit", async (event) => {
     event.preventDefault();
     authStatus.textContent = "正在验证…";
@@ -832,7 +842,7 @@
       }
       window.sessionStorage.setItem(fixedLoginKey, "true");
       authStatus.textContent = "";
-      await showApp();
+      await showAppWithAuthRetry();
     } catch (error) {
       authStatus.textContent = error.message || "登录失败";
     }
@@ -1101,11 +1111,11 @@
     document.getElementById("auth-site-link").href = siteBase;
     if (window.sessionStorage.getItem(fixedLoginKey) !== "true") return;
     if (!api.isConfigured()) {
-      await showApp();
+      await showAppWithAuthRetry();
       return;
     }
     const session = await api.getSession();
-    if (session && session.user.email === api.config.supabaseAuthEmail) await showApp();
+    if (session && session.user.email === api.config.supabaseAuthEmail) await showAppWithAuthRetry();
     else window.sessionStorage.removeItem(fixedLoginKey);
   };
 

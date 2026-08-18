@@ -17,6 +17,7 @@
   };
 
   const escapeAttr = (value) => String(value || "").replace(/"/g, "&quot;");
+  const escapeHtml = (value) => String(value || "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
 
   const getBackHref = () => {
     try {
@@ -54,30 +55,43 @@
 
   const tags = Array.from(new Set(project.tags && project.tags.length ? project.tags : [project.category]));
   const coverImage = project.cover || wallImages[project.slug];
-  const mediaHtml = [
+  const gallery = project.gallery && project.gallery.length
+    ? project.gallery
+    : project.media && project.media.length
+      ? project.media.filter((item) => item.type === "image").map((item) => item.src)
+      : [coverImage];
+  const galleryHtml = gallery.map((source, index) => [
     '<article class="project-media">',
-    '  <img class="project-media-image" src="' + coverImage + '" alt="' + escapeAttr(project.title) + '" loading="eager" decoding="async" />',
-    "</article>",
-  ].join("\n");
+    '  <img class="project-media-image" src="' + escapeAttr(source) + '" alt="' + escapeAttr(project.title) + ' - ' + (index + 1) + '" loading="' + (index === 0 ? "eager" : "lazy") + '" decoding="async" />',
+    '</article>',
+  ].join("\n")).join("\n");
+  const previewHtml = project.mediaUrl ? [
+    '<article class="project-media project-video">',
+    '  <video class="project-media-video" src="' + escapeAttr(project.mediaUrl) + '" controls playsinline preload="metadata" poster="' + escapeAttr(coverImage) + '"></video>',
+    '</article>',
+  ].join("\n") : "";
+  const projectFacts = [project.clientName ? "客户：" + project.clientName : "", project.projectDate ? "日期：" + project.projectDate : ""].filter(Boolean);
 
   root.innerHTML = [
     '<div class="project-shell">',
     '  <a class="project-back" href="' + escapeAttr(backHref) + '" data-transition-restore="true" aria-label="Back to portfolio">Back</a>',
     '  <section class="project-hero">',
     '    <div class="project-inner">',
-    '      <h1 class="project-title">' + project.title + "</h1>",
+    '      <h1 class="project-title">' + escapeHtml(project.title) + "</h1>",
     '      <div class="project-tags">' +
       tags
         .map(function (tag) {
-          return '<span class="project-tag">' + tag + "</span>";
+          return '<span class="project-tag">' + escapeHtml(tag) + "</span>";
         })
         .join("") +
       "</div>",
-    '      <p class="project-description">' + project.descriptionZh + "</p>",
+    '      <p class="project-description">' + escapeHtml(project.descriptionZh) + "</p>",
+    projectFacts.length ? '      <p class="project-facts">' + projectFacts.map(escapeHtml).join(" / ") + '</p>' : "",
     "    </div>",
     "  </section>",
     '  <section class="project-gallery" id="project-gallery">',
-    mediaHtml,
+    previewHtml,
+    galleryHtml,
     "  </section>",
     "</div>",
   ].join("\n");

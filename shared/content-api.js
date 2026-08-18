@@ -13,6 +13,11 @@
     workHours: "周一至周五 9:00–18:00",
     xiaohongshuUrl: "https://www.xiaohongshu.com/user/profile/654ddf25000000000802faa7?xsec_token=AB8a8l2qx6DnMLG1aJjLFXPccDnBoKuproZpqZSO86rrE%3D&xsec_source=pc_search",
     wechatQrUrl: "./assets/contact/wechat-official-account-qr.jpg",
+    sectionVisibility: { about: true, portfolio: true, articles: true, contact: true },
+    aboutDetails: {},
+    contactItems: [],
+    socialLinks: [],
+    footerRegistration: "",
   };
 
   const defaultNavigation = [
@@ -21,6 +26,28 @@
     { id: "10000000-0000-4000-8000-000000000003", label: "文章", href: "./articles/index.html", sortOrder: 2, published: true, openNewTab: false },
     { id: "10000000-0000-4000-8000-000000000004", label: "联系", href: "#contact", sortOrder: 3, published: true, openNewTab: false },
   ];
+
+  const defaultAiProfile = {
+    id: "main",
+    enabled: true,
+    displayName: "Lin 的设计助手",
+    greeting: "你好，我可以介绍 Lin 的项目、设计经验和合作方式。",
+    introduction: "拥有 5 年以上多端 UI/UX 体验设计经验，具备 B 端 SaaS 系统与 C 端移动产品设计实战积累。",
+    skills: ["UI/UX 设计", "B 端 SaaS", "移动产品", "数据可视化"],
+    suggestedQuestions: ["Lin 擅长哪些设计方向？", "有哪些代表项目？", "如何联系合作？"],
+    knowledgeBase: [
+      { keywords: ["擅长", "能力", "方向", "技能"], answer: "Lin 擅长多端 UI/UX、B 端 SaaS、C 端移动产品与数据可视化设计。" },
+      { keywords: ["项目", "作品", "案例"], answer: "你可以在作品集查看智慧换电、GoMenu 餐饮系统、ATN 数据看板等项目。" },
+      { keywords: ["联系", "合作", "邮箱", "微信"], answer: "可以通过页面底部联系方式或项目咨询表单联系 Lin。" },
+    ],
+    fallbackMessage: "这个问题我暂时没有准确答案，你可以通过页面底部的联系方式直接联系 Lin。",
+    persona: "以 Lin 的设计助手身份回答，语气专业、直接、友好。",
+    dialoguePresets: [],
+    openingMessages: [],
+    operationRules: "只回答与作品、设计经验和合作相关的问题；不编造项目数据。",
+    workflow: ["识别问题意图", "匹配知识库", "给出简洁回答", "必要时引导联系"],
+    promptTemplate: "你是 Lin 的个人设计助手。请基于个人介绍、技能与知识库回答访客问题。",
+  };
 
   const isConfigured = () => Boolean(config.supabaseUrl && (config.publishableKey || config.anonKey));
   const getKey = () => config.publishableKey || config.anonKey || "";
@@ -60,6 +87,20 @@
     return response.json();
   };
 
+  const publicInsert = async (table, value) => {
+    const response = await fetch(config.supabaseUrl.replace(/\/$/, "") + "/rest/v1/" + table, {
+      method: "POST",
+      headers: {
+        apikey: getKey(),
+        Authorization: "Bearer " + getKey(),
+        "Content-Type": "application/json",
+        Prefer: "return=minimal",
+      },
+      body: JSON.stringify(value),
+    });
+    if (!response.ok) throw new Error("内容服务暂时不可用");
+  };
+
   const projectFromRow = (row) => ({
     id: row.id,
     slug: row.slug,
@@ -69,6 +110,13 @@
     descriptionZh: row.description_zh || "",
     cover: row.cover_url || "",
     prototypeHref: row.prototype_url || "",
+    itemType: row.item_type || "portfolio",
+    gallery: Array.isArray(row.gallery) ? row.gallery : [],
+    mediaUrl: row.media_url || "",
+    clientName: row.client_name || "",
+    projectDate: row.project_date || "",
+    passwordEnabled: row.password_enabled === true,
+    protectedTargetUrl: row.protected_target_url || "",
     published: row.published !== false,
     sortOrder: Number(row.sort_order || 0),
   });
@@ -80,7 +128,13 @@
     tags: project.tags && project.tags.length ? project.tags : [project.category],
     description_zh: project.descriptionZh || "",
     cover_url: project.cover || "",
-    prototype_url: project.prototypeHref || "",
+    prototype_url: project.passwordEnabled ? "" : (project.prototypeHref || ""),
+    item_type: project.itemType || "portfolio",
+    gallery: Array.isArray(project.gallery) ? project.gallery : [],
+    media_url: project.mediaUrl || "",
+    client_name: project.clientName || "",
+    project_date: project.projectDate || null,
+    password_enabled: project.passwordEnabled === true,
     published: project.published !== false,
     sort_order: Number(project.sortOrder || 0),
   });
@@ -132,6 +186,84 @@
     updated_at: new Date().toISOString(),
   });
 
+  const aiProfileFromRow = (row) => ({
+    id: row.id || "main",
+    enabled: row.enabled === true,
+    displayName: row.display_name || defaultAiProfile.displayName,
+    greeting: row.greeting || defaultAiProfile.greeting,
+    introduction: row.introduction || "",
+    skills: Array.isArray(row.skills) ? row.skills : [],
+    suggestedQuestions: Array.isArray(row.suggested_questions) ? row.suggested_questions : [],
+    knowledgeBase: Array.isArray(row.knowledge_base) ? row.knowledge_base : [],
+    fallbackMessage: row.fallback_message || defaultAiProfile.fallbackMessage,
+    persona: row.persona || defaultAiProfile.persona,
+    dialoguePresets: Array.isArray(row.dialogue_presets) ? row.dialogue_presets : [],
+    openingMessages: Array.isArray(row.opening_messages) ? row.opening_messages : [],
+    operationRules: row.operation_rules || defaultAiProfile.operationRules,
+    workflow: Array.isArray(row.workflow) ? row.workflow : [],
+    promptTemplate: row.prompt_template || defaultAiProfile.promptTemplate,
+  });
+
+  const aiProfileToRow = (profile) => ({
+    id: "main",
+    enabled: profile.enabled === true,
+    display_name: profile.displayName || "",
+    greeting: profile.greeting || "",
+    introduction: profile.introduction || "",
+    skills: profile.skills || [],
+    suggested_questions: profile.suggestedQuestions || [],
+    knowledge_base: profile.knowledgeBase || [],
+    fallback_message: profile.fallbackMessage || "",
+    persona: profile.persona || "",
+    dialogue_presets: profile.dialoguePresets || [],
+    opening_messages: profile.openingMessages || [],
+    operation_rules: profile.operationRules || "",
+    workflow: profile.workflow || [],
+    prompt_template: profile.promptTemplate || "",
+    updated_at: new Date().toISOString(),
+  });
+
+  const inquiryFromRow = (row) => ({
+    id: row.id,
+    name: row.name,
+    contact: row.contact,
+    email: row.email || row.contact || "",
+    budget: row.budget || "",
+    projectTypes: Array.isArray(row.project_types) ? row.project_types : (row.project_type ? [row.project_type] : []),
+    projectType: row.project_type,
+    message: row.message,
+    status: row.status,
+    createdAt: row.created_at,
+  });
+
+  const financeFromRow = (row) => ({
+    id: row.id,
+    entryType: row.entry_type,
+    title: row.title,
+    category: row.category,
+    amountCents: Number(row.amount_cents || 0),
+    occurredOn: row.occurred_on,
+    note: row.note || "",
+    contractAmountCents: Number(row.contract_amount_cents || 0),
+    paidAmountCents: Number(row.paid_amount_cents || 0),
+    paymentStatus: row.payment_status || "paid",
+    clientName: row.client_name || "",
+  });
+
+  const financeToRow = (entry) => ({
+    entry_type: entry.entryType,
+    title: entry.title,
+    category: entry.category || "其他",
+    amount_cents: Number(entry.amountCents || 0),
+    occurred_on: entry.occurredOn,
+    note: entry.note || "",
+    contract_amount_cents: Number(entry.contractAmountCents || 0),
+    paid_amount_cents: Number(entry.paidAmountCents || 0),
+    payment_status: entry.paymentStatus || "paid",
+    client_name: entry.clientName || "",
+    updated_at: new Date().toISOString(),
+  });
+
   const settingsFromRow = (row) => ({
     id: "main",
     aboutText: row.about_text || defaultSettings.aboutText,
@@ -142,6 +274,11 @@
     workHours: row.work_hours || defaultSettings.workHours,
     xiaohongshuUrl: row.xiaohongshu_url || defaultSettings.xiaohongshuUrl,
     wechatQrUrl: row.wechat_qr_url || defaultSettings.wechatQrUrl,
+    sectionVisibility: row.section_visibility || defaultSettings.sectionVisibility,
+    aboutDetails: row.about_details || {},
+    contactItems: Array.isArray(row.contact_items) ? row.contact_items : [],
+    socialLinks: Array.isArray(row.social_links) ? row.social_links : [],
+    footerRegistration: row.footer_registration || "",
   });
 
   const settingsToRow = (settings) => ({
@@ -154,6 +291,11 @@
     work_hours: settings.workHours || "",
     xiaohongshu_url: settings.xiaohongshuUrl || "",
     wechat_qr_url: settings.wechatQrUrl || "",
+    section_visibility: settings.sectionVisibility || defaultSettings.sectionVisibility,
+    about_details: settings.aboutDetails || {},
+    contact_items: settings.contactItems || [],
+    social_links: settings.socialLinks || [],
+    footer_registration: settings.footerRegistration || "",
   });
 
   const sortContent = (items) => items.slice().sort((a, b) => Number(a.sortOrder || 0) - Number(b.sortOrder || 0));
@@ -164,9 +306,13 @@
 
     try {
       if (includeDrafts) {
-        const { data, error } = await getClient().from("projects").select("*").order("sort_order", { ascending: true });
-        if (error) throw error;
-        return data.map(projectFromRow);
+        const [projectResult, accessResult] = await Promise.all([
+          getClient().from("projects").select("*").order("sort_order", { ascending: true }),
+          getClient().from("project_access").select("project_slug,target_url"),
+        ]);
+        if (projectResult.error) throw projectResult.error;
+        const accessBySlug = new Map((accessResult.data || []).map((item) => [item.project_slug, item.target_url]));
+        return projectResult.data.map((row) => projectFromRow({ ...row, protected_target_url: accessBySlug.get(row.slug) || "" }));
       }
       const filter = includeDrafts ? "" : "&published=eq.true";
       const rows = await publicRequest("projects?select=*&order=sort_order.asc" + filter);
@@ -226,6 +372,259 @@
     }
   };
 
+  const getAiProfile = async (includeDisabled) => {
+    if (!isConfigured()) return { ...defaultAiProfile, ...readLocal("ai-profile", {}) };
+    try {
+      if (includeDisabled) {
+        const { data, error } = await getClient().from("ai_profile").select("*").eq("id", "main").maybeSingle();
+        if (error) throw error;
+        return data ? aiProfileFromRow(data) : defaultAiProfile;
+      }
+      const rows = await publicRequest("ai_profile?select=*&id=eq.main&enabled=eq.true&limit=1");
+      return rows[0] ? aiProfileFromRow(rows[0]) : { ...defaultAiProfile, enabled: false };
+    } catch (error) {
+      return { ...defaultAiProfile, enabled: false };
+    }
+  };
+
+  const saveAiProfile = async (profile) => {
+    if (!isConfigured()) return writeLocal("ai-profile", { ...defaultAiProfile, ...profile });
+    const { data, error } = await getClient().from("ai_profile").upsert(aiProfileToRow(profile)).select().single();
+    if (error) throw error;
+    return aiProfileFromRow(data);
+  };
+
+  const trackEvent = async (event) => {
+    const row = {
+      event_name: event.eventName,
+      path: event.path || "/",
+      content_type: event.contentType || null,
+      content_id: event.contentId || null,
+      referrer_host: event.referrerHost || null,
+      session_id: event.sessionId,
+      device_type: event.deviceType || "desktop",
+    };
+    if (!isConfigured()) {
+      const events = readLocal("site-events", []);
+      events.unshift({ ...row, id: Date.now(), created_at: new Date().toISOString() });
+      return writeLocal("site-events", events.slice(0, 500));
+    }
+    return publicInsert("site_events", row);
+  };
+
+  const listEvents = async (limit) => {
+    if (!isConfigured()) return readLocal("site-events", []).slice(0, limit || 500);
+    const { data, error } = await getClient().from("site_events").select("*").order("created_at", { ascending: false }).limit(limit || 500);
+    if (error) throw error;
+    return data || [];
+  };
+
+  const submitInquiry = async (inquiry) => {
+    const row = {
+      name: inquiry.name,
+      contact: inquiry.contact,
+      email: inquiry.email || inquiry.contact || "",
+      budget: inquiry.budget || "",
+      project_types: inquiry.projectTypes || (inquiry.projectType ? [inquiry.projectType] : []),
+      project_type: inquiry.projectType || "其他",
+      message: inquiry.message,
+      status: "new",
+    };
+    if (!isConfigured()) {
+      const inquiries = readLocal("inquiries", []);
+      inquiries.unshift(inquiryFromRow({ ...row, id: "local-" + Date.now(), created_at: new Date().toISOString() }));
+      return writeLocal("inquiries", inquiries);
+    }
+    await publicInsert("contact_inquiries", row);
+  };
+
+  const submitQuoteRequest = async (request) => {
+    const value = {
+      name: request.name || "",
+      contact: request.contact || request.email || "",
+      projectTypes: request.projectTypes || [],
+      budget: request.budget || "",
+      details: request.details || request.message || "",
+      estimateMinCents: 0,
+      estimateMaxCents: 0,
+      status: "new",
+      createdAt: new Date().toISOString(),
+    };
+    if (!isConfigured()) {
+      const items = readLocal("quote-requests", []);
+      items.unshift({ ...value, id: "local-" + Date.now() });
+      return writeLocal("quote-requests", items);
+    }
+    await publicInsert("quote_requests", {
+      name: value.name,
+      contact: value.contact,
+      project_types: value.projectTypes,
+      budget: value.budget,
+      details: value.details,
+      status: "new",
+    });
+  };
+
+  const listInquiries = async () => {
+    if (!isConfigured()) return readLocal("inquiries", []);
+    const { data, error } = await getClient().from("contact_inquiries").select("*").order("created_at", { ascending: false });
+    if (error) throw error;
+    return data.map(inquiryFromRow);
+  };
+
+  const updateInquiryStatus = async (id, status) => {
+    if (!isConfigured()) {
+      const inquiries = readLocal("inquiries", []).map((item) => item.id === id ? { ...item, status } : item);
+      return writeLocal("inquiries", inquiries);
+    }
+    const { data, error } = await getClient().from("contact_inquiries").update({ status, updated_at: new Date().toISOString() }).eq("id", id).select().single();
+    if (error) throw error;
+    return inquiryFromRow(data);
+  };
+
+  const deleteInquiry = async (id) => {
+    if (!isConfigured()) return writeLocal("inquiries", readLocal("inquiries", []).filter((item) => item.id !== id));
+    const { error } = await getClient().from("contact_inquiries").delete().eq("id", id);
+    if (error) throw error;
+  };
+
+  const listFinanceEntries = async () => {
+    if (!isConfigured()) return readLocal("finance", []);
+    const { data, error } = await getClient().from("finance_entries").select("*").order("occurred_on", { ascending: false });
+    if (error) throw error;
+    return data.map(financeFromRow);
+  };
+
+  const saveFinanceEntry = async (entry) => {
+    if (!isConfigured()) {
+      const entries = readLocal("finance", []);
+      const id = entry.id || "local-" + Date.now();
+      const next = { ...entry, id };
+      const index = entries.findIndex((item) => item.id === id);
+      if (index >= 0) entries[index] = next;
+      else entries.unshift(next);
+      writeLocal("finance", entries);
+      return next;
+    }
+    const row = financeToRow(entry);
+    const request = entry.id
+      ? getClient().from("finance_entries").update(row).eq("id", entry.id).select().single()
+      : getClient().from("finance_entries").insert(row).select().single();
+    const { data, error } = await request;
+    if (error) throw error;
+    return financeFromRow(data);
+  };
+
+  const deleteFinanceEntry = async (id) => {
+    if (!isConfigured()) return writeLocal("finance", readLocal("finance", []).filter((item) => item.id !== id));
+    const { error } = await getClient().from("finance_entries").delete().eq("id", id);
+    if (error) throw error;
+  };
+
+  const listWorkbenchNotes = async () => {
+    if (!isConfigured()) return readLocal("workbench-notes", []);
+    const { data, error } = await getClient().from("workbench_notes").select("*").order("sort_order", { ascending: true }).order("updated_at", { ascending: false });
+    if (error) throw error;
+    return (data || []).map((row) => ({ id: row.id, title: row.title, content: row.content, category: row.category, color: row.color, completed: row.completed, sortOrder: row.sort_order, updatedAt: row.updated_at }));
+  };
+
+  const saveWorkbenchNote = async (note) => {
+    const value = { ...note, id: note.id || "local-" + Date.now(), updatedAt: new Date().toISOString() };
+    if (!isConfigured()) {
+      const items = readLocal("workbench-notes", []);
+      const index = items.findIndex((item) => item.id === value.id);
+      if (index >= 0) items[index] = value; else items.unshift(value);
+      writeLocal("workbench-notes", items);
+      return value;
+    }
+    const row = { title: note.title || "", content: note.content, category: note.category || "个人", color: note.color || "mint", completed: note.completed === true, sort_order: Number(note.sortOrder || 0), updated_at: new Date().toISOString() };
+    const request = note.id ? getClient().from("workbench_notes").update(row).eq("id", note.id).select().single() : getClient().from("workbench_notes").insert(row).select().single();
+    const { data, error } = await request;
+    if (error) throw error;
+    return data;
+  };
+
+  const deleteWorkbenchNote = async (id) => {
+    if (!isConfigured()) return writeLocal("workbench-notes", readLocal("workbench-notes", []).filter((item) => item.id !== id));
+    const { error } = await getClient().from("workbench_notes").delete().eq("id", id);
+    if (error) throw error;
+  };
+
+  const listQuickLinks = async () => {
+    if (!isConfigured()) return readLocal("quick-links", []);
+    const { data, error } = await getClient().from("quick_links").select("*").order("sort_order", { ascending: true });
+    if (error) throw error;
+    return (data || []).map((row) => ({ id: row.id, label: row.label, url: row.url, category: row.category, sortOrder: row.sort_order }));
+  };
+
+  const saveQuickLink = async (item) => {
+    const value = { ...item, id: item.id || "local-" + Date.now() };
+    if (!isConfigured()) {
+      const items = readLocal("quick-links", []);
+      const index = items.findIndex((entry) => entry.id === value.id);
+      if (index >= 0) items[index] = value; else items.push(value);
+      writeLocal("quick-links", items);
+      return value;
+    }
+    const row = { label: item.label, url: item.url, category: item.category || "个人", sort_order: Number(item.sortOrder || 0), updated_at: new Date().toISOString() };
+    const request = item.id ? getClient().from("quick_links").update(row).eq("id", item.id).select().single() : getClient().from("quick_links").insert(row).select().single();
+    const { data, error } = await request;
+    if (error) throw error;
+    return data;
+  };
+
+  const deleteQuickLink = async (id) => {
+    if (!isConfigured()) return writeLocal("quick-links", readLocal("quick-links", []).filter((item) => item.id !== id));
+    const { error } = await getClient().from("quick_links").delete().eq("id", id);
+    if (error) throw error;
+  };
+
+  const listWorkbenchMoods = async () => {
+    if (!isConfigured()) return readLocal("workbench-moods", []);
+    const { data, error } = await getClient().from("workbench_moods").select("*").order("mood_date", { ascending: false }).limit(60);
+    if (error) throw error;
+    return (data || []).map((row) => ({ date: row.mood_date, mood: row.mood, note: row.note }));
+  };
+
+  const saveWorkbenchMood = async (mood) => {
+    if (!isConfigured()) {
+      const items = readLocal("workbench-moods", []).filter((item) => item.date !== mood.date);
+      items.unshift(mood);
+      return writeLocal("workbench-moods", items.slice(0, 60));
+    }
+    const { data, error } = await getClient().from("workbench_moods").upsert({ mood_date: mood.date, mood: mood.mood, note: mood.note || "", updated_at: new Date().toISOString() }).select().single();
+    if (error) throw error;
+    return data;
+  };
+
+  const listQuoteRequests = async () => {
+    if (!isConfigured()) return readLocal("quote-requests", []);
+    const { data, error } = await getClient().from("quote_requests").select("*").order("created_at", { ascending: false });
+    if (error) throw error;
+    return (data || []).map((row) => ({ id: row.id, name: row.name, contact: row.contact, projectTypes: row.project_types || [], budget: row.budget, details: row.details, estimateMinCents: Number(row.estimate_min_cents || 0), estimateMaxCents: Number(row.estimate_max_cents || 0), status: row.status, createdAt: row.created_at }));
+  };
+
+  const updateQuoteRequest = async (id, changes) => {
+    if (!isConfigured()) {
+      const items = readLocal("quote-requests", []).map((item) => item.id === id ? { ...item, ...changes } : item);
+      return writeLocal("quote-requests", items);
+    }
+    const row = { status: changes.status, estimate_min_cents: Number(changes.estimateMinCents || 0), estimate_max_cents: Number(changes.estimateMaxCents || 0), updated_at: new Date().toISOString() };
+    const { data, error } = await getClient().from("quote_requests").update(row).eq("id", id).select().single();
+    if (error) throw error;
+    return data;
+  };
+
+  const verifyProjectAccess = async (slug, password) => {
+    if (!isConfigured()) {
+      const project = readLocal("projects", []).find((item) => item.slug === slug);
+      return project && project.accessPassword === password ? project.protectedTargetUrl : "";
+    }
+    const { data, error } = await getClient().rpc("verify_project_access", { p_project_slug: slug, p_password: password });
+    if (error) throw error;
+    return data || "";
+  };
+
   const saveProject = async (project, fallback) => {
     if (!isConfigured()) {
       const projects = await listProjects(fallback, true);
@@ -236,7 +635,20 @@
     }
     const { data, error } = await getClient().from("projects").upsert(projectToRow(project), { onConflict: "slug" }).select().single();
     if (error) throw error;
-    return projectFromRow(data);
+    if (project.passwordEnabled) {
+      const targetUrl = project.protectedTargetUrl || project.prototypeHref || "";
+      if (project.accessPassword) {
+        const accessResult = await getClient().rpc("set_project_access", { p_project_slug: project.slug, p_target_url: targetUrl, p_password: project.accessPassword });
+        if (accessResult.error) throw accessResult.error;
+      } else if (targetUrl) {
+        const accessResult = await getClient().from("project_access").update({ target_url: targetUrl, updated_at: new Date().toISOString() }).eq("project_slug", project.slug);
+        if (accessResult.error) throw accessResult.error;
+      }
+    } else {
+      const accessResult = await getClient().from("project_access").delete().eq("project_slug", project.slug);
+      if (accessResult.error) throw accessResult.error;
+    }
+    return projectFromRow({ ...data, protected_target_url: project.protectedTargetUrl || "" });
   };
 
   const deleteProject = async (slug, fallback) => {
@@ -363,6 +775,7 @@
     config,
     defaultSettings,
     defaultNavigation,
+    defaultAiProfile,
     isConfigured,
     getMode: () => (isConfigured() ? "supabase" : "local"),
     getClient,
@@ -373,6 +786,29 @@
     listArticles,
     listNavigation,
     getSettings,
+    getAiProfile,
+    saveAiProfile,
+    trackEvent,
+    listEvents,
+    submitInquiry,
+    submitQuoteRequest,
+    listInquiries,
+    updateInquiryStatus,
+    deleteInquiry,
+    listFinanceEntries,
+    saveFinanceEntry,
+    deleteFinanceEntry,
+    listWorkbenchNotes,
+    saveWorkbenchNote,
+    deleteWorkbenchNote,
+    listQuickLinks,
+    saveQuickLink,
+    deleteQuickLink,
+    listWorkbenchMoods,
+    saveWorkbenchMood,
+    listQuoteRequests,
+    updateQuoteRequest,
+    verifyProjectAccess,
     saveProject,
     deleteProject,
     saveArticle,

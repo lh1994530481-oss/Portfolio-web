@@ -118,6 +118,7 @@ window.PROJECT_DATA = [
   },
   {
     "slug": "homi-smart-home-prototype",
+    "itemType": "demo",
     "title": "HOMI 智家可交互原型",
     "category": "Exercises and Demos",
     "tags": [

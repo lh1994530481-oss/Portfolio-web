@@ -663,6 +663,169 @@ img {
   gap: 28px;
 }
 
+.contact-inquiry {
+  display: grid;
+  grid-template-columns: minmax(260px, .75fr) minmax(480px, 1.25fr);
+  gap: clamp(36px, 7vw, 110px);
+  align-items: start;
+}
+
+.contact-inquiry-heading h2 {
+  margin: 0 0 18px;
+  color: var(--fg);
+  font-size: clamp(28px, 3vw, 44px);
+  font-weight: 500;
+  line-height: 1.08;
+}
+
+.contact-inquiry-heading > p:last-child {
+  max-width: 420px;
+  margin: 0;
+  color: rgba(255, 255, 255, .56);
+  font-size: 15px;
+  line-height: 1.7;
+}
+
+.contact-inquiry-form {
+  position: relative;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 20px;
+}
+
+.contact-inquiry-form label {
+  display: grid;
+  gap: 9px;
+}
+
+.contact-inquiry-form label > span {
+  color: rgba(255, 255, 255, .46);
+  font-size: 12px;
+}
+
+.contact-inquiry-form input,
+.contact-inquiry-form select,
+.contact-inquiry-form textarea,
+.ai-question-form input {
+  width: 100%;
+  border: 1px solid rgba(255, 255, 255, .15);
+  border-radius: 4px;
+  outline: none;
+  color: var(--fg);
+  background: rgba(255, 255, 255, .035);
+  font: inherit;
+  transition: border-color .2s ease, background .2s ease;
+}
+
+.contact-inquiry-form input,
+.contact-inquiry-form select {
+  height: 46px;
+  padding: 0 13px;
+}
+
+.contact-inquiry-form textarea {
+  min-height: 118px;
+  padding: 13px;
+  resize: vertical;
+}
+
+.contact-inquiry-form select option { color: #111; }
+.contact-inquiry-form input:focus,
+.contact-inquiry-form select:focus,
+.contact-inquiry-form textarea:focus,
+.ai-question-form input:focus { border-color: rgba(255, 255, 255, .48); background: rgba(255, 255, 255, .06); }
+.contact-inquiry-message { grid-column: 1 / -1; }
+.contact-inquiry-types { display: grid; grid-column: 1 / -1; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; margin: 0; padding: 0; border: 0; }
+.contact-inquiry-types legend { margin-bottom: 10px; color: rgba(255, 255, 255, .5); font-size: 11px; }
+.contact-inquiry-types label { display: flex; min-height: 44px; align-items: center; justify-content: center; gap: 8px; padding: 0 12px; border: 1px solid rgba(255, 255, 255, .18); border-radius: 4px; cursor: pointer; }
+.contact-inquiry-types label:has(input:checked) { border-color: #ff5a36; background: rgba(255, 90, 54, .12); color: #fff; }
+.contact-inquiry-types input { width: 15px; height: 15px; margin: 0; accent-color: #ff5a36; }
+.contact-inquiry-types span { font-size: 12px; }
+.contact-inquiry-trap { position: absolute; left: -9999px; }
+.contact-inquiry-actions { display: flex; grid-column: 1 / -1; align-items: center; justify-content: space-between; gap: 20px; }
+.contact-inquiry-actions > div { display: flex; gap: 10px; }
+.contact-inquiry-actions p { margin: 0; color: rgba(255, 255, 255, .62); font-size: 12px; }
+.contact-inquiry-actions p.is-error { color: #ff8c86; }
+.contact-inquiry-actions button,
+.ai-question-form button {
+  min-height: 42px;
+  padding: 0 18px;
+  border: 1px solid #fff;
+  border-radius: 4px;
+  color: #080808;
+  background: #fff;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.contact-inquiry-actions button:disabled { cursor: wait; opacity: .55; }
+.contact-inquiry-actions button.is-secondary { border: 1px solid rgba(255, 255, 255, .28); background: transparent; color: #fff; }
+
+.ai-assistant-trigger {
+  position: fixed;
+  right: 24px;
+  bottom: 24px;
+  z-index: 90;
+  width: 48px;
+  height: 48px;
+  padding: 0;
+  border: 1px solid rgba(255, 255, 255, .22);
+  border-radius: 50%;
+  color: #090909;
+  background: #fff;
+  box-shadow: 0 14px 40px rgba(0, 0, 0, .34);
+  font-size: 12px;
+  font-weight: 750;
+  cursor: pointer;
+}
+
+.ai-assistant-dialog {
+  width: min(420px, calc(100vw - 32px));
+  max-height: min(680px, calc(100vh - 32px));
+  margin: auto 24px 24px auto;
+  padding: 0;
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, .14);
+  border-radius: 8px;
+  color: var(--fg);
+  background: #161616;
+  box-shadow: 0 28px 90px rgba(0, 0, 0, .58);
+}
+
+.project-access-dialog { width: min(420px, calc(100vw - 32px)); padding: 0; overflow: hidden; border: 1px solid rgba(255, 255, 255, .14); border-radius: 6px; background: #171717; color: #fff; box-shadow: 0 28px 80px rgba(0, 0, 0, .42); }
+.project-access-dialog::backdrop { background: rgba(0, 0, 0, .62); backdrop-filter: blur(6px); }
+.project-access-dialog form { padding: 22px; }
+.project-access-dialog header { display: flex; align-items: flex-start; justify-content: space-between; gap: 20px; }
+.project-access-dialog header span { color: rgba(255, 255, 255, .4); font-size: 10px; text-transform: uppercase; }
+.project-access-dialog h2 { margin: 5px 0 0; font-size: 22px; }
+.project-access-dialog header button { width: 32px; height: 32px; padding: 0; border: 0; background: transparent; color: rgba(255, 255, 255, .7); font-size: 24px; }
+.project-access-dialog > form > p { margin: 18px 0; color: rgba(255, 255, 255, .58); font-size: 13px; line-height: 1.6; }
+.project-access-dialog label { display: grid; gap: 8px; }
+.project-access-dialog label span { color: rgba(255, 255, 255, .6); font-size: 11px; }
+.project-access-dialog input { height: 44px; padding: 0 12px; border: 1px solid rgba(255, 255, 255, .2); border-radius: 4px; outline: none; background: #0c0c0c; color: #fff; }
+.project-access-dialog input:focus { border-color: #ff5a36; }
+.project-access-actions { display: flex; align-items: center; justify-content: space-between; gap: 14px; margin-top: 18px; }
+.project-access-actions small { color: rgba(255, 255, 255, .55); font-size: 10px; }
+.project-access-actions small.is-error { color: #ff8c86; }
+.project-access-actions button { min-height: 40px; padding: 0 15px; border: 0; border-radius: 4px; background: #fff; color: #111; font-weight: 650; }
+.project-access-actions button:disabled { opacity: .5; }
+.ai-assistant-dialog::backdrop { background: rgba(0, 0, 0, .3); }
+.ai-assistant-dialog header { display: flex; align-items: center; justify-content: space-between; gap: 20px; padding: 18px 20px; border-bottom: 1px solid rgba(255, 255, 255, .1); }
+.ai-assistant-dialog header span { color: rgba(255, 255, 255, .38); font-size: 10px; text-transform: uppercase; }
+.ai-assistant-dialog header h2 { margin: 4px 0 0; font-size: 16px; font-weight: 600; }
+.ai-assistant-dialog header button { display: grid; width: 32px; height: 32px; flex: none; padding: 0; place-items: center; border: 0; color: rgba(255, 255, 255, .7); background: transparent; font-size: 24px; cursor: pointer; }
+.ai-assistant-intro { margin: 0; padding: 14px 20px 0; color: rgba(255, 255, 255, .52); font-size: 12px; line-height: 1.6; }
+.ai-messages { display: flex; max-height: 300px; min-height: 180px; flex-direction: column; gap: 10px; padding: 16px 20px; overflow-y: auto; }
+.ai-message { width: fit-content; max-width: 88%; margin: 0; padding: 10px 12px; border-radius: 6px; font-size: 12px; line-height: 1.6; }
+.ai-message.is-assistant { align-self: flex-start; background: #252525; color: rgba(255, 255, 255, .82); }
+.ai-message.is-user { align-self: flex-end; background: #fff; color: #111; }
+.ai-suggestions { display: flex; gap: 7px; padding: 0 20px 14px; overflow-x: auto; }
+.ai-suggestions button { min-height: 30px; flex: none; padding: 0 10px; border: 1px solid rgba(255, 255, 255, .14); border-radius: 4px; color: rgba(255, 255, 255, .72); background: transparent; font-size: 10px; cursor: pointer; }
+.ai-question-form { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 8px; padding: 14px 20px 20px; border-top: 1px solid rgba(255, 255, 255, .1); }
+.ai-question-form input { height: 42px; padding: 0 12px; font-size: 12px; }
+.ai-question-form button { min-height: 42px; }
+
 @media (prefers-reduced-motion: reduce) {
   html {
     scroll-behavior: auto;
@@ -728,6 +891,8 @@ img {
   .footer-column-primary p {
     max-width: 560px;
   }
+
+  .contact-inquiry { grid-template-columns: 1fr; }
 }
 
 @media (max-width: 767px) {
@@ -807,4 +972,13 @@ img {
     align-items: flex-start;
     gap: 16px;
   }
+
+  .contact-inquiry-form { grid-template-columns: 1fr; }
+  .contact-inquiry-message, .contact-inquiry-actions { grid-column: auto; }
+  .contact-inquiry-types { grid-column: auto; grid-template-columns: 1fr 1fr; }
+  .contact-inquiry-actions { align-items: stretch; flex-direction: column; }
+  .contact-inquiry-actions > div { width: 100%; flex-direction: column; }
+  .contact-inquiry-actions button { width: 100%; }
+  .ai-assistant-trigger { right: 16px; bottom: 16px; }
+  .ai-assistant-dialog { margin: auto 16px 16px auto; }
 }

@@ -4,17 +4,17 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="robots" content="noindex, nofollow" />
-    <title>Portfolio CMS</title>
-    <link rel="stylesheet" href="./admin.css?v=20260814-1" />
+    <title>Lin Tong Xin | Portfolio CMS</title>
+    <link rel="stylesheet" href="./admin.css?v=20260818-1" />
   </head>
   <body>
     <main class="auth-screen" id="auth-screen">
       <section class="auth-panel" aria-labelledby="auth-title">
-        <a class="auth-brand" href="../index.html">Lin Tong Xin</a>
+        <a class="auth-brand" id="auth-site-link" href="https://lh1994530481-oss.github.io/Portfolio-web/">Lin Tong Xin</a>
         <div class="auth-copy">
           <p class="eyebrow">Portfolio CMS</p>
           <h1 id="auth-title">内容管理后台</h1>
-          <p>管理导航、项目、文章、站点信息和图片素材。</p>
+          <p>统一管理数据、内容、AI 分身、客户咨询与经营记录。</p>
         </div>
 
         <form class="auth-form" id="login-form">
@@ -32,63 +32,97 @@
           </button>
         </form>
 
-        <button class="local-entry" id="local-entry" type="button" hidden>
-          <i data-lucide="monitor-cog" aria-hidden="true"></i>
-          <span><strong>进入本地预览模式</strong><small>数据仅保存在当前浏览器</small></span>
-        </button>
         <p class="auth-status" id="auth-status" role="status"></p>
       </section>
     </main>
 
     <div class="admin-app" id="admin-app" hidden>
       <aside class="admin-sidebar">
-        <div class="sidebar-brand">
+        <a class="sidebar-brand" href="https://lh1994530481-oss.github.io/Portfolio-web/" target="_blank" rel="noopener" aria-label="查看个人网站" data-label="查看网站">
           <span class="brand-mark">LT</span>
-          <div><strong>Portfolio</strong><small>Content Manager</small></div>
-        </div>
+        </a>
 
         <nav class="sidebar-nav" aria-label="后台导航">
-          <button class="nav-item is-active" type="button" data-section="overview">
-            <i data-lucide="layout-dashboard" aria-hidden="true"></i><span>概览</span>
+          <button class="nav-item is-active" type="button" data-section="overview" aria-label="工作台" data-label="工作台">
+            <i data-lucide="layout-dashboard" aria-hidden="true"></i><span>工作台</span>
           </button>
-          <button class="nav-item" type="button" data-section="projects">
+          <button class="nav-item" type="button" data-section="analytics" aria-label="数据统计" data-label="数据统计">
+            <i data-lucide="chart-no-axes-combined" aria-hidden="true"></i><span>数据统计</span>
+          </button>
+          <button class="nav-item" type="button" data-section="projects" aria-label="项目管理" data-label="项目管理">
             <i data-lucide="panels-top-left" aria-hidden="true"></i><span>项目管理</span>
           </button>
-          <button class="nav-item" type="button" data-section="articles">
+          <button class="nav-item" type="button" data-section="demos" aria-label="Demo 管理" data-label="Demo 管理">
+            <i data-lucide="play-square" aria-hidden="true"></i><span>Demo 管理</span>
+          </button>
+          <button class="nav-item" type="button" data-section="articles" aria-label="文章管理" data-label="文章管理">
             <i data-lucide="notebook-pen" aria-hidden="true"></i><span>文章管理</span>
           </button>
-          <button class="nav-item" type="button" data-section="navigation">
+          <button class="nav-item" type="button" data-section="navigation" aria-label="导航管理" data-label="导航管理">
             <i data-lucide="menu" aria-hidden="true"></i><span>导航管理</span>
           </button>
-          <button class="nav-item" type="button" data-section="settings">
+          <button class="nav-item" type="button" data-section="ai" aria-label="AI 分身" data-label="AI 分身">
+            <i data-lucide="bot" aria-hidden="true"></i><span>AI 分身</span>
+          </button>
+          <button class="nav-item" type="button" data-section="inquiries" aria-label="客户咨询" data-label="客户咨询">
+            <i data-lucide="messages-square" aria-hidden="true"></i><span>客户咨询</span>
+          </button>
+          <button class="nav-item" type="button" data-section="quotes" aria-label="AI 报价" data-label="AI 报价">
+            <i data-lucide="badge-dollar-sign" aria-hidden="true"></i><span>AI 报价</span>
+          </button>
+          <button class="nav-item" type="button" data-section="finance" aria-label="收支统计" data-label="收支统计">
+            <i data-lucide="wallet-cards" aria-hidden="true"></i><span>收支统计</span>
+          </button>
+          <button class="nav-item" type="button" data-section="settings" aria-label="站点信息" data-label="站点信息">
             <i data-lucide="contact" aria-hidden="true"></i><span>站点信息</span>
           </button>
-          <button class="nav-item" type="button" data-section="media">
+          <button class="nav-item" type="button" data-section="media" aria-label="素材上传" data-label="素材上传">
             <i data-lucide="images" aria-hidden="true"></i><span>素材上传</span>
           </button>
-          <button class="nav-item" type="button" data-section="setup">
+          <button class="nav-item" type="button" data-section="setup" aria-label="后台设置" data-label="后台设置">
             <i data-lucide="database" aria-hidden="true"></i><span>后台设置</span>
           </button>
         </nav>
 
         <div class="sidebar-footer">
-          <a href="../index.html" target="_blank" rel="noopener">
+          <a href="https://lh1994530481-oss.github.io/Portfolio-web/" target="_blank" rel="noopener" aria-label="查看网站" data-label="查看网站">
             <i data-lucide="external-link" aria-hidden="true"></i><span>查看网站</span>
           </a>
-          <button id="logout-button" type="button">
+          <button id="logout-button" type="button" aria-label="退出登录" data-label="退出登录">
             <i data-lucide="log-out" aria-hidden="true"></i><span>退出</span>
           </button>
         </div>
       </aside>
 
       <div class="admin-main">
+        <header class="workspace-bar">
+          <div class="workspace-brand"><span>LT</span><strong>Portfolio CMS</strong></div>
+          <nav class="workspace-tabs" aria-label="后台模块标签">
+            <button class="workspace-tab is-active" type="button" data-section="overview">工作台</button>
+            <button class="workspace-tab" type="button" data-section="analytics">数据统计</button>
+            <button class="workspace-tab" type="button" data-section="projects">项目管理</button>
+            <button class="workspace-tab" type="button" data-section="demos">Demo 管理</button>
+            <button class="workspace-tab" type="button" data-section="articles">文章管理</button>
+            <button class="workspace-tab" type="button" data-section="navigation">导航管理</button>
+            <button class="workspace-tab" type="button" data-section="ai">AI 分身</button>
+            <button class="workspace-tab" type="button" data-section="inquiries">客户咨询</button>
+            <button class="workspace-tab" type="button" data-section="quotes">AI 报价</button>
+            <button class="workspace-tab" type="button" data-section="finance">收支统计</button>
+            <button class="workspace-tab" type="button" data-section="settings">站点信息</button>
+            <button class="workspace-tab" type="button" data-section="media">素材上传</button>
+            <button class="workspace-tab" type="button" data-section="setup">后台设置</button>
+          </nav>
+          <a class="workspace-site-link" href="https://lh1994530481-oss.github.io/Portfolio-web/" target="_blank" rel="noopener"><i data-lucide="monitor-up" aria-hidden="true"></i><span>访问网站</span></a>
+          <span class="workspace-avatar" aria-label="管理员">LT</span>
+        </header>
+
         <header class="admin-header">
           <button class="mobile-menu" id="mobile-menu" type="button" aria-label="打开后台导航">
             <i data-lucide="menu" aria-hidden="true"></i>
           </button>
           <div>
             <p class="header-label">Portfolio CMS</p>
-            <h1 id="section-title">概览</h1>
+            <h1 id="section-title">工作台</h1>
           </div>
           <div class="header-actions">
             <span class="mode-badge" id="mode-badge"></span>
@@ -99,16 +133,29 @@
         <div class="admin-content">
           <section class="admin-section is-active" data-panel="overview">
             <div class="metric-grid" id="metric-grid"></div>
-            <div class="overview-grid">
-              <section class="surface recent-surface">
-                <div class="surface-heading"><div><p class="eyebrow">Content</p><h2>最近内容</h2></div></div>
-                <div id="recent-content"></div>
-              </section>
-              <section class="surface status-surface">
-                <div class="surface-heading"><div><p class="eyebrow">Status</p><h2>发布状态</h2></div></div>
-                <div id="publish-status"></div>
-              </section>
+            <div class="workbench-grid">
+              <section class="surface featured-surface"><div class="surface-heading"><div><p class="eyebrow">Featured</p><h2>精选项目</h2></div></div><div id="featured-project"></div></section>
+              <section class="surface notes-surface"><div class="surface-heading"><div><p class="eyebrow">Thinking</p><h2>便签</h2></div><button class="icon-button" type="button" data-create="note" aria-label="新建便签"><i data-lucide="plus"></i></button></div><div class="workbench-notes" id="workbench-notes"></div></section>
+              <section class="surface links-surface"><div class="surface-heading"><div><p class="eyebrow">Shortcuts</p><h2>快捷链接</h2></div><button class="icon-button" type="button" data-create="quickLink" aria-label="新增快捷链接"><i data-lucide="plus"></i></button></div><div class="quick-links" id="quick-links"></div></section>
+              <section class="surface mood-surface"><div class="surface-heading"><div><p class="eyebrow">Calendar</p><h2>今日状态</h2></div><strong id="mood-date"></strong></div><div class="mood-options" id="mood-options"></div></section>
+              <section class="surface recent-surface"><div class="surface-heading"><div><p class="eyebrow">Records</p><h2>最近操作</h2></div></div><div id="recent-content"></div></section>
+              <section class="surface status-surface"><div class="surface-heading"><div><p class="eyebrow">Status</p><h2>内容状态</h2></div></div><div id="publish-status"></div></section>
             </div>
+          </section>
+
+          <section class="admin-section" data-panel="analytics">
+            <div class="section-toolbar">
+              <div><p class="eyebrow">Analytics</p><h2>数据统计</h2><p>查看网站访问、内容点击、设备分布和最近访问记录。</p></div>
+              <button class="button button-secondary" id="refresh-analytics" type="button"><i data-lucide="refresh-cw" aria-hidden="true"></i><span>刷新数据</span></button>
+            </div>
+            <div class="metric-grid analytics-metrics" id="analytics-metrics"></div>
+            <div class="analytics-grid">
+              <section class="surface analytics-trend"><div class="surface-heading"><div><p class="eyebrow">7 Days</p><h2>最近 7 天访问趋势</h2></div></div><div id="analytics-trend"></div></section>
+              <section class="surface"><div class="surface-heading"><div><p class="eyebrow">Pages</p><h2>热门页面</h2></div></div><div class="ranking-list" id="popular-pages"></div></section>
+              <section class="surface"><div class="surface-heading"><div><p class="eyebrow">Devices</p><h2>设备分布</h2></div></div><div class="device-breakdown" id="device-breakdown"></div></section>
+            </div>
+            <section class="surface analytics-log"><div class="surface-heading"><div><p class="eyebrow">Visitors</p><h2>访客会话</h2></div><span class="content-count" id="active-visitors"></span></div><div class="visitor-session-list" id="visitor-session-list"></div></section>
+            <section class="surface analytics-log"><div class="surface-heading"><div><p class="eyebrow">Recent</p><h2>最近事件</h2></div></div><div class="analytics-event-list" id="analytics-event-list"></div></section>
           </section>
 
           <section class="admin-section" data-panel="projects">
@@ -116,13 +163,36 @@
               <div><p class="eyebrow">Portfolio</p><h2>项目内容</h2><p>管理作品集、练习原型和项目排序。</p></div>
               <button class="button button-primary" type="button" data-create="project"><i data-lucide="plus" aria-hidden="true"></i><span>新建项目</span></button>
             </div>
+            <div class="content-tools">
+              <label class="content-search"><i data-lucide="search" aria-hidden="true"></i><input id="project-search" type="search" placeholder="搜索项目名称、分类或 Slug" /></label>
+              <select id="project-status-filter" aria-label="筛选项目状态"><option value="all">全部状态</option><option value="published">已发布</option><option value="draft">草稿</option></select>
+              <span class="content-count" id="project-count"></span>
+            </div>
             <div class="content-list" id="project-list"></div>
+          </section>
+
+          <section class="admin-section" data-panel="demos">
+            <div class="section-toolbar">
+              <div><p class="eyebrow">Demo</p><h2>交互演示</h2><p>管理原型网页、预览视频、技术标签和访问密码。</p></div>
+              <button class="button button-primary" type="button" data-create="demo"><i data-lucide="plus" aria-hidden="true"></i><span>新建 Demo</span></button>
+            </div>
+            <div class="content-tools">
+              <label class="content-search"><i data-lucide="search" aria-hidden="true"></i><input id="demo-search" type="search" placeholder="搜索 Demo 名称、分类或 Slug" /></label>
+              <select id="demo-status-filter" aria-label="筛选 Demo 状态"><option value="all">全部状态</option><option value="published">已发布</option><option value="draft">草稿</option></select>
+              <span class="content-count" id="demo-count"></span>
+            </div>
+            <div class="content-list" id="demo-list"></div>
           </section>
 
           <section class="admin-section" data-panel="articles">
             <div class="section-toolbar">
               <div><p class="eyebrow">Articles</p><h2>文章内容</h2><p>编辑文章摘要、正文结构与发布状态。</p></div>
               <button class="button button-primary" type="button" data-create="article"><i data-lucide="plus" aria-hidden="true"></i><span>新建文章</span></button>
+            </div>
+            <div class="content-tools">
+              <label class="content-search"><i data-lucide="search" aria-hidden="true"></i><input id="article-search" type="search" placeholder="搜索文章名称、分类或 Slug" /></label>
+              <select id="article-status-filter" aria-label="筛选文章状态"><option value="all">全部状态</option><option value="published">已发布</option><option value="draft">草稿</option></select>
+              <span class="content-count" id="article-count"></span>
             </div>
             <div class="content-list" id="article-list"></div>
           </section>
@@ -132,13 +202,71 @@
               <div><p class="eyebrow">Navigation</p><h2>导航内容</h2><p>管理首页导航名称、链接、排序和显示状态。</p></div>
               <button class="button button-primary" type="button" data-create="navigation"><i data-lucide="plus" aria-hidden="true"></i><span>新增导航</span></button>
             </div>
+            <div class="content-tools">
+              <label class="content-search"><i data-lucide="search" aria-hidden="true"></i><input id="navigation-search" type="search" placeholder="搜索导航名称或链接" /></label>
+              <select id="navigation-status-filter" aria-label="筛选导航状态"><option value="all">全部状态</option><option value="published">显示中</option><option value="draft">已隐藏</option></select>
+              <span class="content-count" id="navigation-count"></span>
+            </div>
             <div class="content-list" id="navigation-list"></div>
+          </section>
+
+          <section class="admin-section" data-panel="ai">
+            <div class="section-toolbar"><div><p class="eyebrow">AI Profile</p><h2>AI 分身配置</h2><p>配置前台设计助手的身份、推荐问题和知识回答。</p></div></div>
+            <form class="settings-form surface ai-form" id="ai-form">
+              <label class="toggle-field field-wide"><span>启用前台 AI 助手</span><input name="enabled" type="checkbox" /></label>
+              <label class="field"><span>助手名称</span><input name="displayName" required /></label>
+              <label class="field"><span>技能标签</span><input name="skills" placeholder="使用逗号分隔" /></label>
+              <label class="field field-wide"><span>欢迎语</span><textarea name="greeting" rows="3" required></textarea></label>
+              <label class="field field-wide"><span>个人介绍</span><textarea name="introduction" rows="4"></textarea></label>
+              <label class="field field-wide"><span>人设配置</span><textarea name="persona" rows="5" placeholder="描述语气、身份边界和回答风格"></textarea></label>
+              <label class="field field-wide"><span>推荐问题</span><textarea name="suggestedQuestions" rows="4" placeholder="每行一个问题"></textarea></label>
+              <label class="field field-wide"><span>对话预设 JSON</span><textarea name="dialoguePresets" rows="7" spellcheck="false"></textarea></label>
+              <label class="field field-wide"><span>开场白 JSON</span><textarea name="openingMessages" rows="6" spellcheck="false"></textarea></label>
+              <label class="field field-wide"><span>知识库 JSON</span><textarea name="knowledgeBase" rows="12" spellcheck="false"></textarea><small>每项包含 keywords 数组和 answer 文本。</small></label>
+              <label class="field field-wide"><span>操作规则</span><textarea name="operationRules" rows="6"></textarea></label>
+              <label class="field field-wide"><span>运行工作流 JSON</span><textarea name="workflow" rows="7" spellcheck="false"></textarea></label>
+              <label class="field field-wide"><span>提示词模板</span><textarea name="promptTemplate" rows="8"></textarea></label>
+              <label class="field field-wide"><span>无法回答时</span><textarea name="fallbackMessage" rows="3"></textarea></label>
+              <div class="form-actions field-wide"><button class="button button-primary" type="submit"><i data-lucide="save" aria-hidden="true"></i><span>保存 AI 配置</span></button></div>
+            </form>
+          </section>
+
+          <section class="admin-section" data-panel="inquiries">
+            <div class="section-toolbar"><div><p class="eyebrow">Inquiries</p><h2>客户咨询</h2><p>集中处理前台提交的项目需求和合作咨询。</p></div></div>
+            <div class="content-tools">
+              <label class="content-search"><i data-lucide="search" aria-hidden="true"></i><input id="inquiry-search" type="search" placeholder="搜索姓名、联系方式或需求内容" /></label>
+              <select id="inquiry-status-filter" aria-label="筛选咨询状态"><option value="all">全部状态</option><option value="new">待处理</option><option value="read">已查看</option><option value="replied">已回复</option><option value="closed">已关闭</option></select>
+              <span class="content-count" id="inquiry-count"></span>
+            </div>
+            <div class="inquiry-list" id="inquiry-list"></div>
+          </section>
+
+          <section class="admin-section" data-panel="quotes">
+            <div class="section-toolbar"><div><p class="eyebrow">AI Quote</p><h2>AI 报价记录</h2><p>查看访客提交的报价需求，补充价格区间并跟进转化状态。</p></div></div>
+            <div class="content-tools">
+              <label class="content-search"><i data-lucide="search" aria-hidden="true"></i><input id="quote-search" type="search" placeholder="搜索姓名、联系方式或项目需求" /></label>
+              <select id="quote-status-filter" aria-label="筛选报价状态"><option value="all">全部状态</option><option value="new">待评估</option><option value="reviewed">已评估</option><option value="converted">已成交</option><option value="closed">已关闭</option></select>
+              <span class="content-count" id="quote-count"></span>
+            </div>
+            <div class="inquiry-list" id="quote-list"></div>
+          </section>
+
+          <section class="admin-section" data-panel="finance">
+            <div class="section-toolbar">
+              <div><p class="eyebrow">Finance</p><h2>收支统计</h2><p>记录设计项目收入、工具订阅和其他经营支出。</p></div>
+              <div class="toolbar-actions"><button class="button button-secondary" id="finance-export" type="button"><i data-lucide="download"></i><span>备份</span></button><label class="button button-secondary file-button"><i data-lucide="upload"></i><span>导入</span><input id="finance-import" type="file" accept="application/json" hidden /></label><button class="button button-primary" type="button" data-create="finance"><i data-lucide="plus" aria-hidden="true"></i><span>记一笔</span></button></div>
+            </div>
+            <div class="finance-filter"><label><span>统计月份</span><input id="finance-month" type="month" /></label><button class="button button-ghost" id="finance-month-reset" type="button">查看全部</button></div>
+            <div class="metric-grid finance-metrics" id="finance-metrics"></div>
+            <div class="finance-columns"><section><div class="finance-section-title"><span>收入与回款</span><strong id="income-count"></strong></div><div class="finance-list" id="finance-income-list"></div></section><section><div class="finance-section-title"><span>经营支出</span><strong id="expense-count"></strong></div><div class="finance-list" id="finance-expense-list"></div></section></div>
           </section>
 
           <section class="admin-section" data-panel="settings">
             <div class="section-toolbar"><div><p class="eyebrow">Website</p><h2>站点信息</h2><p>更新首页介绍和底部联系方式。</p></div></div>
             <form class="settings-form surface" id="settings-form">
+              <div class="settings-group field-wide"><h3>页面显示</h3><div class="toggle-grid"><label class="toggle-field"><span>关于我</span><input name="showAbout" type="checkbox" /></label><label class="toggle-field"><span>作品集</span><input name="showPortfolio" type="checkbox" /></label><label class="toggle-field"><span>文章</span><input name="showArticles" type="checkbox" /></label><label class="toggle-field"><span>联系方式</span><input name="showContact" type="checkbox" /></label></div></div>
               <label class="field field-wide"><span>关于我</span><textarea name="aboutText" rows="6"></textarea></label>
+              <label class="field field-wide"><span>关于页详细配置 JSON</span><textarea name="aboutDetails" rows="8" spellcheck="false"></textarea><small>可配置标题、副标题、能力标签与工作经历。</small></label>
               <label class="field field-wide"><span>联系介绍</span><textarea name="contactIntro" rows="3"></textarea></label>
               <label class="field"><span>邮箱</span><input name="email" type="email" /></label>
               <label class="field"><span>位置</span><input name="location" type="text" /></label>
@@ -146,6 +274,9 @@
               <label class="field"><span>工作时间</span><input name="workHours" type="text" /></label>
               <label class="field field-wide"><span>小红书链接</span><input name="xiaohongshuUrl" type="url" /></label>
               <label class="field field-wide"><span>公众号二维码地址</span><input name="wechatQrUrl" type="text" /></label>
+              <label class="field field-wide"><span>扩展联系方式 JSON</span><textarea name="contactItems" rows="7" spellcheck="false"></textarea></label>
+              <label class="field field-wide"><span>社交账号 JSON</span><textarea name="socialLinks" rows="6" spellcheck="false"></textarea></label>
+              <label class="field field-wide"><span>底部备案信息</span><input name="footerRegistration" type="text" placeholder="例如：粤ICP备xxxxxxxx号" /></label>
               <div class="form-actions field-wide"><button class="button button-primary" type="submit"><i data-lucide="save" aria-hidden="true"></i><span>保存站点信息</span></button></div>
             </form>
           </section>
@@ -198,12 +329,12 @@
 
     <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
-    <script src="../portfolio/project-data.js"></script>
-    <script src="../articles/articles-data.js"></script>
-    <script src="./config.js?v=20260817-1"></script>
+    <script src="./data/project-data.js"></script>
+    <script src="./data/articles-data.js"></script>
+    <script src="./config.js?v=20260818-2"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <script src="../shared/content-api.js?v=20260817-2"></script>
+    <script src="./content-api.js?v=20260818-1"></script>
     <script src="https://unpkg.com/lucide@0.468.0/dist/umd/lucide.min.js"></script>
-    <script src="./admin.js?v=20260817-2" defer></script>
+    <script src="./admin.js?v=20260818-2" defer></script>
   </body>
 </html>

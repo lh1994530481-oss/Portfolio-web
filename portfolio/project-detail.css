@@ -136,6 +136,7 @@ iframe {
   font-size: 16px;
   line-height: 1.85;
 }
+.project-facts { margin: 14px 0 0; color: rgba(255, 255, 255, .46); font-size: 12px; }
 
 .project-gallery {
   width: min(100% - 40px, 1480px);
@@ -158,6 +159,7 @@ iframe {
   object-fit: contain;
   background: #000;
 }
+.project-media-video { max-height: 86vh; aspect-ratio: 16 / 9; }
 
 .project-media-pdf {
   min-height: 80vh;

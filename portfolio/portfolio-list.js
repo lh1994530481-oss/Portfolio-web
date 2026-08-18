@@ -10,7 +10,9 @@
 
   if (!root || !filterRoot) return;
 
-  const filters = ["All", "APP Design", "Web Design", "Data visualization", "IP Design", "Exercises and Demos"];
+  const preferredFilters = ["APP Design", "Web Design", "Data visualization", "IP Design", "Exercises and Demos"];
+  const projectCategories = Array.from(new Set(projects.map((project) => project.category).filter(Boolean)));
+  const filters = ["All", ...preferredFilters.filter((filter) => projectCategories.includes(filter)), ...projectCategories.filter((filter) => !preferredFilters.includes(filter))];
   const featuredOrder = [
     "personnel-logistics-management-system",
     "human-resources-management-system",
@@ -209,12 +211,13 @@
         const tags = getProjectTags(project);
         const title = project.title || meta.title;
         const description = project.descriptionZh || meta.description || "";
-        const projectHref = project.prototypeHref || "./project-detail.html?slug=" + project.slug;
+        const projectHref = project.passwordEnabled ? "#" : project.prototypeHref || "./project-detail.html?slug=" + project.slug;
+        const protectedAttr = project.passwordEnabled ? ' data-protected-project="' + escapeAttr(project.slug) + '"' : "";
         const isReversed = index % 2 === 1;
 
         return [
           '<article class="portfolio-project' + (isReversed ? " is-reversed" : "") + '" style="--item-delay: ' + index * 90 + 'ms">',
-          '  <a class="portfolio-project-image-dock" href="' + escapeAttr(projectHref) + '" aria-label="View ' + escapeAttr(title) + ' project">',
+          '  <a class="portfolio-project-image-dock" href="' + escapeAttr(projectHref) + '"' + protectedAttr + ' data-slug="' + escapeAttr(project.slug) + '" aria-label="View ' + escapeAttr(title) + ' project">',
           '    <img class="portfolio-project-image" src="' + imageSrc + '" alt="' + escapeAttr(title) + ' - Desktop view" loading="' + (index === 0 ? "eager" : "lazy") + '" decoding="async" />',
           "  </a>",
           '  <div class="portfolio-project-details">',
@@ -228,11 +231,11 @@
           "    </div>",
           '    <div class="portfolio-project-title-row">',
           '      <h2 class="portfolio-project-title">' + title + "</h2>",
-          '      <a class="portfolio-project-open" href="' + escapeAttr(projectHref) + '" aria-label="Open ' + escapeAttr(title) + '">↗</a>',
+          '      <a class="portfolio-project-open" href="' + escapeAttr(projectHref) + '"' + protectedAttr + ' data-slug="' + escapeAttr(project.slug) + '" aria-label="Open ' + escapeAttr(title) + '">↗</a>',
           "    </div>",
           '    <p class="portfolio-project-copy">' + description + "</p>",
           '    <div class="portfolio-project-cta-wrap">',
-          '      <a class="portfolio-project-cta-dock" href="' + escapeAttr(projectHref) + '">',
+          '      <a class="portfolio-project-cta-dock" href="' + escapeAttr(projectHref) + '"' + protectedAttr + ' data-slug="' + escapeAttr(project.slug) + '" >',
           "        <span>View Project</span>",
           "        <span aria-hidden=\"true\">↗</span>",
           "      </a>",

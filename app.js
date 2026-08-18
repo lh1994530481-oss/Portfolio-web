@@ -191,6 +191,56 @@ async function initManagedContent() {
     if (value) node.src = value;
   });
 
+  const contactGrid = document.querySelector(".footer-contact-grid");
+  if (contactGrid && Array.isArray(settings.contactItems) && settings.contactItems.length) {
+    contactGrid.replaceChildren(...settings.contactItems.filter((item) => item && item.label && item.value).map((item) => {
+      const card = document.createElement("article");
+      card.className = "footer-contact-card";
+      const label = document.createElement("span");
+      label.textContent = item.label;
+      const value = item.url ? document.createElement("a") : document.createElement("strong");
+      value.textContent = item.value;
+      if (item.url) {
+        value.href = item.url;
+        if (/^https?:/i.test(item.url)) { value.target = "_blank"; value.rel = "noopener noreferrer"; }
+      }
+      card.append(label, value);
+      return card;
+    }));
+  }
+
+  const socialRoot = document.querySelector(".contact-socials");
+  if (socialRoot && Array.isArray(settings.socialLinks) && settings.socialLinks.length) {
+    socialRoot.replaceChildren(...settings.socialLinks.filter((item) => item && item.label).map((item) => {
+      const isWechat = item.type === "wechat" || item.label === "公众号";
+      const node = document.createElement(isWechat ? "button" : "a");
+      node.className = "contact-social-tag" + (isWechat ? " contact-social-button" : "");
+      node.textContent = item.label;
+      if (isWechat) {
+        node.type = "button";
+        node.dataset.wechatDialogOpen = "";
+        node.setAttribute("aria-haspopup", "dialog");
+      } else {
+        node.href = item.url || "#";
+        node.target = "_blank";
+        node.rel = "noopener noreferrer";
+      }
+      return node;
+    }));
+  }
+
+  const visibility = settings.sectionVisibility || {};
+  document.querySelectorAll("[data-managed-section]").forEach((node) => {
+    const key = node.dataset.managedSection;
+    node.hidden = visibility[key] === false;
+  });
+
+  const footerRegistration = document.querySelector("[data-footer-registration]");
+  if (footerRegistration) {
+    footerRegistration.textContent = settings.footerRegistration || "";
+    footerRegistration.hidden = !settings.footerRegistration;
+  }
+
   const grid = document.querySelector("[data-managed-projects]");
   if (!grid || !projects.length) return;
 
@@ -207,14 +257,14 @@ async function initManagedContent() {
   };
 
   grid.innerHTML = projects.slice(0, 6).map((project, index) => {
-    const href = project.prototypeHref
+    const href = project.passwordEnabled ? "#" : project.prototypeHref
       ? homePath(project.prototypeHref)
       : "./portfolio/project-detail.html?slug=" + encodeURIComponent(project.slug);
     const cover = homePath(project.cover);
     const title = escapeAttr(project.title);
     const hiddenClass = index === 3 || index === 5 ? " project-card-mobile-hidden" : "";
     return [
-      '<a class="project-card' + hiddenClass + '" href="' + escapeAttr(href) + '" data-column="' + ((index % 3) + 1) + '" aria-label="' + title + '">',
+      '<a class="project-card' + hiddenClass + '" href="' + escapeAttr(href) + '" data-column="' + ((index % 3) + 1) + '" data-slug="' + escapeAttr(project.slug) + '"' + (project.passwordEnabled ? ' data-protected-project="' + escapeAttr(project.slug) + '"' : '') + ' aria-label="' + title + '">',
       '  <div class="project-image-dock"><img src="' + escapeAttr(cover) + '" alt="' + title + '" loading="lazy" decoding="async" /></div>',
       '  <span class="project-meta-label">' + title + "</span>",
       "</a>",

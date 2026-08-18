@@ -4,7 +4,7 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Lin Tong Xin | Portfolio</title>
-    <link rel="stylesheet" href="./styles.css?v=20260711-2" />
+    <link rel="stylesheet" href="./styles.css?v=20260818-1" />
     <link rel="stylesheet" href="./assets/page-transition.css" />
     <script
       type="module"
@@ -49,13 +49,13 @@
         </div>
       </section>
 
-      <section class="about-section">
+      <section class="about-section" data-managed-section="about">
         <p class="about-copy" data-content="aboutText">
           拥有5年以上多端UI/UX体验设计经验，具备深厚的B端SaaS系统与C端移动产品设计实战积累。拥有极强的业务洞察力与产品思维，能独立完成从“需求分析-逻辑梳理-视觉表达-资产交付”的全流程工作。
         </p>
       </section>
 
-      <section id="portfolio" class="projects-section">
+      <section id="portfolio" class="projects-section" data-managed-section="portfolio">
         <div class="work-divider" data-reveal></div>
 
         <div class="section-heading" data-reveal>
@@ -150,7 +150,7 @@
       </section>
     </main>
 
-    <footer id="contact" class="site-footer">
+    <footer id="contact" class="site-footer" data-managed-section="contact">
       <div class="site-footer-inner">
         <section class="footer-column footer-column-primary" data-reveal>
           <p class="footer-kicker">Contact</p>
@@ -197,8 +197,27 @@
 
       <div class="site-footer-rule"></div>
 
+      <section class="contact-inquiry" aria-labelledby="inquiry-title" data-reveal>
+        <div class="contact-inquiry-heading">
+          <p class="footer-kicker">Project Brief</p>
+          <h2 id="inquiry-title">聊聊你的项目</h2>
+          <p>留下基本需求和联系方式，我会尽快与你确认项目背景与合作方式。</p>
+        </div>
+        <form class="contact-inquiry-form" id="inquiry-form">
+          <label><span>称呼</span><input name="name" type="text" maxlength="80" required placeholder="怎么称呼你" /></label>
+          <label><span>邮箱</span><input name="email" type="email" maxlength="160" required placeholder="name@example.com" /></label>
+          <fieldset class="contact-inquiry-types"><legend>项目类型</legend><label><input name="projectTypes" type="checkbox" value="产品体验设计" /><span>产品体验设计</span></label><label><input name="projectTypes" type="checkbox" value="品牌与视觉设计" /><span>品牌与视觉设计</span></label><label><input name="projectTypes" type="checkbox" value="数据可视化" /><span>数据可视化</span></label><label><input name="projectTypes" type="checkbox" value="设计咨询" /><span>设计咨询</span></label></fieldset>
+          <label><span>预算范围</span><select name="budget"><option value="待沟通">待沟通</option><option value="5,000 元以内">5,000 元以内</option><option value="5,000 - 20,000 元">5,000 - 20,000 元</option><option value="20,000 - 50,000 元">20,000 - 50,000 元</option><option value="50,000 元以上">50,000 元以上</option></select></label>
+          <label class="contact-inquiry-message"><span>项目需求</span><textarea name="message" rows="4" minlength="10" maxlength="2000" required placeholder="简单介绍项目背景、目标和时间计划"></textarea></label>
+          <label class="contact-inquiry-trap" aria-hidden="true"><span>Company</span><input name="company" tabindex="-1" autocomplete="off" /></label>
+          <div class="contact-inquiry-actions"><p id="inquiry-form-status" role="status"></p><div><button class="is-secondary" type="submit" data-inquiry-action="quote">获取报价</button><button type="submit" data-inquiry-action="inquiry">提交咨询</button></div></div>
+        </form>
+      </section>
+
+      <div class="site-footer-rule"></div>
+
       <div class="site-footer-bottom">
-        <span>菻桐昕 Portfolio</span>
+        <span>菻桐昕 Portfolio <small data-footer-registration hidden></small></span>
         <div class="site-footer-legal">
           <a href="#top">返回顶部</a>
           <a href="./portfolio/index.html">查看作品</a>
@@ -219,10 +238,26 @@
       <p id="wechat-dialog-title">扫码关注，获得更多信息。</p>
     </dialog>
 
+    <button class="ai-assistant-trigger" id="ai-assistant-trigger" type="button" aria-label="打开 AI 设计助手" hidden>AI</button>
+    <dialog class="ai-assistant-dialog" id="ai-assistant-dialog" aria-labelledby="ai-assistant-title">
+      <header>
+        <div><span>AI Profile</span><h2 id="ai-assistant-title" data-ai-name>Lin 的设计助手</h2></div>
+        <button type="button" data-ai-close aria-label="关闭 AI 助手">×</button>
+      </header>
+      <p class="ai-assistant-intro" data-ai-introduction></p>
+      <div class="ai-messages" data-ai-messages aria-live="polite"></div>
+      <div class="ai-suggestions" data-ai-suggestions></div>
+      <form class="ai-question-form" data-ai-form>
+        <input name="question" type="text" maxlength="300" autocomplete="off" placeholder="问问我的项目和设计经验" aria-label="输入问题" />
+        <button type="submit">发送</button>
+      </form>
+    </dialog>
+
     <script src="./portfolio/project-data.js?v=20260729-1"></script>
     <script src="./admin/config.js"></script>
-    <script src="./shared/content-api.js?v=20260817-2"></script>
-    <script src="./app.js?v=20260817-2" defer></script>
+    <script src="./shared/content-api.js?v=20260818-1"></script>
+    <script src="./shared/site-operations.js?v=20260818-1" defer></script>
+    <script src="./app.js?v=20260818-1" defer></script>
     <script src="./assets/page-transition.js" defer></script>
   </body>
 </html>

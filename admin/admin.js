@@ -675,26 +675,111 @@
     refreshIcons();
   };
 
+  const projectGalleryCard = (source, index) => [
+    '<article class="project-gallery-card" data-gallery-card="' + index + '">',
+    '  <div class="project-gallery-image"><img src="' + escapeHtml(source) + '" alt="作品图片 ' + (index + 1) + '" loading="lazy" /><span class="project-gallery-index">' + String(index + 1).padStart(2, "0") + '</span></div>',
+    '  <div class="project-gallery-card-footer">',
+    '    <label><span class="visually-hidden">作品图片 ' + (index + 1) + ' 地址</span><input data-gallery-entry value="' + escapeHtml(source) + '" aria-label="作品图片 ' + (index + 1) + ' 地址" /></label>',
+    '    <div class="project-gallery-card-actions">',
+    '      <button type="button" data-move-gallery="up" data-gallery-index="' + index + '" aria-label="上移图片"' + (index === 0 ? " disabled" : "") + '><i data-lucide="arrow-up" aria-hidden="true"></i></button>',
+    '      <button type="button" data-move-gallery="down" data-gallery-index="' + index + '" aria-label="下移图片"><i data-lucide="arrow-down" aria-hidden="true"></i></button>',
+    '      <button class="is-danger" type="button" data-remove-gallery="' + index + '" aria-label="移除图片"><i data-lucide="trash-2" aria-hidden="true"></i></button>',
+    '    </div>',
+    '  </div>',
+    '</article>',
+  ].join("\n");
+
+  const demoProjectFields = (item, editing) => [
+    '<input name="itemType" type="hidden" value="demo" />',
+    '<label class="field"><span>Demo 标题</span><input name="title" required value="' + escapeHtml(item.title || "") + '" /></label>',
+    '<label class="field"><span>Slug</span><input name="slug" required pattern="[a-z0-9-]+" ' + (editing ? "readonly" : "") + ' value="' + escapeHtml(item.slug || "") + '" /></label>',
+    '<label class="field"><span>分类</span><input name="category" value="' + escapeHtml(item.category || "Exercises and Demos") + '" /></label>',
+    '<label class="field"><span>排序</span><input name="sortOrder" type="number" min="0" value="' + Number(item.sortOrder || 0) + '" /></label>',
+    '<label class="field field-wide"><span>Demo 描述</span><textarea name="descriptionZh" rows="5">' + escapeHtml(item.descriptionZh || "") + '</textarea></label>',
+    '<label class="field field-wide"><span>封面地址</span><input name="cover" value="' + escapeHtml(item.cover || "") + '" placeholder="图片 URL 或站内路径" /></label>',
+    '<label class="field field-wide"><span>项目画廊</span><textarea name="gallery" rows="5" placeholder="每行一个图片地址">' + escapeHtml((item.gallery || []).join("\n")) + '</textarea></label>',
+    '<label class="field"><span>技术栈</span><input name="tags" value="' + escapeHtml((item.tags || []).join("，")) + '" placeholder="使用逗号分隔" /></label>',
+    '<label class="field"><span>预览视频 / 媒体</span><input name="mediaUrl" value="' + escapeHtml(item.mediaUrl || "") + '" /></label>',
+    '<label class="field field-wide"><span>在线 Demo 地址</span><input name="prototypeHref" value="' + escapeHtml(item.prototypeHref || "") + '" placeholder="https:// 或站内路径" /></label>',
+    '<label class="toggle-field"><span>密码保护</span><input name="passwordEnabled" type="checkbox"' + (item.passwordEnabled ? " checked" : "") + ' /></label>',
+    '<label class="field"><span>访问密码</span><input name="accessPassword" type="password" placeholder="' + (item.passwordEnabled ? "留空则保留当前密码" : "启用后填写") + '" /></label>',
+    '<label class="field field-wide"><span>受保护跳转地址</span><input name="protectedTargetUrl" value="' + escapeHtml(item.protectedTargetUrl || "") + '" placeholder="验证成功后才返回此地址" /></label>',
+    '<label class="toggle-field field-wide"><span>公开发布</span><input name="published" type="checkbox"' + (item.published === false ? "" : " checked") + ' /></label>',
+  ].join("\n");
+
   const projectFields = (item, editing, type) => {
-    const isDemo = type === "demo";
+    if (type === "demo") return demoProjectFields(item, editing);
+    const gallery = (item.gallery || []).filter(Boolean);
+    const cover = item.cover || gallery[0] || "";
+    const galleryImages = gallery.length ? gallery : (cover ? [cover] : []);
     return [
-      '<input name="itemType" type="hidden" value="' + (isDemo ? "demo" : "portfolio") + '" />',
-      '<label class="field"><span>' + (isDemo ? "Demo 标题" : "项目标题") + '</span><input name="title" required value="' + escapeHtml(item.title || "") + '" /></label>',
-      '<label class="field"><span>Slug</span><input name="slug" required pattern="[a-z0-9-]+" ' + (editing ? "readonly" : "") + ' value="' + escapeHtml(item.slug || "") + '" /></label>',
-      '<label class="field"><span>分类</span><input name="category" list="project-categories" value="' + escapeHtml(item.category || (isDemo ? "Exercises and Demos" : "APP Design")) + '" /><datalist id="project-categories">' + ["APP Design", "Web Design", "Data visualization", "IP Design", "Exercises and Demos"].map((value) => '<option value="' + value + '"></option>').join("") + '</datalist></label>',
-      '<label class="field"><span>排序</span><input name="sortOrder" type="number" min="0" value="' + Number(item.sortOrder || 0) + '" /></label>',
-      '<label class="field field-wide"><span>' + (isDemo ? "Demo 描述" : "项目描述") + '</span><textarea name="descriptionZh" rows="5">' + escapeHtml(item.descriptionZh || "") + '</textarea></label>',
-      '<label class="field field-wide"><span>封面地址</span><input name="cover" value="' + escapeHtml(item.cover || "") + '" placeholder="图片 URL 或站内路径" /></label>',
-      '<label class="field field-wide"><span>项目画廊</span><textarea name="gallery" rows="5" placeholder="每行一个图片地址">' + escapeHtml((item.gallery || []).join("\n")) + '</textarea></label>',
-      '<label class="field"><span>' + (isDemo ? "技术栈" : "标签") + '</span><input name="tags" value="' + escapeHtml((item.tags || []).join("，")) + '" placeholder="使用逗号分隔" /></label>',
-      '<label class="field"><span>' + (isDemo ? "预览视频 / 媒体" : "客户名称") + '</span><input name="' + (isDemo ? "mediaUrl" : "clientName") + '" value="' + escapeHtml(isDemo ? (item.mediaUrl || "") : (item.clientName || "")) + '" /></label>',
-      isDemo ? '' : '<label class="field"><span>项目日期</span><input name="projectDate" type="date" value="' + escapeHtml(item.projectDate || "") + '" /></label>',
-      '<label class="field field-wide"><span>' + (isDemo ? "在线 Demo 地址" : "项目 / 原型链接") + '</span><input name="prototypeHref" value="' + escapeHtml(item.prototypeHref || "") + '" placeholder="https:// 或站内路径" /></label>',
-      '<label class="toggle-field"><span>密码保护</span><input name="passwordEnabled" type="checkbox"' + (item.passwordEnabled ? " checked" : "") + ' /></label>',
-      '<label class="field"><span>访问密码</span><input name="accessPassword" type="password" placeholder="' + (item.passwordEnabled ? "留空则保留当前密码" : "启用后填写") + '" /></label>',
-      '<label class="field field-wide"><span>受保护跳转地址</span><input name="protectedTargetUrl" value="' + escapeHtml(item.protectedTargetUrl || "") + '" placeholder="验证成功后才返回此地址" /></label>',
-      '<label class="toggle-field field-wide"><span>公开发布</span><input name="published" type="checkbox"' + (item.published === false ? "" : " checked") + ' /></label>',
-    ].filter(Boolean).join("\n");
+      '<input name="itemType" type="hidden" value="portfolio" />',
+      '<div class="project-editor-layout">',
+      '  <section class="project-editor-main" aria-label="作品内容">',
+      '    <div class="project-editor-intro">',
+      '      <label class="project-title-field"><span class="visually-hidden">项目标题</span><input name="title" required value="' + escapeHtml(item.title || "") + '" placeholder="输入项目标题" /></label>',
+      '      <label class="project-description-field"><span class="visually-hidden">项目描述</span><textarea name="descriptionZh" rows="2" placeholder="请输入作品描述（选填）">' + escapeHtml(item.descriptionZh || "") + '</textarea></label>',
+      '    </div>',
+      '    <div class="project-gallery-toolbar">',
+      '      <div><span>作品图片</span><small>按展示顺序排列，可上传或粘贴图片地址</small></div>',
+      '      <div class="project-gallery-add">',
+      '        <input type="url" data-gallery-url-input placeholder="粘贴图片 URL" aria-label="新增作品图片地址" />',
+      '        <button class="button button-secondary" type="button" data-add-gallery-url><i data-lucide="link-2" aria-hidden="true"></i><span>添加地址</span></button>',
+      '        <label class="button button-primary project-upload-button"><i data-lucide="image-up" aria-hidden="true"></i><span>上传图片</span><input type="file" accept="image/jpeg,image/png,image/webp,image/gif" multiple data-gallery-upload /></label>',
+      '      </div>',
+      '    </div>',
+      '    <textarea name="gallery" class="project-gallery-source" hidden>' + escapeHtml(galleryImages.join("\n")) + '</textarea>',
+      '    <div class="project-gallery-list" data-project-gallery>' + (galleryImages.length ? galleryImages.map(projectGalleryCard).join("") : '<div class="project-gallery-empty"><i data-lucide="images" aria-hidden="true"></i><strong>还没有作品图片</strong><span>上传图片或添加地址后会在这里按顺序预览</span></div>') + '</div>',
+      '  </section>',
+      '  <aside class="project-editor-sidebar" aria-label="项目配置">',
+      '    <section class="project-cover-panel">',
+      '      <div class="project-sidebar-heading"><span>封面图片</span><small>必填</small></div>',
+      '      <div class="project-cover-preview" data-cover-preview>' + (cover ? '<img src="' + escapeHtml(cover) + '" alt="项目封面预览" />' : '<div><i data-lucide="image-plus" aria-hidden="true"></i><span>添加封面图片</span></div>') + '</div>',
+      '      <div class="project-cover-actions"><label class="button button-secondary"><i data-lucide="upload" aria-hidden="true"></i><span>上传封面</span><input type="file" accept="image/jpeg,image/png,image/webp" data-cover-upload /></label><button class="button button-ghost" type="button" data-use-first-gallery>使用首图</button></div>',
+      '      <label class="project-compact-field"><span>封面地址</span><input name="cover" value="' + escapeHtml(item.cover || "") + '" placeholder="图片 URL 或站内路径" data-cover-url /></label>',
+      '    </section>',
+      '    <div class="project-sidebar-fields">',
+      '      <div class="project-category-row"><label class="project-compact-field"><span>分类</span><input name="category" list="project-categories" value="' + escapeHtml(item.category || "APP Design") + '" /></label><button type="button" data-add-project-category><i data-lucide="plus" aria-hidden="true"></i><span>新增分类</span></button></div>',
+      '      <datalist id="project-categories">' + ["APP Design", "Web Design", "Data visualization", "IP Design", "Exercises and Demos"].map((value) => '<option value="' + value + '"></option>').join("") + '</datalist>',
+      '      <label class="project-compact-field"><span>技术标签</span><input name="tags" value="' + escapeHtml((item.tags || []).join("，")) + '" placeholder="多个标签用逗号分隔" /></label>',
+      '      <label class="project-compact-field"><span>客户</span><input name="clientName" value="' + escapeHtml(item.clientName || "") + '" placeholder="请输入客户名称" /></label>',
+      '      <label class="project-compact-field"><span>项目链接</span><input name="prototypeHref" value="' + escapeHtml(item.prototypeHref || "") + '" placeholder="https:// 或站内路径" /></label>',
+      '      <label class="project-compact-field"><span>项目日期</span><input name="projectDate" type="date" value="' + escapeHtml(item.projectDate || "") + '" /></label>',
+      '      <div class="project-field-split"><label class="project-compact-field"><span>Slug</span><input name="slug" required pattern="[a-z0-9-]+" ' + (editing ? "readonly" : "") + ' value="' + escapeHtml(item.slug || "") + '" placeholder="project-slug" /></label><label class="project-compact-field"><span>项目排序</span><input name="sortOrder" type="number" min="0" value="' + Number(item.sortOrder || 0) + '" /></label></div>',
+      '      <label class="project-switch-field"><span><strong>是否私密</strong><small>开启后需输入访问密码</small></span><input name="passwordEnabled" type="checkbox"' + (item.passwordEnabled ? " checked" : "") + ' /></label>',
+      '      <label class="project-compact-field"><span>访问密码</span><input name="accessPassword" type="password" placeholder="' + (item.passwordEnabled ? "留空则保留当前密码" : "开启私密后填写") + '" /></label>',
+      '      <label class="project-compact-field"><span>受保护跳转地址</span><input name="protectedTargetUrl" value="' + escapeHtml(item.protectedTargetUrl || "") + '" placeholder="验证通过后打开的地址" /></label>',
+      '      <label class="project-switch-field"><span><strong>公开发布</strong><small>关闭后保存为草稿</small></span><input name="published" type="checkbox"' + (item.published === false ? "" : " checked") + ' /></label>',
+      '    </div>',
+      '  </aside>',
+      '</div>',
+    ].join("\n");
+  };
+
+  const projectGalleryValues = () => String(editorForm.elements.namedItem("gallery")?.value || "")
+    .split(/\r?\n/)
+    .map((value) => value.trim())
+    .filter(Boolean);
+
+  const renderProjectGallery = (values) => {
+    const source = editorForm.elements.namedItem("gallery");
+    const gallery = editorBody.querySelector("[data-project-gallery]");
+    if (!source || !gallery) return;
+    source.value = values.join("\n");
+    gallery.innerHTML = values.length
+      ? values.map(projectGalleryCard).join("")
+      : '<div class="project-gallery-empty"><i data-lucide="images" aria-hidden="true"></i><strong>还没有作品图片</strong><span>上传图片或添加地址后会在这里按顺序预览</span></div>';
+    gallery.querySelectorAll('[data-move-gallery="down"]').forEach((button, index) => { button.disabled = index === values.length - 1; });
+    refreshIcons();
+  };
+
+  const updateProjectCoverPreview = (url) => {
+    const preview = editorBody.querySelector("[data-cover-preview]");
+    if (!preview) return;
+    preview.innerHTML = url
+      ? '<img src="' + escapeHtml(url) + '" alt="项目封面预览" />'
+      : '<div><i data-lucide="image-plus" aria-hidden="true"></i><span>添加封面图片</span></div>';
+    refreshIcons();
   };
 
   const articleBlocksToHtml = (blocks) => (blocks || []).map((block) => {
@@ -833,6 +918,8 @@
               : { entryType: "income", category: "项目收入", amountCents: 0, paymentStatus: "paid", occurredOn: new Date().toISOString().slice(0, 10) });
     editorForm.dataset.type = type;
     editorDialog.classList.toggle("is-quick-entry", type === "quickLink" || type === "quickLinkCategory");
+    editorDialog.classList.toggle("is-project-editor", type === "project");
+    document.body.classList.toggle("project-editor-open", type === "project");
     const labels = {
       project: ["Portfolio", "项目"], demo: ["Demo", "交互演示"], article: ["Article", "文章"], navigation: ["Navigation", "导航"], finance: ["Finance", "收支记录"], note: ["Thinking", "便签"], quickLink: ["Quick Entry", "网站"], quickLinkCategory: ["Quick Entry", "分类"], scheduleItem: ["Calendar", "事项"], quote: ["AI Quote", "报价"],
     };
@@ -840,6 +927,7 @@
     document.getElementById("editor-title").textContent = (type === "quickLink" || type === "quickLinkCategory")
       ? (editing ? "编辑" : "添加") + labels[type][1]
       : (editing ? "编辑" : "新建") + labels[type][1];
+    document.getElementById("editor-save-label").textContent = editing ? "保存修改" : "创建项目";
     editorBody.innerHTML = type === "project" || type === "demo" ? projectFields(value, editing, type)
       : type === "article" ? articleFields(value, editing)
         : type === "navigation" ? navigationFields(value)
@@ -860,6 +948,7 @@
       URL.revokeObjectURL(editorForm.dataset.previewUrl);
       delete editorForm.dataset.previewUrl;
     }
+    document.body.classList.remove("project-editor-open");
     if (editorDialog.open) editorDialog.close();
   };
 
@@ -1222,6 +1311,53 @@
   });
 
   editorBody.addEventListener("click", (event) => {
+    const addGalleryUrl = event.target.closest("[data-add-gallery-url]");
+    if (addGalleryUrl) {
+      const input = editorBody.querySelector("[data-gallery-url-input]");
+      const url = String(input?.value || "").trim();
+      if (!url) {
+        input?.focus();
+        return;
+      }
+      renderProjectGallery([...projectGalleryValues(), url]);
+      input.value = "";
+      return;
+    }
+    const removeGallery = event.target.closest("[data-remove-gallery]");
+    if (removeGallery) {
+      const values = projectGalleryValues();
+      values.splice(Number(removeGallery.dataset.removeGallery), 1);
+      renderProjectGallery(values);
+      return;
+    }
+    const moveGallery = event.target.closest("[data-move-gallery]");
+    if (moveGallery) {
+      const values = projectGalleryValues();
+      const index = Number(moveGallery.dataset.galleryIndex);
+      const targetIndex = moveGallery.dataset.moveGallery === "up" ? index - 1 : index + 1;
+      if (targetIndex < 0 || targetIndex >= values.length) return;
+      [values[index], values[targetIndex]] = [values[targetIndex], values[index]];
+      renderProjectGallery(values);
+      return;
+    }
+    const useFirstGallery = event.target.closest("[data-use-first-gallery]");
+    if (useFirstGallery) {
+      const coverInput = editorForm.elements.namedItem("cover");
+      const firstImage = projectGalleryValues()[0] || "";
+      if (!firstImage) {
+        showToast("请先添加作品图片", true);
+        return;
+      }
+      coverInput.value = firstImage;
+      updateProjectCoverPreview(firstImage);
+      return;
+    }
+    const addCategory = event.target.closest("[data-add-project-category]");
+    if (addCategory) {
+      const category = window.prompt("输入新的项目分类");
+      if (category && category.trim()) editorForm.elements.namedItem("category").value = category.trim();
+      return;
+    }
     const editor = document.getElementById("rich-article-editor");
     if (!editor) return;
     const command = event.target.closest("[data-rich-command]");
@@ -1243,7 +1379,55 @@
     }
   });
 
-  editorBody.addEventListener("change", (event) => {
+  editorBody.addEventListener("input", (event) => {
+    const coverInput = event.target.closest("[data-cover-url]");
+    if (coverInput) {
+      updateProjectCoverPreview(coverInput.value.trim());
+      return;
+    }
+    const galleryEntry = event.target.closest("[data-gallery-entry]");
+    if (!galleryEntry) return;
+    const entries = Array.from(editorBody.querySelectorAll("[data-gallery-entry]"));
+    editorForm.elements.namedItem("gallery").value = entries.map((input) => input.value.trim()).filter(Boolean).join("\n");
+    const image = galleryEntry.closest("[data-gallery-card]")?.querySelector("img");
+    if (image) image.src = galleryEntry.value.trim();
+  });
+
+  editorBody.addEventListener("keydown", (event) => {
+    if (event.key !== "Enter" || !event.target.matches("[data-gallery-url-input]")) return;
+    event.preventDefault();
+    editorBody.querySelector("[data-add-gallery-url]")?.click();
+  });
+
+  editorBody.addEventListener("change", async (event) => {
+    const coverUpload = event.target.closest("[data-cover-upload]");
+    if (coverUpload && coverUpload.files && coverUpload.files[0]) {
+      try {
+        setSync("上传封面", "busy");
+        const url = await api.uploadMedia(coverUpload.files[0]);
+        editorForm.elements.namedItem("cover").value = url;
+        updateProjectCoverPreview(url);
+        setSync("封面已上传", "");
+      } catch (error) {
+        setSync("上传失败", "error");
+        showToast(error.message, true);
+      }
+      return;
+    }
+    const galleryUpload = event.target.closest("[data-gallery-upload]");
+    if (galleryUpload && galleryUpload.files && galleryUpload.files.length) {
+      try {
+        setSync("上传作品图片", "busy");
+        const uploaded = [];
+        for (const file of Array.from(galleryUpload.files)) uploaded.push(await api.uploadMedia(file));
+        renderProjectGallery([...projectGalleryValues(), ...uploaded]);
+        setSync("图片已上传", "");
+      } catch (error) {
+        setSync("上传失败", "error");
+        showToast(error.message, true);
+      }
+      return;
+    }
     const input = event.target.closest("[data-quick-entry-image]");
     if (!input || !input.files || !input.files[0]) return;
     const preview = editorBody.querySelector("[data-quick-entry-preview]");

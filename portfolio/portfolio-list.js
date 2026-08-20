@@ -6,7 +6,6 @@
   const modalTitle = document.getElementById("portfolio-modal-title");
   const modalDescription = document.getElementById("portfolio-modal-description");
   const modalCategory = document.getElementById("portfolio-modal-category");
-  const modalPrototype = document.getElementById("portfolio-modal-prototype");
   const modalGallery = document.getElementById("portfolio-modal-gallery");
   const pageHeader = document.querySelector(".portfolio-page-header");
   const pageMain = document.querySelector(".portfolio-list-page");
@@ -17,7 +16,7 @@
   const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
   const pointerFine = window.matchMedia("(hover: hover) and (pointer: fine)").matches;
 
-  if (!root || !filterRoot || !modal || !modalDialog || !modalTitle || !modalDescription || !modalCategory || !modalPrototype || !modalGallery) return;
+  if (!root || !filterRoot || !modal || !modalDialog || !modalTitle || !modalDescription || !modalCategory || !modalGallery) return;
 
   const preferredFilters = ["APP Design", "Web Design", "Data visualization", "IP Design", "Exercises and Demos"];
   const displayLabels = {
@@ -176,13 +175,10 @@
     const coverImage = project.cover || wallImages[project.slug] || "";
     const gallery = getProjectMedia(project, coverImage);
     const tags = getProjectTags(project).filter(Boolean).map(getDisplayLabel);
-    const prototypeHref = project.prototypeHref || "";
 
     modalTitle.textContent = title;
     modalDescription.textContent = description;
     modalCategory.textContent = tags.join(" / ") || "项目";
-    modalPrototype.hidden = !prototypeHref;
-    if (prototypeHref) modalPrototype.href = prototypeHref;
 
     const videoHtml = project.mediaUrl
       ? [

@@ -5,10 +5,9 @@ Static implementation of the Figma design at node `656:8787`.
 ## Live links
 
 - Public portfolio: https://lh1994530481-oss.github.io/Portfolio-web/
-- Embedded admin: https://lh1994530481-oss.github.io/Portfolio-web/admin/
-- Standalone admin: https://lh1994530481-oss.github.io/Personal-backend/
+- Live admin: https://lh1994530481-oss.github.io/Portfolio-web/admin/
 
-After every production change, push `main` and verify the public GitHub Pages URL. Changes to mirrored admin files must also be committed and pushed to `Personal-backend`.
+The admin source is also maintained in the private `Personal-backend` repository. After every production change, push `main` and verify both public GitHub Pages URLs. Changes to mirrored admin files must also be committed and pushed to `Personal-backend`.
 
 ## Open
 

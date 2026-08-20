@@ -497,6 +497,18 @@ create table if not exists public.quick_links (
   label text not null check (char_length(label) between 1 and 80),
   url text not null check (char_length(url) between 1 and 2000),
   category text not null default '个人' check (char_length(category) between 1 and 40),
+  image_url text not null default '',
+  sort_order integer not null default 0,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+
+alter table public.quick_links
+  add column if not exists image_url text not null default '';
+
+create table if not exists public.quick_link_categories (
+  id uuid primary key default gen_random_uuid(),
+  name text not null unique check (char_length(name) between 1 and 40),
   sort_order integer not null default 0,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
@@ -511,6 +523,7 @@ create table if not exists public.workbench_moods (
 
 alter table public.workbench_notes enable row level security;
 alter table public.quick_links enable row level security;
+alter table public.quick_link_categories enable row level security;
 alter table public.workbench_moods enable row level security;
 
 drop policy if exists "Admins manage workbench notes" on public.workbench_notes;
@@ -521,11 +534,19 @@ drop policy if exists "Admins manage quick links" on public.quick_links;
 create policy "Admins manage quick links" on public.quick_links for all to authenticated
 using ((select private.is_portfolio_admin())) with check ((select private.is_portfolio_admin()));
 
+drop policy if exists "Admins manage quick link categories" on public.quick_link_categories;
+create policy "Admins manage quick link categories" on public.quick_link_categories for all to authenticated
+using ((select private.is_portfolio_admin())) with check ((select private.is_portfolio_admin()));
+
 drop policy if exists "Admins manage workbench moods" on public.workbench_moods;
 create policy "Admins manage workbench moods" on public.workbench_moods for all to authenticated
 using ((select private.is_portfolio_admin())) with check ((select private.is_portfolio_admin()));
 
-grant select, insert, update, delete on public.workbench_notes, public.quick_links, public.workbench_moods to authenticated;
+grant select, insert, update, delete on public.workbench_notes, public.quick_links, public.quick_link_categories, public.workbench_moods to authenticated;
+
+insert into public.quick_link_categories (name, sort_order)
+values ('设计', 0), ('开发', 1), ('工具', 2), ('个人', 3)
+on conflict (name) do nothing;
 
 alter table public.ai_profile
   add column if not exists persona text not null default '',
@@ -598,6 +619,7 @@ grant select, update, delete on public.quote_requests to authenticated;
 
 revoke all on public.workbench_notes from anon;
 revoke all on public.quick_links from anon;
+revoke all on public.quick_link_categories from anon;
 revoke all on public.workbench_moods from anon;
 revoke all on public.finance_entries from anon;
 

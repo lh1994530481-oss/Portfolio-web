@@ -92,6 +92,8 @@
     finance: [],
     workbenchNotes: [],
     quickLinks: [],
+    quickLinkCategories: [],
+    activeQuickLinkCategory: "设计",
     moods: [],
     quotes: [],
     activeSection: "overview",
@@ -150,7 +152,7 @@
 
   const loadData = async () => {
     setSync("读取内容", "busy");
-    const [projects, articles, navigation, settings, events, aiProfile, inquiries, finance, workbenchNotes, quickLinks, moods, quotes] = await Promise.all([
+    const [projects, articles, navigation, settings, events, aiProfile, inquiries, finance, workbenchNotes, quickLinks, quickLinkCategories, moods, quotes] = await Promise.all([
       api.listProjects(defaultProjects, true),
       api.listArticles(defaultArticles, true),
       api.listNavigation(defaultNavigation, true),
@@ -161,6 +163,7 @@
       api.listFinanceEntries(),
       api.listWorkbenchNotes(),
       api.listQuickLinks(),
+      api.listQuickLinkCategories(),
       api.listWorkbenchMoods(),
       api.listQuoteRequests(),
     ]);
@@ -174,6 +177,7 @@
     state.finance = finance;
     state.workbenchNotes = workbenchNotes;
     state.quickLinks = quickLinks;
+    state.quickLinkCategories = quickLinkCategories;
     state.moods = moods;
     state.quotes = quotes;
     renderAll();
@@ -181,6 +185,30 @@
   };
 
   const publishedCount = (items) => items.filter((item) => item.published !== false).length;
+
+  const renderQuickEntries = () => {
+    const categories = state.quickLinkCategories.length ? state.quickLinkCategories : api.defaultQuickLinkCategories;
+    if (!categories.some((item) => item.name === state.activeQuickLinkCategory)) state.activeQuickLinkCategory = categories[0] ? categories[0].name : "设计";
+    const categoryIcons = { "设计": "palette", "开发": "code-2", "工具": "wrench", "个人": "user-round" };
+    const items = state.quickLinks.filter((item) => item.category === state.activeQuickLinkCategory);
+    const tabs = categories.map((item) => '<button class="quick-entry-tab' + (item.name === state.activeQuickLinkCategory ? ' is-active' : '') + '" type="button" role="tab" aria-selected="' + (item.name === state.activeQuickLinkCategory) + '" data-quick-entry-category="' + escapeHtml(item.name) + '">' + escapeHtml(item.name) + '</button>').join("");
+    const entries = items.map((item) => {
+      const icon = categoryIcons[item.category] || "link-2";
+      const visual = item.imageUrl
+        ? '<img src="' + escapeHtml(item.imageUrl) + '" alt="" />'
+        : '<i data-lucide="' + icon + '" aria-hidden="true"></i>';
+      return [
+        '<article class="quick-entry-item">',
+        '  <a class="quick-entry-link" href="' + escapeHtml(item.url) + '" target="_blank" rel="noopener">',
+        '    <span class="quick-entry-icon">' + visual + '</span><strong>' + escapeHtml(item.label) + '</strong>',
+        '  </a>',
+        '  <button class="quick-entry-delete" type="button" data-delete-link="' + escapeHtml(item.id) + '" aria-label="删除' + escapeHtml(item.label) + '" title="删除"><i data-lucide="x"></i></button>',
+        '</article>',
+      ].join("");
+    }).join("");
+    const addEntry = '<button class="quick-entry-add" type="button" data-create="quickLink"><span><i data-lucide="plus" aria-hidden="true"></i></span><strong>添加网站</strong></button>';
+    document.getElementById("quick-links").innerHTML = '<div class="quick-entry-tabs" role="tablist" aria-label="快捷入口分类">' + tabs + '</div><div class="quick-entry-grid">' + entries + addEntry + '</div>';
+  };
 
   const renderOverview = () => {
     const portfolioItems = state.projects.filter((item) => item.itemType !== "demo");
@@ -249,10 +277,7 @@
       '</article>',
     ].join("")).join("") : '<div class="empty-state compact">写下今天的想法和待办。</div>';
 
-    document.getElementById("quick-links").innerHTML = state.quickLinks.length ? state.quickLinks.map((item) => [
-      '<article class="quick-link-row"><a href="' + escapeHtml(item.url) + '" target="_blank" rel="noopener"><span><i data-lucide="link-2"></i></span><div><strong>' + escapeHtml(item.label) + '</strong><small>' + escapeHtml(item.category) + '</small></div></a>',
-      '<button type="button" data-delete-link="' + escapeHtml(item.id) + '" aria-label="删除快捷链接"><i data-lucide="x"></i></button></article>',
-    ].join("")).join("") : '<div class="empty-state compact">添加常用设计、开发或个人网站。</div>';
+    renderQuickEntries();
 
     const moodNames = { great: ["sun", "状态很好"], good: ["smile", "心情不错"], calm: ["coffee", "平静专注"], tired: ["battery-low", "有点疲惫"], busy: ["zap", "节奏很满"] };
     const todayMood = state.moods.find((item) => item.date === localDateKey());
@@ -674,10 +699,17 @@
   ].join("\n");
 
   const quickLinkFields = (item) => [
-    '<label class="field"><span>名称</span><input name="label" required value="' + escapeHtml(item.label || "") + '" /></label>',
-    '<label class="field"><span>分类</span><input name="category" value="' + escapeHtml(item.category || "个人") + '" /></label>',
-    '<label class="field field-wide"><span>网址</span><input name="url" type="url" required value="' + escapeHtml(item.url || "") + '" /></label>',
-    '<label class="field"><span>排序</span><input name="sortOrder" type="number" min="0" value="' + Number(item.sortOrder || 0) + '" /></label>',
+    '<label class="quick-entry-form-row"><span>网站名称</span><input name="label" required maxlength="80" value="' + escapeHtml(item.label || "") + '" placeholder="请输入网站名称" /></label>',
+    '<label class="quick-entry-form-row"><span>网站 URL</span><input name="url" type="url" required value="' + escapeHtml(item.url || "") + '" placeholder="请输入网站 URL，如：https://example.com" /></label>',
+    '<label class="quick-entry-form-row"><span>所属分类</span><select name="category">' + state.quickLinkCategories.map((category) => '<option value="' + escapeHtml(category.name) + '"' + (category.name === (item.category || state.activeQuickLinkCategory) ? ' selected' : '') + '>' + escapeHtml(category.name) + '</option>').join("") + '</select></label>',
+    '<label class="quick-entry-image-row"><span>入口图片</span><span class="quick-entry-image-control"><span class="quick-entry-image-preview" data-quick-entry-preview>' + (item.imageUrl ? '<img src="' + escapeHtml(item.imageUrl) + '" alt="当前入口图片" />' : '<i data-lucide="image-plus" aria-hidden="true"></i>') + '</span><span><strong>添加图片</strong><small>支持 JPG、PNG、WebP，建议使用方形图片</small></span><input name="quickEntryImage" type="file" accept="image/jpeg,image/png,image/webp" data-quick-entry-image /></span></label>',
+    '<input name="imageUrl" type="hidden" value="' + escapeHtml(item.imageUrl || "") + '" />',
+    '<input name="sortOrder" type="hidden" value="' + Number(item.sortOrder ?? state.quickLinks.length) + '" />',
+  ].join("\n");
+
+  const quickLinkCategoryFields = (item) => [
+    '<label class="quick-entry-form-row"><span>分类名称</span><input name="name" required maxlength="40" value="' + escapeHtml(item.name || "") + '" placeholder="请输入分类名称" /></label>',
+    '<label class="quick-entry-form-row"><span>显示顺序</span><input name="sortOrder" type="number" min="0" value="' + Number(item.sortOrder || 0) + '" /></label>',
   ].join("\n");
 
   const quoteFields = (item) => [
@@ -700,28 +732,38 @@
           : type === "note"
             ? { category: "个人", color: "mint", sortOrder: state.workbenchNotes.length }
             : type === "quickLink"
-              ? { category: "个人", sortOrder: state.quickLinks.length }
+              ? { category: state.activeQuickLinkCategory, sortOrder: state.quickLinks.length }
+              : type === "quickLinkCategory"
+                ? { sortOrder: state.quickLinkCategories.length }
               : { entryType: "income", category: "项目收入", amountCents: 0, paymentStatus: "paid", occurredOn: new Date().toISOString().slice(0, 10) });
     editorForm.dataset.type = type;
+    editorDialog.classList.toggle("is-quick-entry", type === "quickLink" || type === "quickLinkCategory");
     const labels = {
-      project: ["Portfolio", "项目"], demo: ["Demo", "交互演示"], article: ["Article", "文章"], navigation: ["Navigation", "导航"], finance: ["Finance", "收支记录"], note: ["Thinking", "便签"], quickLink: ["Shortcut", "快捷链接"], quote: ["AI Quote", "报价"],
+      project: ["Portfolio", "项目"], demo: ["Demo", "交互演示"], article: ["Article", "文章"], navigation: ["Navigation", "导航"], finance: ["Finance", "收支记录"], note: ["Thinking", "便签"], quickLink: ["Quick Entry", "网站"], quickLinkCategory: ["Quick Entry", "分类"], quote: ["AI Quote", "报价"],
     };
     document.getElementById("editor-eyebrow").textContent = labels[type][0];
-    document.getElementById("editor-title").textContent = (editing ? "编辑" : "新建") + labels[type][1];
+    document.getElementById("editor-title").textContent = (type === "quickLink" || type === "quickLinkCategory")
+      ? (editing ? "编辑" : "添加") + labels[type][1]
+      : (editing ? "编辑" : "新建") + labels[type][1];
     editorBody.innerHTML = type === "project" || type === "demo" ? projectFields(value, editing, type)
       : type === "article" ? articleFields(value, editing)
         : type === "navigation" ? navigationFields(value)
           : type === "finance" ? financeFields(value)
             : type === "note" ? noteFields(value)
               : type === "quickLink" ? quickLinkFields(value)
+                : type === "quickLinkCategory" ? quickLinkCategoryFields(value)
                 : quoteFields(value);
-    if (["navigation", "finance", "note", "quickLink", "quote"].includes(type) && value.id) editorForm.dataset.itemId = value.id;
+    if (["navigation", "finance", "note", "quickLink", "quickLinkCategory", "quote"].includes(type) && value.id) editorForm.dataset.itemId = value.id;
     else delete editorForm.dataset.itemId;
     editorDialog.showModal();
     refreshIcons();
   };
 
   const closeEditor = () => {
+    if (editorForm.dataset.previewUrl) {
+      URL.revokeObjectURL(editorForm.dataset.previewUrl);
+      delete editorForm.dataset.previewUrl;
+    }
     if (editorDialog.open) editorDialog.close();
   };
 
@@ -772,7 +814,15 @@
     } else if (type === "quickLink") {
       values.id = editorForm.dataset.itemId || undefined;
       values.sortOrder = Number(values.sortOrder || 0);
+      const imageInput = editorForm.querySelector("[data-quick-entry-image]");
+      if (imageInput && imageInput.files && imageInput.files[0]) values.imageUrl = await api.uploadMedia(imageInput.files[0]);
+      delete values.quickEntryImage;
       await api.saveQuickLink(values);
+    } else if (type === "quickLinkCategory") {
+      values.id = editorForm.dataset.itemId || undefined;
+      values.sortOrder = Number(values.sortOrder || 0);
+      await api.saveQuickLinkCategory(values);
+      state.activeQuickLinkCategory = String(values.name || "").trim();
     } else if (type === "quote") {
       await api.updateQuoteRequest(editorForm.dataset.itemId, {
         status: values.status,
@@ -996,9 +1046,19 @@
     const noteToggle = event.target.closest("[data-toggle-note]");
     const noteDelete = event.target.closest("[data-delete-note]");
     const linkDelete = event.target.closest("[data-delete-link]");
+    const categoryTab = event.target.closest("[data-quick-entry-category]");
+    const addEntry = event.target.closest(".quick-entry-add");
     const mood = event.target.closest("[data-mood]");
     try {
-      if (noteToggle) {
+      if (categoryTab) {
+        state.activeQuickLinkCategory = categoryTab.dataset.quickEntryCategory;
+        renderQuickEntries();
+        refreshIcons();
+        return;
+      } else if (addEntry) {
+        openEditor("quickLink");
+        return;
+      } else if (noteToggle) {
         const item = state.workbenchNotes.find((entry) => entry.id === noteToggle.dataset.toggleNote);
         if (item) await api.saveWorkbenchNote({ ...item, completed: !item.completed });
       } else if (noteDelete) {
@@ -1034,6 +1094,17 @@
       const url = window.prompt("输入图片地址");
       if (url) document.execCommand("insertImage", false, url);
     }
+  });
+
+  editorBody.addEventListener("change", (event) => {
+    const input = event.target.closest("[data-quick-entry-image]");
+    if (!input || !input.files || !input.files[0]) return;
+    const preview = editorBody.querySelector("[data-quick-entry-preview]");
+    if (!preview) return;
+    if (editorForm.dataset.previewUrl) URL.revokeObjectURL(editorForm.dataset.previewUrl);
+    const previewUrl = URL.createObjectURL(input.files[0]);
+    editorForm.dataset.previewUrl = previewUrl;
+    preview.innerHTML = '<img src="' + previewUrl + '" alt="入口图片预览" />';
   });
 
   financeMonth.addEventListener("change", renderFinance);

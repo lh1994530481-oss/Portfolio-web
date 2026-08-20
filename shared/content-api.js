@@ -27,6 +27,13 @@
     { id: "10000000-0000-4000-8000-000000000004", label: "联系", href: "#contact", sortOrder: 3, published: true, openNewTab: false },
   ];
 
+  const defaultQuickLinkCategories = [
+    { id: "default-design", name: "设计", sortOrder: 0 },
+    { id: "default-development", name: "开发", sortOrder: 1 },
+    { id: "default-tools", name: "工具", sortOrder: 2 },
+    { id: "default-personal", name: "个人", sortOrder: 3 },
+  ];
+
   const defaultAiProfile = {
     id: "main",
     enabled: true,
@@ -554,7 +561,7 @@
     if (!isConfigured()) return readLocal("quick-links", []);
     const { data, error } = await getClient().from("quick_links").select("*").order("sort_order", { ascending: true });
     if (error) throw error;
-    return (data || []).map((row) => ({ id: row.id, label: row.label, url: row.url, category: row.category, sortOrder: row.sort_order }));
+    return (data || []).map((row) => ({ id: row.id, label: row.label, url: row.url, category: row.category, imageUrl: row.image_url || "", sortOrder: row.sort_order }));
   };
 
   const saveQuickLink = async (item) => {
@@ -566,7 +573,7 @@
       writeLocal("quick-links", items);
       return value;
     }
-    const row = { label: item.label, url: item.url, category: item.category || "个人", sort_order: Number(item.sortOrder || 0), updated_at: new Date().toISOString() };
+    const row = { label: item.label, url: item.url, category: item.category || "个人", image_url: item.imageUrl || "", sort_order: Number(item.sortOrder || 0), updated_at: new Date().toISOString() };
     const request = item.id ? getClient().from("quick_links").update(row).eq("id", item.id).select().single() : getClient().from("quick_links").insert(row).select().single();
     const { data, error } = await request;
     if (error) throw error;
@@ -577,6 +584,31 @@
     if (!isConfigured()) return writeLocal("quick-links", readLocal("quick-links", []).filter((item) => item.id !== id));
     const { error } = await getClient().from("quick_links").delete().eq("id", id);
     if (error) throw error;
+  };
+
+  const listQuickLinkCategories = async () => {
+    if (!isConfigured()) return readLocal("quick-link-categories", defaultQuickLinkCategories);
+    const { data, error } = await getClient().from("quick_link_categories").select("*").order("sort_order", { ascending: true }).order("created_at", { ascending: true });
+    if (error) throw error;
+    return (data || []).map((row) => ({ id: row.id, name: row.name, sortOrder: row.sort_order }));
+  };
+
+  const saveQuickLinkCategory = async (category) => {
+    const value = { ...category, name: String(category.name || "").trim(), id: category.id || "local-" + Date.now(), sortOrder: Number(category.sortOrder || 0) };
+    if (!value.name) throw new Error("请输入分类名称");
+    if (!isConfigured()) {
+      const items = readLocal("quick-link-categories", defaultQuickLinkCategories).slice();
+      if (items.some((item) => item.name === value.name && item.id !== value.id)) throw new Error("该分类已存在");
+      const index = items.findIndex((item) => item.id === value.id);
+      if (index >= 0) items[index] = value; else items.push(value);
+      writeLocal("quick-link-categories", items);
+      return value;
+    }
+    const row = { name: value.name, sort_order: value.sortOrder, updated_at: new Date().toISOString() };
+    const request = category.id ? getClient().from("quick_link_categories").update(row).eq("id", category.id).select().single() : getClient().from("quick_link_categories").insert(row).select().single();
+    const { data, error } = await request;
+    if (error) throw error;
+    return { id: data.id, name: data.name, sortOrder: data.sort_order };
   };
 
   const listWorkbenchMoods = async () => {
@@ -775,6 +807,7 @@
     config,
     defaultSettings,
     defaultNavigation,
+    defaultQuickLinkCategories,
     defaultAiProfile,
     isConfigured,
     getMode: () => (isConfigured() ? "supabase" : "local"),
@@ -804,6 +837,8 @@
     listQuickLinks,
     saveQuickLink,
     deleteQuickLink,
+    listQuickLinkCategories,
+    saveQuickLinkCategory,
     listWorkbenchMoods,
     saveWorkbenchMood,
     listQuoteRequests,

@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="robots" content="noindex, nofollow" />
     <title>Lin Tong Xin | Portfolio CMS</title>
-    <link rel="stylesheet" href="./admin.css?v=20260820-1" />
+    <link rel="stylesheet" href="./admin.css?v=20260820-2" />
   </head>
   <body>
     <main class="auth-screen" id="auth-screen">
@@ -96,7 +96,7 @@
 
       <div class="admin-main">
         <header class="workspace-bar">
-          <div class="workspace-brand"><span>LT</span><strong>Portfolio CMS</strong></div>
+          <div class="workspace-brand"><span>LT</span><strong>Lin Studio</strong></div>
           <nav class="workspace-tabs" aria-label="后台模块标签">
             <button class="workspace-tab is-active" type="button" data-section="overview">工作台</button>
             <button class="workspace-tab" type="button" data-section="analytics">数据统计</button>
@@ -112,34 +112,36 @@
             <button class="workspace-tab" type="button" data-section="media">素材上传</button>
             <button class="workspace-tab" type="button" data-section="setup">后台设置</button>
           </nav>
+          <div class="header-actions workspace-status">
+            <span class="mode-badge" id="mode-badge"></span>
+            <span class="sync-status" id="sync-status"><i data-lucide="check-circle-2" aria-hidden="true"></i>已同步</span>
+          </div>
           <a class="workspace-site-link" href="https://lh1994530481-oss.github.io/Portfolio-web/" target="_blank" rel="noopener"><i data-lucide="monitor-up" aria-hidden="true"></i><span>访问网站</span></a>
-          <span class="workspace-avatar" aria-label="管理员">LT</span>
+          <span class="workspace-user" aria-label="管理员"><span class="workspace-avatar">LT</span><strong>admin</strong></span>
         </header>
 
-        <header class="admin-header">
+        <header class="admin-header is-overview">
           <button class="mobile-menu" id="mobile-menu" type="button" aria-label="打开后台导航">
             <i data-lucide="menu" aria-hidden="true"></i>
           </button>
           <div>
             <p class="header-label">Portfolio CMS</p>
-            <h1 id="section-title">工作台</h1>
+            <h1 id="section-title">欢迎回来，Admin</h1>
           </div>
-          <div class="header-actions">
-            <span class="mode-badge" id="mode-badge"></span>
-            <span class="sync-status" id="sync-status"><i data-lucide="check-circle-2" aria-hidden="true"></i>已同步</span>
-          </div>
+          <div class="metric-grid" id="metric-grid"></div>
         </header>
 
         <div class="admin-content">
           <section class="admin-section is-active" data-panel="overview">
-            <div class="metric-grid" id="metric-grid"></div>
             <div class="workbench-grid">
               <section class="surface featured-surface"><div class="surface-heading"><div><p class="eyebrow">Featured</p><h2>精选项目</h2></div></div><div id="featured-project"></div></section>
+              <section class="surface analytics-summary-surface"><div class="surface-heading"><div><p class="eyebrow">Traffic</p><h2>访问统计</h2></div><button class="icon-button" type="button" data-open-section="analytics" aria-label="查看数据统计"><i data-lucide="arrow-up-right"></i></button></div><div class="workbench-visit-stats" id="workbench-visit-stats"></div></section>
               <section class="surface notes-surface"><div class="surface-heading"><div><p class="eyebrow">Thinking</p><h2>便签</h2></div><button class="icon-button" type="button" data-create="note" aria-label="新建便签"><i data-lucide="plus"></i></button></div><div class="workbench-notes" id="workbench-notes"></div></section>
+              <section class="surface inquiry-summary-surface"><div class="surface-heading"><div><p class="eyebrow">Inbox</p><h2>处理咨询</h2></div></div><div class="workbench-inquiry" id="workbench-inquiry"></div></section>
               <section class="surface links-surface"><div class="surface-heading"><div><p class="eyebrow">Quick Entry</p><h2>快捷入口</h2></div><div class="quick-entry-actions"><button class="icon-button" type="button" data-create="quickLinkCategory" aria-label="新增快捷入口分类" title="新增分类"><i data-lucide="folder-plus"></i></button><button class="icon-button" type="button" data-create="quickLink" aria-label="新增快捷入口" title="新增入口"><i data-lucide="plus"></i></button></div></div><div class="quick-links" id="quick-links"></div></section>
-              <section class="surface mood-surface"><div class="surface-heading"><div><p class="eyebrow">Calendar</p><h2>今日状态</h2></div><strong id="mood-date"></strong></div><div class="mood-options" id="mood-options"></div></section>
+              <section class="surface mood-surface"><div class="surface-heading"><div><p class="eyebrow">Calendar</p><h2 id="calendar-month">日历</h2></div><strong id="mood-date"></strong></div><div class="calendar-layout"><div class="workbench-calendar" id="workbench-calendar"></div><div class="calendar-mood"><div><small>今日记录</small><strong>今天状态怎么样</strong></div><div class="mood-options" id="mood-options"></div></div></div></section>
               <section class="surface recent-surface"><div class="surface-heading"><div><p class="eyebrow">Records</p><h2>最近操作</h2></div></div><div id="recent-content"></div></section>
-              <section class="surface status-surface"><div class="surface-heading"><div><p class="eyebrow">Status</p><h2>内容状态</h2></div></div><div id="publish-status"></div></section>
+              <div id="publish-status" hidden></div>
             </div>
           </section>
 
@@ -335,6 +337,6 @@
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="../shared/content-api.js?v=20260820-1"></script>
     <script src="https://unpkg.com/lucide@0.468.0/dist/umd/lucide.min.js"></script>
-    <script src="./admin.js?v=20260820-1" defer></script>
+    <script src="./admin.js?v=20260820-2" defer></script>
   </body>
 </html>

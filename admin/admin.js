@@ -101,7 +101,7 @@
   };
 
   const sectionNames = {
-    overview: "工作台",
+    overview: "欢迎回来，Admin",
     analytics: "数据统计",
     projects: "项目管理",
     demos: "Demo 管理",
@@ -147,6 +147,8 @@
     document.querySelectorAll("[data-section]").forEach((button) => button.classList.toggle("is-active", button.dataset.section === name));
     document.querySelectorAll("[data-panel]").forEach((panel) => panel.classList.toggle("is-active", panel.dataset.panel === name));
     sectionTitle.textContent = sectionNames[name] || "后台";
+    document.querySelector(".admin-header").classList.toggle("is-overview", name === "overview");
+    document.getElementById("metric-grid").hidden = name !== "overview";
     sidebar.classList.remove("is-open");
   };
 
@@ -219,10 +221,10 @@
     const pageViews = state.events.filter((event) => event.event_name === "page_view");
     const todayViews = pageViews.filter((event) => localDateKey(event.created_at) === localDateKey()).length;
     const metrics = [
-      ["eye", "累计访问", pageViews.length, "今日 " + todayViews + " 次"],
-      ["panels-top-left", "作品项目", portfolioItems.length, projectPublished + " 个已发布"],
-      ["play-square", "交互 Demo", demos.length, demoPublished + " 个已发布"],
-      ["messages-square", "待处理咨询", state.inquiries.filter((item) => item.status === "new").length, state.quotes.filter((item) => item.status === "new").length + " 条待评估报价"],
+      ["panels-top-left", "作品总数", portfolioItems.length, projectPublished + " 个已发布"],
+      ["play-square", "演示总数", demos.length, demoPublished + " 个已发布"],
+      ["notebook-pen", "笔记总数", state.workbenchNotes.length, "工作台便签"],
+      ["eye", "访客总数", pageViews.length, "今日 " + todayViews + " 次"],
     ];
     document.getElementById("metric-grid").innerHTML = metrics
       .map((item) => [
@@ -269,6 +271,22 @@
       '</button>',
     ].join("") : '<div class="empty-state compact">还没有可展示的项目。</div>';
 
+    const visitDays = Array.from({ length: 5 }, (_, index) => {
+      const date = new Date();
+      date.setHours(0, 0, 0, 0);
+      date.setDate(date.getDate() - index);
+      const count = pageViews.filter((event) => localDateKey(event.created_at) === localDateKey(date)).length;
+      const label = index === 0 ? "今日" : index === 1 ? "昨日" : new Intl.DateTimeFormat("zh-CN", { month: "2-digit", day: "2-digit" }).format(date);
+      return { label, count };
+    });
+    const maxVisitCount = Math.max(1, ...visitDays.map((item) => item.count));
+    document.getElementById("workbench-visit-stats").innerHTML = visitDays.map((item, index) => [
+      '<div class="visit-stat-row">',
+      '  <span>' + item.label + '</span>',
+      '  <div><i style="width:' + Math.max(item.count ? 12 : 2, (item.count / maxVisitCount) * 100) + '%"></i><strong>' + item.count + '</strong></div>',
+      '</div>',
+    ].join("")).join("");
+
     document.getElementById("workbench-notes").innerHTML = state.workbenchNotes.length ? state.workbenchNotes.slice(0, 6).map((item) => [
       '<article class="note-card is-' + escapeHtml(item.color || "mint") + (item.completed ? " is-complete" : "") + '">',
       '  <button type="button" data-toggle-note="' + escapeHtml(item.id) + '" aria-label="切换完成状态"><i data-lucide="' + (item.completed ? "circle-check-big" : "circle") + '"></i></button>',
@@ -279,10 +297,35 @@
 
     renderQuickEntries();
 
+    const pendingInquiries = state.inquiries.filter((item) => item.status === "new");
+    const pendingQuotes = state.quotes.filter((item) => item.status === "new");
+    const inquirySummary = pendingInquiries.length
+      ? escapeHtml(pendingInquiries[0].projectType || pendingInquiries[0].name || "新咨询")
+      : pendingQuotes.length ? "待评估报价" : "暂无待办";
+    document.getElementById("workbench-inquiry").innerHTML = [
+      '<div class="inquiry-summary-icon"><i data-lucide="bell-ring" aria-hidden="true"></i><span>' + (pendingInquiries.length + pendingQuotes.length) + '</span></div>',
+      '<strong>' + inquirySummary + '</strong>',
+      '<p>' + (pendingInquiries.length + pendingQuotes.length ? "有 " + (pendingInquiries.length + pendingQuotes.length) + " 条内容等待处理" : "所有咨询都已处理") + '</p>',
+      '<button class="button button-primary" type="button" data-open-section="inquiries">前往查看</button>',
+    ].join("");
+
     const moodNames = { great: ["sun", "状态很好"], good: ["smile", "心情不错"], calm: ["coffee", "平静专注"], tired: ["battery-low", "有点疲惫"], busy: ["zap", "节奏很满"] };
     const todayMood = state.moods.find((item) => item.date === localDateKey());
     document.getElementById("mood-date").textContent = new Intl.DateTimeFormat("zh-CN", { month: "long", day: "numeric", weekday: "short" }).format(new Date());
     document.getElementById("mood-options").innerHTML = Object.entries(moodNames).map(([value, option]) => '<button class="mood-option' + (todayMood && todayMood.mood === value ? " is-active" : "") + '" type="button" data-mood="' + value + '"><i data-lucide="' + option[0] + '"></i><span>' + option[1] + '</span></button>').join("");
+    const calendarNow = new Date();
+    const calendarYear = calendarNow.getFullYear();
+    const calendarMonth = calendarNow.getMonth();
+    const firstWeekday = (new Date(calendarYear, calendarMonth, 1).getDay() + 6) % 7;
+    const daysInMonth = new Date(calendarYear, calendarMonth + 1, 0).getDate();
+    const calendarCells = Array.from({ length: firstWeekday }, () => '<span class="calendar-day is-empty"></span>')
+      .concat(Array.from({ length: daysInMonth }, (_, index) => {
+        const day = index + 1;
+        const isToday = day === calendarNow.getDate();
+        return '<span class="calendar-day' + (isToday ? ' is-today' : '') + '">' + String(day).padStart(2, "0") + '</span>';
+      }));
+    document.getElementById("calendar-month").textContent = calendarYear + "年" + String(calendarMonth + 1).padStart(2, "0") + "月";
+    document.getElementById("workbench-calendar").innerHTML = '<div class="calendar-weekdays">' + ["一", "二", "三", "四", "五", "六", "日"].map((day) => '<span>' + day + '</span>').join("") + '</div><div class="calendar-days">' + calendarCells.join("") + '</div>';
   };
 
   const renderContentList = (items, type) => {
@@ -1037,6 +1080,11 @@
   });
 
   document.querySelector('[data-panel="overview"]').addEventListener("click", async (event) => {
+    const openSection = event.target.closest("[data-open-section]");
+    if (openSection) {
+      setActiveSection(openSection.dataset.openSection);
+      return;
+    }
     const projectButton = event.target.closest("[data-workbench-project]");
     if (projectButton) {
       const item = state.projects.find((entry) => entry.slug === projectButton.dataset.workbenchProject);

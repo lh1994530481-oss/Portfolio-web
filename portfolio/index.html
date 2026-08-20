@@ -3,14 +3,14 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Lin Tong Xin | Portfolio</title>
-    <link rel="stylesheet" href="./portfolio.css" />
+    <title>林桐鑫｜设计作品集</title>
+    <link rel="stylesheet" href="./portfolio.css?v=20260820-1" />
     <link rel="stylesheet" href="../assets/page-transition.css" />
   </head>
   <body class="portfolio-list-body">
-    <header class="portfolio-page-header" aria-label="Portfolio navigation">
+    <header class="portfolio-page-header" aria-label="作品集导航">
       <div class="portfolio-page-header-inner">
-        <a class="portfolio-back" href="../index.html#top">Back</a>
+        <a class="portfolio-back" href="../index.html#top">返回</a>
         <a class="portfolio-brand" href="../index.html">Lin Tong Xin</a>
       </div>
     </header>
@@ -18,22 +18,48 @@
     <main class="portfolio-list-page">
       <section class="portfolio-list-hero" aria-labelledby="portfolio-title">
         <h1 id="portfolio-title" class="portfolio-list-title">
-          <span>Design</span><span>Portfolio</span>
+          <span>设计</span><span>作品集</span>
         </h1>
       </section>
 
-      <section class="portfolio-filter-section" aria-label="Portfolio filters">
+      <section class="portfolio-filter-section" aria-label="作品分类筛选">
         <div id="portfolio-filter-bar" class="portfolio-filter-bar"></div>
       </section>
 
-      <section id="portfolio-list-grid" class="portfolio-list-grid" aria-label="Project wall"></section>
+      <section id="portfolio-list-grid" class="portfolio-list-grid" aria-label="项目列表"></section>
     </main>
+
+    <div id="portfolio-project-modal" class="portfolio-modal" aria-hidden="true" inert>
+      <button class="portfolio-modal-backdrop" type="button" data-modal-close tabindex="-1" aria-label="关闭项目详情"></button>
+      <section class="portfolio-modal-dialog" role="dialog" aria-modal="true" aria-labelledby="portfolio-modal-title" tabindex="-1">
+        <button class="portfolio-modal-close" type="button" data-modal-close aria-label="关闭项目详情">
+          <i data-lucide="x" aria-hidden="true"></i>
+        </button>
+        <div class="portfolio-modal-scroll">
+          <header class="portfolio-modal-header">
+            <div class="portfolio-modal-heading">
+              <h2 id="portfolio-modal-title"></h2>
+              <p id="portfolio-modal-description"></p>
+            </div>
+            <div class="portfolio-modal-meta">
+              <span id="portfolio-modal-category" class="portfolio-modal-category"></span>
+              <a id="portfolio-modal-prototype" class="portfolio-modal-prototype" href="#" target="_blank" rel="noopener" hidden>
+                <span>体验原型</span>
+                <i data-lucide="arrow-up-right" aria-hidden="true"></i>
+              </a>
+            </div>
+          </header>
+          <div id="portfolio-modal-gallery" class="portfolio-modal-gallery"></div>
+        </div>
+      </section>
+    </div>
 
     <script src="./project-data.js?v=20260729-1"></script>
     <script src="../admin/config.js"></script>
     <script src="../shared/content-api.js?v=20260820-3"></script>
     <script src="../shared/site-operations.js?v=20260818-1" defer></script>
-    <script src="./portfolio-list.js?v=20260818-1" defer></script>
+    <script src="https://unpkg.com/lucide@0.468.0/dist/umd/lucide.min.js"></script>
+    <script src="./portfolio-list.js?v=20260820-1" defer></script>
     <script src="../assets/page-transition.js" defer></script>
   </body>
 </html>

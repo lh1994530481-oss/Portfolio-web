@@ -1,6 +1,15 @@
 (async function () {
   const root = document.getElementById("portfolio-list-grid");
   const filterRoot = document.getElementById("portfolio-filter-bar");
+  const modal = document.getElementById("portfolio-project-modal");
+  const modalDialog = modal ? modal.querySelector(".portfolio-modal-dialog") : null;
+  const modalTitle = document.getElementById("portfolio-modal-title");
+  const modalDescription = document.getElementById("portfolio-modal-description");
+  const modalCategory = document.getElementById("portfolio-modal-category");
+  const modalPrototype = document.getElementById("portfolio-modal-prototype");
+  const modalGallery = document.getElementById("portfolio-modal-gallery");
+  const pageHeader = document.querySelector(".portfolio-page-header");
+  const pageMain = document.querySelector(".portfolio-list-page");
   const fallbackProjects = Array.isArray(window.PROJECT_DATA) ? window.PROJECT_DATA : [];
   const projects = window.ContentAPI
     ? await window.ContentAPI.listProjects(fallbackProjects, false)
@@ -8,9 +17,17 @@
   const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
   const pointerFine = window.matchMedia("(hover: hover) and (pointer: fine)").matches;
 
-  if (!root || !filterRoot) return;
+  if (!root || !filterRoot || !modal || !modalDialog || !modalTitle || !modalDescription || !modalCategory || !modalPrototype || !modalGallery) return;
 
   const preferredFilters = ["APP Design", "Web Design", "Data visualization", "IP Design", "Exercises and Demos"];
+  const displayLabels = {
+    All: "全部",
+    "APP Design": "APP 设计",
+    "Web Design": "网页设计",
+    "Data visualization": "数据可视化",
+    "IP Design": "IP 设计",
+    "Exercises and Demos": "练习与演示",
+  };
   const projectCategories = Array.from(new Set(projects.map((project) => project.category).filter(Boolean)));
   const filters = ["All", ...preferredFilters.filter((filter) => projectCategories.includes(filter)), ...projectCategories.filter((filter) => !preferredFilters.includes(filter))];
   const featuredOrder = [
@@ -75,6 +92,8 @@
   };
 
   let activeFilter = "All";
+  let lastFocusedElement = null;
+  let lockedScrollY = 0;
 
   const getProjectTags = (project) => {
     const meta = projectMeta[project.slug] || {};
@@ -101,7 +120,123 @@
     });
   };
 
-  const escapeAttr = (value) => String(value || "").replace(/"/g, "&quot;");
+  const escapeHtml = (value) =>
+    String(value || "")
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;")
+      .replace(/'/g, "&#39;");
+
+  const escapeAttr = escapeHtml;
+  const getDisplayLabel = (value) => displayLabels[value] || value || "项目";
+
+  const refreshIcons = () => {
+    if (window.lucide && typeof window.lucide.createIcons === "function") {
+      window.lucide.createIcons();
+    }
+  };
+
+  const getProjectMedia = (project, coverImage) => {
+    const gallery = Array.isArray(project.gallery) && project.gallery.length
+      ? project.gallery
+      : Array.isArray(project.media)
+        ? project.media
+            .filter(function (item) {
+              return typeof item === "string" || (item && item.type === "image");
+            })
+            .map(function (item) {
+              return typeof item === "string" ? item : item.src;
+            })
+        : [];
+
+    const normalized = gallery
+      .map(function (item) {
+        return typeof item === "string" ? item : item && item.src;
+      })
+      .filter(Boolean);
+
+    return Array.from(new Set(normalized.length ? normalized : [coverImage].filter(Boolean)));
+  };
+
+  const setPageInert = (value) => {
+    if (pageHeader) pageHeader.inert = value;
+    if (pageMain) pageMain.inert = value;
+  };
+
+  const openProjectModal = (slug, trigger) => {
+    const project = projects.find(function (item) {
+      return item.slug === slug;
+    });
+    if (!project) return;
+
+    const meta = projectMeta[project.slug] || {};
+    const title = project.title || meta.title || "项目详情";
+    const description = project.descriptionZh || meta.description || "";
+    const coverImage = project.cover || wallImages[project.slug] || "";
+    const gallery = getProjectMedia(project, coverImage);
+    const tags = getProjectTags(project).filter(Boolean).map(getDisplayLabel);
+    const prototypeHref = project.prototypeHref || "";
+
+    modalTitle.textContent = title;
+    modalDescription.textContent = description;
+    modalCategory.textContent = tags.join(" / ") || "项目";
+    modalPrototype.hidden = !prototypeHref;
+    if (prototypeHref) modalPrototype.href = prototypeHref;
+
+    const videoHtml = project.mediaUrl
+      ? [
+          '<article class="portfolio-modal-media portfolio-modal-video">',
+          '  <video src="' + escapeAttr(project.mediaUrl) + '" controls playsinline preload="metadata"' + (coverImage ? ' poster="' + escapeAttr(coverImage) + '"' : "") + "></video>",
+          "</article>",
+        ].join("\n")
+      : "";
+    const galleryHtml = gallery
+      .map(function (source, index) {
+        return [
+          '<article class="portfolio-modal-media">',
+          '  <img src="' + escapeAttr(source) + '" alt="' + escapeAttr(title) + ' 项目展示图 ' + (index + 1) + '" loading="' + (index === 0 ? "eager" : "lazy") + '" decoding="async" />',
+          "</article>",
+        ].join("\n");
+      })
+      .join("\n");
+    modalGallery.innerHTML = videoHtml + galleryHtml;
+
+    lastFocusedElement = trigger || document.activeElement;
+    lockedScrollY = window.scrollY;
+    document.body.style.setProperty("--portfolio-scroll-lock", -lockedScrollY + "px");
+    document.body.classList.add("is-modal-open");
+    setPageInert(true);
+    modal.inert = false;
+    modal.setAttribute("aria-hidden", "false");
+    window.requestAnimationFrame(function () {
+      modal.classList.add("is-open");
+    });
+    refreshIcons();
+    window.setTimeout(function () {
+      modalDialog.focus({ preventScroll: true });
+    }, reduceMotion ? 0 : 240);
+  };
+
+  const closeProjectModal = () => {
+    if (!modal.classList.contains("is-open")) return;
+
+    modal.classList.remove("is-open");
+    modal.setAttribute("aria-hidden", "true");
+    modal.inert = true;
+    setPageInert(false);
+    document.body.classList.remove("is-modal-open");
+    document.body.style.removeProperty("--portfolio-scroll-lock");
+    window.scrollTo(0, lockedScrollY);
+
+    if (lastFocusedElement && typeof lastFocusedElement.focus === "function") {
+      lastFocusedElement.focus({ preventScroll: true });
+    }
+
+    window.setTimeout(function () {
+      if (!modal.classList.contains("is-open")) modalGallery.innerHTML = "";
+    }, reduceMotion ? 0 : 360);
+  };
 
   const renderFilters = () => {
     filterRoot.innerHTML = [
@@ -110,7 +245,7 @@
         .map(function (filter, index) {
           return [
             '<button class="portfolio-filter' + (filter === activeFilter ? " is-active" : "") + '" type="button" data-filter="' + escapeAttr(filter) + '">',
-            filter,
+            '<span>' + escapeHtml(getDisplayLabel(filter)) + "</span>",
             "</button>",
             index < filters.length - 1 ? '<span class="portfolio-filter-separator" aria-hidden="true"></span>' : "",
           ].join("");
@@ -198,7 +333,7 @@
     if (visibleProjects.length === 0) {
       root.innerHTML = [
         '<div class="portfolio-empty-state">',
-        "  <p>No projects in this category yet.</p>",
+        "  <p>该分类下暂时没有项目。</p>",
         "</div>",
       ].join("\n");
       return;
@@ -211,33 +346,34 @@
         const tags = getProjectTags(project);
         const title = project.title || meta.title;
         const description = project.descriptionZh || meta.description || "";
-        const projectHref = project.passwordEnabled ? "#" : project.prototypeHref || "./project-detail.html?slug=" + project.slug;
+        const projectHref = project.passwordEnabled ? "#" : "./project-detail.html?slug=" + project.slug;
         const protectedAttr = project.passwordEnabled ? ' data-protected-project="' + escapeAttr(project.slug) + '"' : "";
+        const modalAttr = ' data-project-modal="' + escapeAttr(project.slug) + '"';
         const isReversed = index % 2 === 1;
 
         return [
           '<article class="portfolio-project' + (isReversed ? " is-reversed" : "") + '" style="--item-delay: ' + index * 90 + 'ms">',
-          '  <a class="portfolio-project-image-dock" href="' + escapeAttr(projectHref) + '"' + protectedAttr + ' data-slug="' + escapeAttr(project.slug) + '" aria-label="View ' + escapeAttr(title) + ' project">',
-          '    <img class="portfolio-project-image" src="' + imageSrc + '" alt="' + escapeAttr(title) + ' - Desktop view" loading="' + (index === 0 ? "eager" : "lazy") + '" decoding="async" />',
+          '  <a class="portfolio-project-image-dock" href="' + escapeAttr(projectHref) + '"' + protectedAttr + modalAttr + ' data-slug="' + escapeAttr(project.slug) + '" aria-label="查看' + escapeAttr(title) + '项目">',
+          '    <img class="portfolio-project-image" src="' + escapeAttr(imageSrc) + '" alt="' + escapeAttr(title) + ' 项目封面" loading="' + (index === 0 ? "eager" : "lazy") + '" decoding="async" />',
           "  </a>",
           '  <div class="portfolio-project-details">',
           '    <div class="portfolio-project-tags">',
-          '      <span class="portfolio-project-tag-icon" aria-hidden="true"></span>',
+          '      <i class="portfolio-project-tag-icon" data-lucide="circle-slash-2" aria-hidden="true"></i>',
           tags
             .map(function (tag) {
-              return '<span class="portfolio-project-tag">' + tag + "</span>";
+              return '<span class="portfolio-project-tag">' + escapeHtml(getDisplayLabel(tag)) + "</span>";
             })
             .join(""),
           "    </div>",
           '    <div class="portfolio-project-title-row">',
-          '      <h2 class="portfolio-project-title">' + title + "</h2>",
-          '      <a class="portfolio-project-open" href="' + escapeAttr(projectHref) + '"' + protectedAttr + ' data-slug="' + escapeAttr(project.slug) + '" aria-label="Open ' + escapeAttr(title) + '">↗</a>',
+          '      <h2 class="portfolio-project-title">' + escapeHtml(title) + "</h2>",
+          '      <a class="portfolio-project-open" href="' + escapeAttr(projectHref) + '"' + protectedAttr + modalAttr + ' data-slug="' + escapeAttr(project.slug) + '" aria-label="查看' + escapeAttr(title) + '项目"><i data-lucide="arrow-up-right" aria-hidden="true"></i></a>',
           "    </div>",
-          '    <p class="portfolio-project-copy">' + description + "</p>",
+          '    <p class="portfolio-project-copy">' + escapeHtml(description) + "</p>",
           '    <div class="portfolio-project-cta-wrap">',
-          '      <a class="portfolio-project-cta-dock" href="' + escapeAttr(projectHref) + '"' + protectedAttr + ' data-slug="' + escapeAttr(project.slug) + '" >',
-          "        <span>View Project</span>",
-          "        <span aria-hidden=\"true\">↗</span>",
+          '      <a class="portfolio-project-cta-dock" href="' + escapeAttr(projectHref) + '"' + protectedAttr + modalAttr + ' data-slug="' + escapeAttr(project.slug) + '">',
+          "        <span>查看项目</span>",
+          '        <i data-lucide="arrow-up-right" aria-hidden="true"></i>',
           "      </a>",
           "    </div>",
           "  </div>",
@@ -248,6 +384,7 @@
 
     revealCards();
     initDocks();
+    refreshIcons();
   };
 
   filterRoot.addEventListener("click", function (event) {
@@ -257,6 +394,43 @@
     activeFilter = button.dataset.filter || "All";
     renderFilters();
     renderProjects();
+  });
+
+  root.addEventListener("click", function (event) {
+    const trigger = event.target.closest ? event.target.closest("[data-project-modal]") : null;
+    if (!trigger || event.defaultPrevented || trigger.hasAttribute("data-protected-project")) return;
+
+    event.preventDefault();
+    openProjectModal(trigger.dataset.projectModal, trigger);
+  });
+
+  modal.addEventListener("click", function (event) {
+    const closeTrigger = event.target.closest ? event.target.closest("[data-modal-close]") : null;
+    if (closeTrigger) closeProjectModal();
+  });
+
+  modal.addEventListener("keydown", function (event) {
+    if (event.key === "Escape") {
+      event.preventDefault();
+      closeProjectModal();
+      return;
+    }
+
+    if (event.key !== "Tab") return;
+    const focusable = Array.from(modal.querySelectorAll('button:not([disabled]), a[href]:not([hidden]), video[controls], [tabindex]:not([tabindex="-1"])')).filter(function (element) {
+      return !element.hidden && element.offsetParent !== null;
+    });
+    if (!focusable.length) return;
+
+    const first = focusable[0];
+    const last = focusable[focusable.length - 1];
+    if (event.shiftKey && document.activeElement === first) {
+      event.preventDefault();
+      last.focus();
+    } else if (!event.shiftKey && document.activeElement === last) {
+      event.preventDefault();
+      first.focus();
+    }
   });
 
   renderFilters();

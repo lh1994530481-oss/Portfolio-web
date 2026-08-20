@@ -402,7 +402,7 @@
   };
 
   const trackEvent = async (event) => {
-    const row = {
+    const payload = {
       event_name: event.eventName,
       path: event.path || "/",
       content_type: event.contentType || null,
@@ -413,10 +413,27 @@
     };
     if (!isConfigured()) {
       const events = readLocal("site-events", []);
-      events.unshift({ ...row, id: Date.now(), created_at: new Date().toISOString() });
+      events.unshift({ ...payload, id: Date.now(), created_at: new Date().toISOString() });
       return writeLocal("site-events", events.slice(0, 500));
     }
-    return publicInsert("site_events", row);
+    const response = await fetch(config.supabaseUrl.replace(/\/$/, "") + "/functions/v1/track-visit", {
+      method: "POST",
+      headers: {
+        apikey: getKey(),
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        eventName: payload.event_name,
+        path: payload.path,
+        contentType: payload.content_type,
+        contentId: payload.content_id,
+        referrerHost: payload.referrer_host,
+        sessionId: payload.session_id,
+        deviceType: payload.device_type,
+      }),
+      keepalive: true,
+    });
+    if (!response.ok) throw new Error("访问记录暂时不可用");
   };
 
   const listEvents = async (limit) => {
@@ -627,6 +644,49 @@
     const { data, error } = await getClient().from("workbench_moods").upsert({ mood_date: mood.date, mood: mood.mood, note: mood.note || "", updated_at: new Date().toISOString() }).select().single();
     if (error) throw error;
     return data;
+  };
+
+  const scheduleItemFromRow = (row) => ({
+    id: row.id,
+    date: row.item_date,
+    startTime: String(row.start_time || "").slice(0, 5),
+    endTime: String(row.end_time || "").slice(0, 5),
+    title: row.title,
+    notes: row.notes || "",
+    status: row.status || "pending",
+    createdAt: row.created_at,
+    updatedAt: row.updated_at,
+  });
+
+  const listWorkbenchScheduleItems = async () => {
+    if (!isConfigured()) return readLocal("workbench-schedule-items", []);
+    const { data, error } = await getClient().from("workbench_schedule_items").select("*").order("item_date", { ascending: true }).order("start_time", { ascending: true });
+    if (error) throw error;
+    return (data || []).map(scheduleItemFromRow);
+  };
+
+  const saveWorkbenchScheduleItem = async (item) => {
+    if (!item.date || !item.startTime || !item.endTime || !String(item.title || "").trim()) throw new Error("请填写完整的事项信息");
+    if (item.endTime <= item.startTime) throw new Error("结束时间必须晚于开始时间");
+    const value = { ...item, id: item.id || "local-" + Date.now(), title: String(item.title).trim(), notes: String(item.notes || "").trim(), status: item.status === "completed" ? "completed" : "pending", updatedAt: new Date().toISOString() };
+    if (!isConfigured()) {
+      const items = readLocal("workbench-schedule-items", []);
+      const index = items.findIndex((entry) => entry.id === value.id);
+      if (index >= 0) items[index] = value; else items.push(value);
+      writeLocal("workbench-schedule-items", items);
+      return value;
+    }
+    const row = { item_date: value.date, start_time: value.startTime, end_time: value.endTime, title: value.title, notes: value.notes, status: value.status, updated_at: value.updatedAt };
+    const request = item.id ? getClient().from("workbench_schedule_items").update(row).eq("id", item.id).select().single() : getClient().from("workbench_schedule_items").insert(row).select().single();
+    const { data, error } = await request;
+    if (error) throw error;
+    return scheduleItemFromRow(data);
+  };
+
+  const deleteWorkbenchScheduleItem = async (id) => {
+    if (!isConfigured()) return writeLocal("workbench-schedule-items", readLocal("workbench-schedule-items", []).filter((item) => item.id !== id));
+    const { error } = await getClient().from("workbench_schedule_items").delete().eq("id", id);
+    if (error) throw error;
   };
 
   const listQuoteRequests = async () => {
@@ -841,6 +901,9 @@
     saveQuickLinkCategory,
     listWorkbenchMoods,
     saveWorkbenchMood,
+    listWorkbenchScheduleItems,
+    saveWorkbenchScheduleItem,
+    deleteWorkbenchScheduleItem,
     listQuoteRequests,
     updateQuoteRequest,
     verifyProjectAccess,

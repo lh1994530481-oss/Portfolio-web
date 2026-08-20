@@ -95,6 +95,9 @@
     quickLinkCategories: [],
     activeQuickLinkCategory: "设计",
     moods: [],
+    scheduleItems: [],
+    selectedCalendarDate: "",
+    calendarViewDate: new Date(),
     quotes: [],
     activeSection: "overview",
     toastTimer: 0,
@@ -154,7 +157,7 @@
 
   const loadData = async () => {
     setSync("读取内容", "busy");
-    const [projects, articles, navigation, settings, events, aiProfile, inquiries, finance, workbenchNotes, quickLinks, quickLinkCategories, moods, quotes] = await Promise.all([
+    const [projects, articles, navigation, settings, events, aiProfile, inquiries, finance, workbenchNotes, quickLinks, quickLinkCategories, moods, scheduleItems, quotes] = await Promise.all([
       api.listProjects(defaultProjects, true),
       api.listArticles(defaultArticles, true),
       api.listNavigation(defaultNavigation, true),
@@ -167,6 +170,7 @@
       api.listQuickLinks(),
       api.listQuickLinkCategories(),
       api.listWorkbenchMoods(),
+      api.listWorkbenchScheduleItems(),
       api.listQuoteRequests(),
     ]);
     state.projects = projects;
@@ -181,6 +185,7 @@
     state.quickLinks = quickLinks;
     state.quickLinkCategories = quickLinkCategories;
     state.moods = moods;
+    state.scheduleItems = scheduleItems;
     state.quotes = quotes;
     renderAll();
     setSync(api.getMode() === "local" ? "本地已保存" : "已同步", "");
@@ -309,23 +314,7 @@
       '<button class="button button-primary" type="button" data-open-section="inquiries">前往查看</button>',
     ].join("");
 
-    const moodNames = { great: ["sun", "状态很好"], good: ["smile", "心情不错"], calm: ["coffee", "平静专注"], tired: ["battery-low", "有点疲惫"], busy: ["zap", "节奏很满"] };
-    const todayMood = state.moods.find((item) => item.date === localDateKey());
-    document.getElementById("mood-date").textContent = new Intl.DateTimeFormat("zh-CN", { month: "long", day: "numeric", weekday: "short" }).format(new Date());
-    document.getElementById("mood-options").innerHTML = Object.entries(moodNames).map(([value, option]) => '<button class="mood-option' + (todayMood && todayMood.mood === value ? " is-active" : "") + '" type="button" data-mood="' + value + '"><i data-lucide="' + option[0] + '"></i><span>' + option[1] + '</span></button>').join("");
-    const calendarNow = new Date();
-    const calendarYear = calendarNow.getFullYear();
-    const calendarMonth = calendarNow.getMonth();
-    const firstWeekday = (new Date(calendarYear, calendarMonth, 1).getDay() + 6) % 7;
-    const daysInMonth = new Date(calendarYear, calendarMonth + 1, 0).getDate();
-    const calendarCells = Array.from({ length: firstWeekday }, () => '<span class="calendar-day is-empty"></span>')
-      .concat(Array.from({ length: daysInMonth }, (_, index) => {
-        const day = index + 1;
-        const isToday = day === calendarNow.getDate();
-        return '<span class="calendar-day' + (isToday ? ' is-today' : '') + '">' + String(day).padStart(2, "0") + '</span>';
-      }));
-    document.getElementById("calendar-month").textContent = calendarYear + "年" + String(calendarMonth + 1).padStart(2, "0") + "月";
-    document.getElementById("workbench-calendar").innerHTML = '<div class="calendar-weekdays">' + ["一", "二", "三", "四", "五", "六", "日"].map((day) => '<span>' + day + '</span>').join("") + '</div><div class="calendar-days">' + calendarCells.join("") + '</div>';
+    renderCalendarSchedule();
   };
 
   const renderContentList = (items, type) => {
@@ -447,6 +436,50 @@
     return [date.getFullYear(), String(date.getMonth() + 1).padStart(2, "0"), String(date.getDate()).padStart(2, "0")].join("-");
   };
 
+  const dateFromKey = (value) => {
+    const parts = String(value || "").split("-").map(Number);
+    return parts.length === 3 && parts.every(Number.isFinite) ? new Date(parts[0], parts[1] - 1, parts[2], 12) : new Date();
+  };
+
+  const renderCalendarSchedule = () => {
+    if (!state.selectedCalendarDate) state.selectedCalendarDate = localDateKey();
+    const viewDate = state.calendarViewDate instanceof Date && !Number.isNaN(state.calendarViewDate.getTime()) ? state.calendarViewDate : new Date();
+    const calendarYear = viewDate.getFullYear();
+    const calendarMonth = viewDate.getMonth();
+    const firstCell = new Date(calendarYear, calendarMonth, 1, 12);
+    firstCell.setDate(firstCell.getDate() - ((firstCell.getDay() + 6) % 7));
+    const selectedDate = dateFromKey(state.selectedCalendarDate);
+    const selectedMood = state.moods.find((item) => item.date === state.selectedCalendarDate);
+    const selectedItems = state.scheduleItems
+      .filter((item) => item.date === state.selectedCalendarDate)
+      .sort((a, b) => String(a.startTime).localeCompare(String(b.startTime)));
+    const moodNames = { great: ["laugh", "超开心"], good: ["smile", "好状态"], calm: ["coffee", "平静"], tired: ["battery-low", "疲惫"], busy: ["zap", "忙碌"] };
+    const cells = Array.from({ length: 42 }, (_, index) => {
+      const date = new Date(firstCell);
+      date.setDate(firstCell.getDate() + index);
+      const key = localDateKey(date);
+      const hasItems = state.scheduleItems.some((item) => item.date === key);
+      const classNames = ["calendar-day"];
+      if (date.getMonth() !== calendarMonth) classNames.push("is-outside");
+      if (key === localDateKey()) classNames.push("is-today");
+      if (key === state.selectedCalendarDate) classNames.push("is-selected");
+      if (hasItems) classNames.push("has-items");
+      return '<button class="' + classNames.join(" ") + '" type="button" data-calendar-date="' + key + '" aria-label="选择' + key + '"><span>' + String(date.getDate()).padStart(2, "0") + '</span>' + (hasItems ? '<i aria-hidden="true"></i>' : '') + '</button>';
+    });
+    document.getElementById("calendar-month").textContent = calendarYear + "年" + String(calendarMonth + 1).padStart(2, "0") + "月";
+    document.getElementById("workbench-calendar").innerHTML = '<div class="calendar-weekdays">' + ["一", "二", "三", "四", "五", "六", "日"].map((day) => '<span>' + day + '</span>').join("") + '</div><div class="calendar-days">' + cells.join("") + '</div>';
+    document.getElementById("mood-date").textContent = new Intl.DateTimeFormat("zh-CN", { month: "2-digit", day: "2-digit", weekday: "short" }).format(selectedDate);
+    document.getElementById("schedule-date-title").textContent = selectedItems.length ? "当天事项 · " + selectedItems.length : "当天事项";
+    document.getElementById("mood-options").innerHTML = Object.entries(moodNames).map(([value, option]) => '<button class="mood-option' + (selectedMood && selectedMood.mood === value ? " is-active" : "") + '" type="button" data-mood="' + value + '" title="' + option[1] + '"><i data-lucide="' + option[0] + '"></i><span>' + option[1] + '</span></button>').join("");
+    document.getElementById("schedule-list").innerHTML = selectedItems.length ? selectedItems.map((item) => [
+      '<article class="schedule-item' + (item.status === "completed" ? " is-completed" : "") + '">',
+      '  <button class="schedule-toggle" type="button" data-toggle-schedule="' + escapeHtml(item.id) + '" aria-label="切换完成状态"><i data-lucide="' + (item.status === "completed" ? "square-check-big" : "square") + '"></i></button>',
+      '  <button class="schedule-content" type="button" data-edit-schedule="' + escapeHtml(item.id) + '"><span><strong>' + escapeHtml(item.startTime) + "–" + escapeHtml(item.endTime) + '</strong><em>' + (item.status === "completed" ? "已完成" : "未完成") + '</em></span><b>' + escapeHtml(item.title) + '</b>' + (item.notes ? '<small>' + escapeHtml(item.notes) + '</small>' : '') + '</button>',
+      '  <button class="schedule-delete" type="button" data-delete-schedule="' + escapeHtml(item.id) + '" aria-label="删除事项" title="删除"><i data-lucide="trash-2"></i></button>',
+      '</article>',
+    ].join("")).join("") : '<div class="schedule-empty"><i data-lucide="calendar-plus"></i><p>当天还没有事项</p><button type="button" data-create-schedule>添加事项</button></div>';
+  };
+
   const formatMoney = (amountCents) => new Intl.NumberFormat("zh-CN", {
     style: "currency", currency: "CNY", minimumFractionDigits: 2,
   }).format(Number(amountCents || 0) / 100);
@@ -514,24 +547,32 @@
 
     const sessionMap = state.events.reduce((result, event) => {
       const key = event.session_id || "unknown";
-      if (!result[key]) result[key] = { id: key, events: [], first: event.created_at, last: event.created_at, entry: event.path || "/", source: event.referrer_host || "直接访问", device: event.device_type || "desktop" };
+      if (!result[key]) result[key] = { id: key, events: [], first: event.created_at, last: event.created_at, entry: event.path || "/", source: event.referrer_host || "直接访问", device: event.device_type || "desktop", ipAddress: event.ip_address || "", countryCode: event.country_code || "", region: event.region || "", city: event.city || "" };
       result[key].events.push(event);
       if (new Date(event.created_at) < new Date(result[key].first)) {
         result[key].first = event.created_at;
         result[key].entry = event.path || "/";
       }
-      if (new Date(event.created_at) > new Date(result[key].last)) result[key].last = event.created_at;
+      if (new Date(event.created_at) > new Date(result[key].last)) {
+        result[key].last = event.created_at;
+        result[key].ipAddress = event.ip_address || result[key].ipAddress;
+        result[key].countryCode = event.country_code || result[key].countryCode;
+        result[key].region = event.region || result[key].region;
+        result[key].city = event.city || result[key].city;
+      }
       return result;
     }, {});
     const visitorSessions = Object.values(sessionMap).sort((a, b) => new Date(b.last) - new Date(a.last));
     const activeCount = visitorSessions.filter((item) => Date.now() - new Date(item.last).getTime() < 5 * 60 * 1000).length;
     document.getElementById("active-visitors").textContent = activeCount + " 位活跃访客";
     visitorSessionList.innerHTML = visitorSessions.length ? [
-      '<div class="visitor-head"><span>访客</span><span>入口页面</span><span>来源</span><span>页面数</span><span>访问时间</span></div>',
+      '<div class="visitor-head"><span>访客</span><span>网络地址</span><span>入口页面</span><span>来源</span><span>页面数</span><span>访问时间</span></div>',
       ...visitorSessions.slice(0, 20).map((item) => {
         const paths = new Set(item.events.map((event) => event.path));
         const deviceLabel = { desktop: "桌面端", tablet: "平板", mobile: "移动端" }[item.device] || item.device;
-        return '<article class="visitor-row"><div><strong>' + escapeHtml(item.id.slice(0, 12)) + '</strong><small>' + escapeHtml(deviceLabel) + '</small></div><code>' + escapeHtml(item.entry) + '</code><span>' + escapeHtml(item.source) + '</span><strong>' + paths.size + '</strong><time>' + formatDateTime(item.last) + '</time></article>';
+        const location = [item.countryCode, item.region, item.city].filter(Boolean).join(" · ") || "位置未知";
+        const address = String(item.ipAddress || "历史记录未采集").replace(/\/(?:32|128)$/, "");
+        return '<article class="visitor-row"><div><strong>' + escapeHtml(item.id.slice(0, 12)) + '</strong><small>' + escapeHtml(deviceLabel) + '</small></div><div><code>' + escapeHtml(address) + '</code><small>' + escapeHtml(location) + '</small></div><code>' + escapeHtml(item.entry) + '</code><span>' + escapeHtml(item.source) + '</span><strong>' + paths.size + '</strong><time>' + formatDateTime(item.last) + '</time></article>';
       }),
     ].join("") : '<div class="empty-state compact">暂无访客会话。</div>';
   };
@@ -741,6 +782,15 @@
     '<label class="field"><span>排序</span><input name="sortOrder" type="number" min="0" value="' + Number(item.sortOrder || 0) + '" /></label>',
   ].join("\n");
 
+  const scheduleItemFields = (item) => [
+    '<label class="field field-wide"><span>事项名称</span><input name="title" required maxlength="120" value="' + escapeHtml(item.title || "") + '" placeholder="输入当天要完成的事项" /></label>',
+    '<label class="field"><span>日期</span><input name="date" type="date" required value="' + escapeHtml(item.date || state.selectedCalendarDate || localDateKey()) + '" /></label>',
+    '<label class="field"><span>状态</span><select name="status"><option value="pending"' + (item.status === "completed" ? "" : " selected") + '>未完成</option><option value="completed"' + (item.status === "completed" ? " selected" : "") + '>已完成</option></select></label>',
+    '<label class="field"><span>开始时间</span><input name="startTime" type="time" required value="' + escapeHtml(item.startTime || "09:00") + '" /></label>',
+    '<label class="field"><span>结束时间</span><input name="endTime" type="time" required value="' + escapeHtml(item.endTime || "10:00") + '" /></label>',
+    '<label class="field field-wide"><span>备注</span><textarea name="notes" rows="4" maxlength="500" placeholder="补充地点、提醒或说明">' + escapeHtml(item.notes || "") + '</textarea></label>',
+  ].join("\n");
+
   const quickLinkFields = (item) => [
     '<label class="quick-entry-form-row"><span>网站名称</span><input name="label" required maxlength="80" value="' + escapeHtml(item.label || "") + '" placeholder="请输入网站名称" /></label>',
     '<label class="quick-entry-form-row"><span>网站 URL</span><input name="url" type="url" required value="' + escapeHtml(item.url || "") + '" placeholder="请输入网站 URL，如：https://example.com" /></label>',
@@ -778,11 +828,13 @@
               ? { category: state.activeQuickLinkCategory, sortOrder: state.quickLinks.length }
               : type === "quickLinkCategory"
                 ? { sortOrder: state.quickLinkCategories.length }
+                : type === "scheduleItem"
+                  ? { date: state.selectedCalendarDate || localDateKey(), startTime: "09:00", endTime: "10:00", status: "pending" }
               : { entryType: "income", category: "项目收入", amountCents: 0, paymentStatus: "paid", occurredOn: new Date().toISOString().slice(0, 10) });
     editorForm.dataset.type = type;
     editorDialog.classList.toggle("is-quick-entry", type === "quickLink" || type === "quickLinkCategory");
     const labels = {
-      project: ["Portfolio", "项目"], demo: ["Demo", "交互演示"], article: ["Article", "文章"], navigation: ["Navigation", "导航"], finance: ["Finance", "收支记录"], note: ["Thinking", "便签"], quickLink: ["Quick Entry", "网站"], quickLinkCategory: ["Quick Entry", "分类"], quote: ["AI Quote", "报价"],
+      project: ["Portfolio", "项目"], demo: ["Demo", "交互演示"], article: ["Article", "文章"], navigation: ["Navigation", "导航"], finance: ["Finance", "收支记录"], note: ["Thinking", "便签"], quickLink: ["Quick Entry", "网站"], quickLinkCategory: ["Quick Entry", "分类"], scheduleItem: ["Calendar", "事项"], quote: ["AI Quote", "报价"],
     };
     document.getElementById("editor-eyebrow").textContent = labels[type][0];
     document.getElementById("editor-title").textContent = (type === "quickLink" || type === "quickLinkCategory")
@@ -795,8 +847,9 @@
             : type === "note" ? noteFields(value)
               : type === "quickLink" ? quickLinkFields(value)
                 : type === "quickLinkCategory" ? quickLinkCategoryFields(value)
-                : quoteFields(value);
-    if (["navigation", "finance", "note", "quickLink", "quickLinkCategory", "quote"].includes(type) && value.id) editorForm.dataset.itemId = value.id;
+                  : type === "scheduleItem" ? scheduleItemFields(value)
+                    : quoteFields(value);
+    if (["navigation", "finance", "note", "quickLink", "quickLinkCategory", "scheduleItem", "quote"].includes(type) && value.id) editorForm.dataset.itemId = value.id;
     else delete editorForm.dataset.itemId;
     editorDialog.showModal();
     refreshIcons();
@@ -866,6 +919,11 @@
       values.sortOrder = Number(values.sortOrder || 0);
       await api.saveQuickLinkCategory(values);
       state.activeQuickLinkCategory = String(values.name || "").trim();
+    } else if (type === "scheduleItem") {
+      values.id = editorForm.dataset.itemId || undefined;
+      await api.saveWorkbenchScheduleItem(values);
+      state.selectedCalendarDate = values.date;
+      state.calendarViewDate = dateFromKey(values.date);
     } else if (type === "quote") {
       await api.updateQuoteRequest(editorForm.dataset.itemId, {
         status: values.status,
@@ -1097,8 +1155,42 @@
     const categoryTab = event.target.closest("[data-quick-entry-category]");
     const addEntry = event.target.closest(".quick-entry-add");
     const mood = event.target.closest("[data-mood]");
+    const calendarDate = event.target.closest("[data-calendar-date]");
+    const scheduleEdit = event.target.closest("[data-edit-schedule]");
+    const scheduleToggle = event.target.closest("[data-toggle-schedule]");
+    const scheduleDelete = event.target.closest("[data-delete-schedule]");
+    const scheduleCreate = event.target.closest("[data-create-schedule]");
+    const calendarPrev = event.target.closest("#calendar-prev");
+    const calendarNext = event.target.closest("#calendar-next");
+    const calendarToday = event.target.closest("#calendar-today");
     try {
-      if (categoryTab) {
+      if (calendarPrev || calendarNext || calendarToday) {
+        if (calendarToday) {
+          state.calendarViewDate = new Date();
+          state.selectedCalendarDate = localDateKey();
+        } else {
+          const nextView = new Date(state.calendarViewDate);
+          nextView.setDate(1);
+          nextView.setMonth(nextView.getMonth() + (calendarNext ? 1 : -1));
+          state.calendarViewDate = nextView;
+        }
+        renderCalendarSchedule();
+        refreshIcons();
+        return;
+      } else if (calendarDate) {
+        state.selectedCalendarDate = calendarDate.dataset.calendarDate;
+        state.calendarViewDate = dateFromKey(state.selectedCalendarDate);
+        renderCalendarSchedule();
+        refreshIcons();
+        return;
+      } else if (scheduleCreate) {
+        openEditor("scheduleItem");
+        return;
+      } else if (scheduleEdit) {
+        const item = state.scheduleItems.find((entry) => entry.id === scheduleEdit.dataset.editSchedule);
+        if (item) openEditor("scheduleItem", item);
+        return;
+      } else if (categoryTab) {
         state.activeQuickLinkCategory = categoryTab.dataset.quickEntryCategory;
         renderQuickEntries();
         refreshIcons();
@@ -1113,8 +1205,15 @@
         await api.deleteWorkbenchNote(noteDelete.dataset.deleteNote);
       } else if (linkDelete) {
         await api.deleteQuickLink(linkDelete.dataset.deleteLink);
+      } else if (scheduleToggle) {
+        const item = state.scheduleItems.find((entry) => entry.id === scheduleToggle.dataset.toggleSchedule);
+        if (item) await api.saveWorkbenchScheduleItem({ ...item, status: item.status === "completed" ? "pending" : "completed" });
+      } else if (scheduleDelete) {
+        const item = state.scheduleItems.find((entry) => entry.id === scheduleDelete.dataset.deleteSchedule);
+        if (!item || !window.confirm("确认删除事项“" + item.title + "”吗？")) return;
+        await api.deleteWorkbenchScheduleItem(item.id);
       } else if (mood) {
-        await api.saveWorkbenchMood({ date: localDateKey(), mood: mood.dataset.mood, note: "" });
+        await api.saveWorkbenchMood({ date: state.selectedCalendarDate || localDateKey(), mood: mood.dataset.mood, note: "" });
       } else return;
       await loadData();
     } catch (error) {

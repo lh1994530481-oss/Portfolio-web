@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="robots" content="noindex, nofollow" />
     <title>Lin Tong Xin | Portfolio CMS</title>
-    <link rel="stylesheet" href="./admin.css?v=20260820-2" />
+    <link rel="stylesheet" href="./admin.css?v=20260820-4" />
   </head>
   <body>
     <main class="auth-screen" id="auth-screen">
@@ -139,7 +139,27 @@
               <section class="surface notes-surface"><div class="surface-heading"><div><p class="eyebrow">Thinking</p><h2>便签</h2></div><button class="icon-button" type="button" data-create="note" aria-label="新建便签"><i data-lucide="plus"></i></button></div><div class="workbench-notes" id="workbench-notes"></div></section>
               <section class="surface inquiry-summary-surface"><div class="surface-heading"><div><p class="eyebrow">Inbox</p><h2>处理咨询</h2></div></div><div class="workbench-inquiry" id="workbench-inquiry"></div></section>
               <section class="surface links-surface"><div class="surface-heading"><div><p class="eyebrow">Quick Entry</p><h2>快捷入口</h2></div><div class="quick-entry-actions"><button class="icon-button" type="button" data-create="quickLinkCategory" aria-label="新增快捷入口分类" title="新增分类"><i data-lucide="folder-plus"></i></button><button class="icon-button" type="button" data-create="quickLink" aria-label="新增快捷入口" title="新增入口"><i data-lucide="plus"></i></button></div></div><div class="quick-links" id="quick-links"></div></section>
-              <section class="surface mood-surface"><div class="surface-heading"><div><p class="eyebrow">Calendar</p><h2 id="calendar-month">日历</h2></div><strong id="mood-date"></strong></div><div class="calendar-layout"><div class="workbench-calendar" id="workbench-calendar"></div><div class="calendar-mood"><div><small>今日记录</small><strong>今天状态怎么样</strong></div><div class="mood-options" id="mood-options"></div></div></div></section>
+              <section class="surface mood-surface">
+                <div class="surface-heading calendar-surface-heading">
+                  <div><p class="eyebrow">Calendar</p><h2 id="calendar-month">日历</h2></div>
+                  <div class="calendar-heading-actions">
+                    <button class="icon-button" id="calendar-prev" type="button" aria-label="上个月" title="上个月"><i data-lucide="chevron-left"></i></button>
+                    <button class="calendar-today-button" id="calendar-today" type="button">本月</button>
+                    <button class="icon-button" id="calendar-next" type="button" aria-label="下个月" title="下个月"><i data-lucide="chevron-right"></i></button>
+                  </div>
+                </div>
+                <div class="calendar-layout">
+                  <div class="workbench-calendar" id="workbench-calendar"></div>
+                  <div class="calendar-agenda">
+                    <div class="calendar-agenda-heading">
+                      <div><small id="mood-date"></small><strong id="schedule-date-title">当天事项</strong></div>
+                      <button class="icon-button calendar-add-button" type="button" data-create="scheduleItem" aria-label="添加当天事项" title="添加事项"><i data-lucide="plus"></i></button>
+                    </div>
+                    <div class="mood-options" id="mood-options" aria-label="当天状态"></div>
+                    <div class="schedule-list" id="schedule-list"></div>
+                  </div>
+                </div>
+              </section>
               <section class="surface recent-surface"><div class="surface-heading"><div><p class="eyebrow">Records</p><h2>最近操作</h2></div></div><div id="recent-content"></div></section>
               <div id="publish-status" hidden></div>
             </div>
@@ -333,10 +353,10 @@
 
     <script src="../portfolio/project-data.js"></script>
     <script src="../articles/articles-data.js"></script>
-    <script src="./config.js?v=20260818-2"></script>
+    <script src="./config.js?v=20260820-4"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <script src="../shared/content-api.js?v=20260820-1"></script>
+    <script src="../shared/content-api.js?v=20260820-3"></script>
     <script src="https://unpkg.com/lucide@0.468.0/dist/umd/lucide.min.js"></script>
-    <script src="./admin.js?v=20260820-2" defer></script>
+    <script src="./admin.js?v=20260820-4" defer></script>
   </body>
 </html>

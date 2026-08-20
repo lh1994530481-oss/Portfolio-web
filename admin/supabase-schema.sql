@@ -222,8 +222,20 @@ create table if not exists public.site_events (
   referrer_host text check (referrer_host is null or char_length(referrer_host) <= 255),
   session_id text not null check (char_length(session_id) between 8 and 80),
   device_type text not null default 'desktop' check (device_type in ('desktop', 'tablet', 'mobile')),
+  ip_address inet,
+  country_code text check (country_code is null or country_code ~ '^[A-Z]{2}$'),
+  region text check (region is null or char_length(region) <= 100),
+  city text check (city is null or char_length(city) <= 100),
+  user_agent text check (user_agent is null or char_length(user_agent) <= 500),
   created_at timestamptz not null default now()
 );
+
+alter table public.site_events
+  add column if not exists ip_address inet,
+  add column if not exists country_code text,
+  add column if not exists region text,
+  add column if not exists city text,
+  add column if not exists user_agent text;
 
 create index if not exists site_events_created_at_idx
 on public.site_events (created_at desc);
@@ -281,16 +293,6 @@ alter table public.contact_inquiries enable row level security;
 alter table public.finance_entries enable row level security;
 
 drop policy if exists "Public records safe site events" on public.site_events;
-create policy "Public records safe site events"
-on public.site_events
-for insert
-to anon, authenticated
-with check (
-  event_name in ('page_view', 'content_click', 'contact_submit', 'ai_open')
-  and char_length(path) between 1 and 500
-  and char_length(session_id) between 8 and 80
-  and device_type in ('desktop', 'tablet', 'mobile')
-);
 
 drop policy if exists "Admins read and delete site events" on public.site_events;
 create policy "Admins read and delete site events"
@@ -350,9 +352,7 @@ to authenticated
 using ((select private.is_portfolio_admin()))
 with check ((select private.is_portfolio_admin()));
 
-grant insert on public.site_events to anon, authenticated;
 grant select, delete on public.site_events to authenticated;
-grant usage, select on sequence public.site_events_id_seq to anon, authenticated;
 
 grant select on public.ai_profile to anon, authenticated;
 grant insert, update, delete on public.ai_profile to authenticated;
@@ -521,10 +521,27 @@ create table if not exists public.workbench_moods (
   updated_at timestamptz not null default now()
 );
 
+create table if not exists public.workbench_schedule_items (
+  id uuid primary key default gen_random_uuid(),
+  item_date date not null,
+  start_time time not null,
+  end_time time not null,
+  title text not null check (char_length(title) between 1 and 120),
+  notes text not null default '' check (char_length(notes) <= 500),
+  status text not null default 'pending' check (status in ('pending', 'completed')),
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now(),
+  check (end_time > start_time)
+);
+
+create index if not exists workbench_schedule_items_date_time_idx
+on public.workbench_schedule_items (item_date, start_time);
+
 alter table public.workbench_notes enable row level security;
 alter table public.quick_links enable row level security;
 alter table public.quick_link_categories enable row level security;
 alter table public.workbench_moods enable row level security;
+alter table public.workbench_schedule_items enable row level security;
 
 drop policy if exists "Admins manage workbench notes" on public.workbench_notes;
 create policy "Admins manage workbench notes" on public.workbench_notes for all to authenticated
@@ -542,7 +559,11 @@ drop policy if exists "Admins manage workbench moods" on public.workbench_moods;
 create policy "Admins manage workbench moods" on public.workbench_moods for all to authenticated
 using ((select private.is_portfolio_admin())) with check ((select private.is_portfolio_admin()));
 
-grant select, insert, update, delete on public.workbench_notes, public.quick_links, public.quick_link_categories, public.workbench_moods to authenticated;
+drop policy if exists "Admins manage workbench schedule" on public.workbench_schedule_items;
+create policy "Admins manage workbench schedule" on public.workbench_schedule_items for all to authenticated
+using ((select private.is_portfolio_admin())) with check ((select private.is_portfolio_admin()));
+
+grant select, insert, update, delete on public.workbench_notes, public.quick_links, public.quick_link_categories, public.workbench_moods, public.workbench_schedule_items to authenticated;
 
 insert into public.quick_link_categories (name, sort_order)
 values ('设计', 0), ('开发', 1), ('工具', 2), ('个人', 3)
@@ -621,6 +642,12 @@ revoke all on public.workbench_notes from anon;
 revoke all on public.quick_links from anon;
 revoke all on public.quick_link_categories from anon;
 revoke all on public.workbench_moods from anon;
+revoke all on public.workbench_schedule_items from anon;
+revoke all on public.site_events from anon, authenticated;
+grant select, delete on public.site_events to authenticated;
+revoke all on sequence public.site_events_id_seq from anon, authenticated;
+revoke all on public.workbench_schedule_items from authenticated;
+grant select, insert, update, delete on public.workbench_schedule_items to authenticated;
 revoke all on public.finance_entries from anon;
 
 revoke select, update, delete on public.quote_requests from anon;

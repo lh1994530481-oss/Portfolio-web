@@ -23,8 +23,9 @@
   const defaultNavigation = [
     { id: "10000000-0000-4000-8000-000000000001", label: "首页", href: "#top", sortOrder: 0, published: true, openNewTab: false },
     { id: "10000000-0000-4000-8000-000000000002", label: "作品集", href: "./portfolio/index.html", sortOrder: 1, published: true, openNewTab: false },
-    { id: "10000000-0000-4000-8000-000000000003", label: "文章", href: "./articles/index.html", sortOrder: 2, published: true, openNewTab: false },
-    { id: "10000000-0000-4000-8000-000000000004", label: "联系", href: "#contact", sortOrder: 3, published: true, openNewTab: false },
+    { id: "10000000-0000-4000-8000-000000000005", label: "练习与演示", href: "./demos/index.html", sortOrder: 2, published: true, openNewTab: false },
+    { id: "10000000-0000-4000-8000-000000000003", label: "文章", href: "./articles/index.html", sortOrder: 3, published: true, openNewTab: false },
+    { id: "10000000-0000-4000-8000-000000000004", label: "联系", href: "#contact", sortOrder: 4, published: true, openNewTab: false },
   ];
 
   const defaultQuickLinkCategories = [
@@ -108,7 +109,21 @@
     if (!response.ok) throw new Error("内容服务暂时不可用");
   };
 
-  const projectFromRow = (row) => ({
+  const normalizeProjectClassification = (project) => {
+    if (!project || project.slug !== "homi-smart-home-prototype") return project;
+    const legacyCategory = project.category === "Exercises and Demos";
+    const legacyTags = !Array.isArray(project.tags)
+      || project.tags.length === 0
+      || (project.tags.length === 1 && project.tags[0] === "Exercises and Demos");
+    return {
+      ...project,
+      itemType: "demo",
+      category: legacyCategory || !project.category ? "原型" : project.category,
+      tags: legacyTags ? ["智能家居", "交互原型", "场景自动化", "安防告警", "能源管理"] : project.tags,
+    };
+  };
+
+  const projectFromRow = (row) => normalizeProjectClassification({
     id: row.id,
     slug: row.slug,
     title: row.title,
@@ -307,9 +322,19 @@
 
   const sortContent = (items) => items.slice().sort((a, b) => Number(a.sortOrder || 0) - Number(b.sortOrder || 0));
 
+  const ensureDemosNavigation = (items) => {
+    const navigation = items.slice();
+    const demoDefault = defaultNavigation.find((item) => item.href === "./demos/index.html");
+    const hasDemos = navigation.some((item) => item.id === demoDefault.id || item.href === demoDefault.href || item.label === demoDefault.label);
+    if (hasDemos) return navigation;
+    const portfolioIndex = navigation.findIndex((item) => item.href === "./portfolio/index.html" || item.label === "作品集");
+    navigation.splice(portfolioIndex >= 0 ? portfolioIndex + 1 : navigation.length, 0, { ...demoDefault });
+    return navigation;
+  };
+
   const listProjects = async (fallback, includeDrafts) => {
-    const defaults = (fallback || []).map((item, index) => ({ ...item, published: item.published !== false, sortOrder: item.sortOrder ?? index }));
-    if (!isConfigured()) return sortContent(readLocal("projects", defaults)).filter((item) => includeDrafts || item.published !== false);
+    const defaults = (fallback || []).map((item, index) => normalizeProjectClassification({ ...item, published: item.published !== false, sortOrder: item.sortOrder ?? index }));
+    if (!isConfigured()) return sortContent(readLocal("projects", defaults).map(normalizeProjectClassification)).filter((item) => includeDrafts || item.published !== false);
 
     try {
       if (includeDrafts) {
@@ -354,18 +379,18 @@
       openNewTab: item.openNewTab === true,
       sortOrder: item.sortOrder ?? index,
     }));
-    if (!isConfigured()) return sortContent(readLocal("navigation", defaults)).filter((item) => includeDrafts || item.published !== false);
+    if (!isConfigured()) return ensureDemosNavigation(sortContent(readLocal("navigation", defaults)).filter((item) => includeDrafts || item.published !== false));
 
     try {
       if (includeDrafts) {
         const { data, error } = await getClient().from("navigation_items").select("*").order("sort_order", { ascending: true });
         if (error) throw error;
-        return data.map(navigationFromRow);
+        return ensureDemosNavigation(data.map(navigationFromRow));
       }
       const rows = await publicRequest("navigation_items?select=*&published=eq.true&order=sort_order.asc");
-      return rows.map(navigationFromRow);
+      return ensureDemosNavigation(rows.map(navigationFromRow));
     } catch (error) {
-      return defaults.filter((item) => includeDrafts || item.published !== false);
+      return ensureDemosNavigation(defaults.filter((item) => includeDrafts || item.published !== false));
     }
   };
 

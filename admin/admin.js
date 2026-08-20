@@ -107,7 +107,7 @@
     overview: "欢迎回来，Admin",
     analytics: "数据统计",
     projects: "项目管理",
-    demos: "Demo 管理",
+    demos: "练习与演示",
     articles: "文章管理",
     navigation: "导航管理",
     ai: "AI 分身",
@@ -689,23 +689,28 @@
     '</article>',
   ].join("\n");
 
-  const demoProjectFields = (item, editing) => [
-    '<input name="itemType" type="hidden" value="demo" />',
-    '<label class="field"><span>Demo 标题</span><input name="title" required value="' + escapeHtml(item.title || "") + '" /></label>',
-    '<label class="field"><span>Slug</span><input name="slug" required pattern="[a-z0-9-]+" ' + (editing ? "readonly" : "") + ' value="' + escapeHtml(item.slug || "") + '" /></label>',
-    '<label class="field"><span>分类</span><input name="category" value="' + escapeHtml(item.category || "Exercises and Demos") + '" /></label>',
-    '<label class="field"><span>排序</span><input name="sortOrder" type="number" min="0" value="' + Number(item.sortOrder || 0) + '" /></label>',
-    '<label class="field field-wide"><span>Demo 描述</span><textarea name="descriptionZh" rows="5">' + escapeHtml(item.descriptionZh || "") + '</textarea></label>',
-    '<label class="field field-wide"><span>封面地址</span><input name="cover" value="' + escapeHtml(item.cover || "") + '" placeholder="图片 URL 或站内路径" /></label>',
-    '<label class="field field-wide"><span>项目画廊</span><textarea name="gallery" rows="5" placeholder="每行一个图片地址">' + escapeHtml((item.gallery || []).join("\n")) + '</textarea></label>',
-    '<label class="field"><span>技术栈</span><input name="tags" value="' + escapeHtml((item.tags || []).join("，")) + '" placeholder="使用逗号分隔" /></label>',
-    '<label class="field"><span>预览视频 / 媒体</span><input name="mediaUrl" value="' + escapeHtml(item.mediaUrl || "") + '" /></label>',
-    '<label class="field field-wide"><span>在线 Demo 地址</span><input name="prototypeHref" value="' + escapeHtml(item.prototypeHref || "") + '" placeholder="https:// 或站内路径" /></label>',
-    '<label class="toggle-field"><span>密码保护</span><input name="passwordEnabled" type="checkbox"' + (item.passwordEnabled ? " checked" : "") + ' /></label>',
-    '<label class="field"><span>访问密码</span><input name="accessPassword" type="password" placeholder="' + (item.passwordEnabled ? "留空则保留当前密码" : "启用后填写") + '" /></label>',
-    '<label class="field field-wide"><span>受保护跳转地址</span><input name="protectedTargetUrl" value="' + escapeHtml(item.protectedTargetUrl || "") + '" placeholder="验证成功后才返回此地址" /></label>',
-    '<label class="toggle-field field-wide"><span>公开发布</span><input name="published" type="checkbox"' + (item.published === false ? "" : " checked") + ' /></label>',
-  ].join("\n");
+  const demoCategories = ["原型", "练习", "数字孪生"];
+  const demoProjectFields = (item, editing) => {
+    const category = item.category === "Exercises and Demos" ? "原型" : (item.category || "原型");
+    const categories = demoCategories.includes(category) ? demoCategories : [...demoCategories, category];
+    return [
+      '<input name="itemType" type="hidden" value="demo" />',
+      '<label class="field"><span>演示标题</span><input name="title" required value="' + escapeHtml(item.title || "") + '" /></label>',
+      '<label class="field"><span>Slug</span><input name="slug" required pattern="[a-z0-9-]+" ' + (editing ? "readonly" : "") + ' value="' + escapeHtml(item.slug || "") + '" /></label>',
+      '<label class="field"><span>分类</span><select name="category">' + categories.map((value) => '<option value="' + escapeHtml(value) + '"' + (category === value ? " selected" : "") + '>' + escapeHtml(value) + '</option>').join("") + '</select></label>',
+      '<label class="field"><span>排序</span><input name="sortOrder" type="number" min="0" value="' + Number(item.sortOrder || 0) + '" /></label>',
+      '<label class="field field-wide"><span>演示描述</span><textarea name="descriptionZh" rows="5">' + escapeHtml(item.descriptionZh || "") + '</textarea></label>',
+      '<label class="field field-wide"><span>封面地址</span><input name="cover" value="' + escapeHtml(item.cover || "") + '" placeholder="图片 URL 或站内路径" /></label>',
+      '<label class="field field-wide"><span>项目画廊</span><textarea name="gallery" rows="5" placeholder="每行一个图片地址">' + escapeHtml((item.gallery || []).join("\n")) + '</textarea></label>',
+      '<label class="field"><span>技术栈</span><input name="tags" value="' + escapeHtml((item.tags || []).join("，")) + '" placeholder="使用逗号分隔" /></label>',
+      '<label class="field"><span>预览视频 / 媒体</span><input name="mediaUrl" value="' + escapeHtml(item.mediaUrl || "") + '" /></label>',
+      '<label class="field field-wide"><span>原型体验地址</span><input name="prototypeHref" value="' + escapeHtml(item.prototypeHref || "") + '" placeholder="https:// 或站内路径" /></label>',
+      '<label class="toggle-field"><span>密码保护</span><input name="passwordEnabled" type="checkbox"' + (item.passwordEnabled ? " checked" : "") + ' /></label>',
+      '<label class="field"><span>访问密码</span><input name="accessPassword" type="password" placeholder="' + (item.passwordEnabled ? "留空则保留当前密码" : "启用后填写") + '" /></label>',
+      '<label class="field field-wide"><span>受保护跳转地址</span><input name="protectedTargetUrl" value="' + escapeHtml(item.protectedTargetUrl || "") + '" placeholder="验证成功后才返回此地址" /></label>',
+      '<label class="toggle-field field-wide"><span>公开发布</span><input name="published" type="checkbox"' + (item.published === false ? "" : " checked") + ' /></label>',
+    ].join("\n");
+  };
 
   const projectFields = (item, editing, type) => {
     if (type === "demo") return demoProjectFields(item, editing);
@@ -740,7 +745,7 @@
       '    </section>',
       '    <div class="project-sidebar-fields">',
       '      <div class="project-category-row"><label class="project-compact-field"><span>分类</span><input name="category" list="project-categories" value="' + escapeHtml(item.category || "APP Design") + '" /></label><button type="button" data-add-project-category><i data-lucide="plus" aria-hidden="true"></i><span>新增分类</span></button></div>',
-      '      <datalist id="project-categories">' + ["APP Design", "Web Design", "Data visualization", "IP Design", "Exercises and Demos"].map((value) => '<option value="' + value + '"></option>').join("") + '</datalist>',
+      '      <datalist id="project-categories">' + ["APP Design", "Web Design", "Data visualization", "IP Design"].map((value) => '<option value="' + value + '"></option>').join("") + '</datalist>',
       '      <label class="project-compact-field"><span>技术标签</span><input name="tags" value="' + escapeHtml((item.tags || []).join("，")) + '" placeholder="多个标签用逗号分隔" /></label>',
       '      <label class="project-compact-field"><span>客户</span><input name="clientName" value="' + escapeHtml(item.clientName || "") + '" placeholder="请输入客户名称" /></label>',
       '      <label class="project-compact-field"><span>项目链接</span><input name="prototypeHref" value="' + escapeHtml(item.prototypeHref || "") + '" placeholder="https:// 或站内路径" /></label>',
@@ -902,7 +907,7 @@
   const openEditor = (type, item) => {
     const editing = Boolean(item);
     const value = item || ((type === "project" || type === "demo")
-      ? { itemType: type === "demo" ? "demo" : "portfolio", category: type === "demo" ? "Exercises and Demos" : "APP Design", sortOrder: state.projects.length, published: true, gallery: [], tags: [] }
+      ? { itemType: type === "demo" ? "demo" : "portfolio", category: type === "demo" ? "原型" : "APP Design", sortOrder: state.projects.length, published: true, gallery: [], tags: [] }
       : type === "article"
         ? { category: "AI", sortOrder: state.articles.length, published: true, blocks: [] }
         : type === "navigation"
@@ -921,7 +926,7 @@
     editorDialog.classList.toggle("is-project-editor", type === "project");
     document.body.classList.toggle("project-editor-open", type === "project");
     const labels = {
-      project: ["Portfolio", "项目"], demo: ["Demo", "交互演示"], article: ["Article", "文章"], navigation: ["Navigation", "导航"], finance: ["Finance", "收支记录"], note: ["Thinking", "便签"], quickLink: ["Quick Entry", "网站"], quickLinkCategory: ["Quick Entry", "分类"], scheduleItem: ["Calendar", "事项"], quote: ["AI Quote", "报价"],
+      project: ["Portfolio", "项目"], demo: ["Practice & Demo", "练习与演示"], article: ["Article", "文章"], navigation: ["Navigation", "导航"], finance: ["Finance", "收支记录"], note: ["Thinking", "便签"], quickLink: ["Quick Entry", "网站"], quickLinkCategory: ["Quick Entry", "分类"], scheduleItem: ["Calendar", "事项"], quote: ["AI Quote", "报价"],
     };
     document.getElementById("editor-eyebrow").textContent = labels[type][0];
     document.getElementById("editor-title").textContent = (type === "quickLink" || type === "quickLinkCategory")

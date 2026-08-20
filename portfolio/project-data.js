@@ -120,9 +120,13 @@ window.PROJECT_DATA = [
     "slug": "homi-smart-home-prototype",
     "itemType": "demo",
     "title": "HOMI 智家可交互原型",
-    "category": "Exercises and Demos",
+    "category": "原型",
     "tags": [
-      "Exercises and Demos"
+      "智能家居",
+      "交互原型",
+      "场景自动化",
+      "安防告警",
+      "能源管理"
     ],
     "descriptionZh": "该项目是一套面向家庭成员与家庭管理员的智能家居可交互产品原型，覆盖设备控制、设备配网、场景自动化、安防告警、摄像头、能源管理及家庭权限管理，并通过跨页面状态联动完整呈现真实业务流程。",
     "cover": "../assets/project-wall/7.webp",

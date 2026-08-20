@@ -162,9 +162,15 @@ insert into public.navigation_items (id, label, href, sort_order, published, ope
 values
   ('10000000-0000-4000-8000-000000000001', '首页', '#top', 0, true, false),
   ('10000000-0000-4000-8000-000000000002', '作品集', './portfolio/index.html', 1, true, false),
-  ('10000000-0000-4000-8000-000000000003', '文章', './articles/index.html', 2, true, false),
-  ('10000000-0000-4000-8000-000000000004', '联系', '#contact', 3, true, false)
-on conflict (id) do nothing;
+  ('10000000-0000-4000-8000-000000000005', '练习与演示', './demos/index.html', 2, true, false),
+  ('10000000-0000-4000-8000-000000000003', '文章', './articles/index.html', 3, true, false),
+  ('10000000-0000-4000-8000-000000000004', '联系', '#contact', 4, true, false)
+on conflict (id) do update set
+  label = excluded.label,
+  href = excluded.href,
+  sort_order = excluded.sort_order,
+  published = excluded.published,
+  open_new_tab = excluded.open_new_tab;
 
 
 insert into storage.buckets (id, name, public)
@@ -658,6 +664,8 @@ grant insert on public.contact_inquiries to anon;
 
 update public.projects
 set item_type = 'demo',
+    category = case when category = 'Exercises and Demos' then '原型' else category end,
+    tags = case when tags = ARRAY['Exercises and Demos']::text[] then ARRAY['智能家居','交互原型','场景自动化','安防告警','能源管理']::text[] else tags end,
     updated_at = now()
 where slug = 'homi-smart-home-prototype';
 

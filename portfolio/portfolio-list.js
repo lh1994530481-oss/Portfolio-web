@@ -10,22 +10,24 @@
   const pageHeader = document.querySelector(".portfolio-page-header");
   const pageMain = document.querySelector(".portfolio-list-page");
   const fallbackProjects = Array.isArray(window.PROJECT_DATA) ? window.PROJECT_DATA : [];
-  const projects = window.ContentAPI
+  const projectRecords = window.ContentAPI
     ? await window.ContentAPI.listProjects(fallbackProjects, false)
     : fallbackProjects;
+  const projects = projectRecords.filter(function (project) {
+    return project.itemType !== "demo" && project.slug !== "homi-smart-home-prototype";
+  });
   const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
   const pointerFine = window.matchMedia("(hover: hover) and (pointer: fine)").matches;
 
   if (!root || !filterRoot || !modal || !modalDialog || !modalTitle || !modalDescription || !modalCategory || !modalGallery) return;
 
-  const preferredFilters = ["APP Design", "Web Design", "Data visualization", "IP Design", "Exercises and Demos"];
+  const preferredFilters = ["APP Design", "Web Design", "Data visualization", "IP Design"];
   const displayLabels = {
     All: "全部",
     "APP Design": "APP 设计",
     "Web Design": "网页设计",
     "Data visualization": "数据可视化",
     "IP Design": "IP 设计",
-    "Exercises and Demos": "练习与演示",
   };
   const projectCategories = Array.from(new Set(projects.map((project) => project.category).filter(Boolean)));
   const filters = ["All", ...preferredFilters.filter((filter) => projectCategories.includes(filter)), ...projectCategories.filter((filter) => !preferredFilters.includes(filter))];
@@ -42,7 +44,6 @@
     "smart-park-management-system": "../assets/project-wall/4.webp",
     "human-resources-management-system": "../assets/project-wall/5.webp",
     "customer-management-system": "../assets/project-wall/6.webp",
-    "homi-smart-home-prototype": "../assets/project-wall/7.webp",
   };
 
   const projectMeta = {
@@ -81,12 +82,6 @@
       category: "APP Design",
       tags: ["APP Design"],
       description: "景区自助讲解器",
-    },
-    "homi-smart-home-prototype": {
-      title: "HOMI 智家可交互原型",
-      category: "Exercises and Demos",
-      tags: ["Exercises and Demos"],
-      description: "该项目是一套面向家庭成员与家庭管理员的智能家居可交互产品原型，覆盖设备控制、设备配网、场景自动化、安防告警、摄像头、能源管理及家庭权限管理，并通过跨页面状态联动完整呈现真实业务流程。",
     },
   };
 

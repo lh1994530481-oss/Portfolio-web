@@ -242,7 +242,8 @@ async function initManagedContent() {
   }
 
   const grid = document.querySelector("[data-managed-projects]");
-  if (!grid || !projects.length) return;
+  const portfolioProjects = projects.filter((project) => project.itemType !== "demo" && project.slug !== "homi-smart-home-prototype");
+  if (!grid || !portfolioProjects.length) return;
 
   const escapeAttr = (value) =>
     String(value || "")
@@ -256,7 +257,7 @@ async function initManagedContent() {
     return path.replace(/^\.\.\//, "./");
   };
 
-  grid.innerHTML = projects.slice(0, 6).map((project, index) => {
+  grid.innerHTML = portfolioProjects.slice(0, 6).map((project, index) => {
     const href = project.passwordEnabled ? "#" : project.prototypeHref
       ? homePath(project.prototypeHref)
       : "./portfolio/project-detail.html?slug=" + encodeURIComponent(project.slug);

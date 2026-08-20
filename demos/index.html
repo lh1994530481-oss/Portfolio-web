@@ -1,0 +1,64 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>林桐鑫｜练习与演示</title>
+    <link rel="stylesheet" href="../portfolio/portfolio.css?v=20260820-2" />
+    <link rel="stylesheet" href="./demos.css?v=20260820-1" />
+    <link rel="stylesheet" href="../assets/page-transition.css" />
+  </head>
+  <body class="portfolio-list-body demos-list-body">
+    <header class="portfolio-page-header" aria-label="练习与演示导航">
+      <div class="portfolio-page-header-inner">
+        <a class="portfolio-back" href="../index.html#top">返回</a>
+        <a class="portfolio-brand" href="../index.html">Lin Tong Xin</a>
+      </div>
+    </header>
+
+    <main class="portfolio-list-page demos-list-page">
+      <section class="portfolio-list-hero" aria-labelledby="demos-title">
+        <h1 id="demos-title" class="portfolio-list-title demos-list-title">
+          <span>练习与</span><span>演示</span>
+        </h1>
+      </section>
+
+      <section class="portfolio-filter-section" aria-label="练习与演示分类筛选">
+        <div id="demos-filter-bar" class="portfolio-filter-bar"></div>
+      </section>
+
+      <section id="demos-list-grid" class="portfolio-list-grid" aria-label="练习与演示列表"></section>
+    </main>
+
+    <div id="demo-project-modal" class="demo-modal" aria-hidden="true" inert>
+      <button class="demo-modal-backdrop" type="button" data-demo-modal-close tabindex="-1" aria-label="关闭演示详情"></button>
+      <section class="demo-modal-dialog" role="dialog" aria-modal="true" aria-labelledby="demo-modal-title" tabindex="-1">
+        <button class="demo-modal-close" type="button" data-demo-modal-close aria-label="关闭演示详情">
+          <i data-lucide="x" aria-hidden="true"></i>
+        </button>
+        <div id="demo-modal-media" class="demo-modal-media"></div>
+        <aside class="demo-modal-info">
+          <div class="demo-modal-copy">
+            <span id="demo-modal-category" class="demo-modal-category"></span>
+            <h2 id="demo-modal-title"></h2>
+            <p id="demo-modal-description"></p>
+            <h3>技术栈</h3>
+            <div id="demo-modal-tags" class="demo-modal-tags"></div>
+          </div>
+          <a id="demo-modal-experience" class="demo-modal-experience" href="#">
+            <span>立即体验</span>
+            <i data-lucide="external-link" aria-hidden="true"></i>
+          </a>
+        </aside>
+      </section>
+    </div>
+
+    <script src="../portfolio/project-data.js?v=20260820-2"></script>
+    <script src="../admin/config.js"></script>
+    <script src="../shared/content-api.js?v=20260820-4"></script>
+    <script src="../shared/site-operations.js?v=20260818-1" defer></script>
+    <script src="https://unpkg.com/lucide@0.468.0/dist/umd/lucide.min.js"></script>
+    <script src="./demos-list.js?v=20260820-1" defer></script>
+    <script src="../assets/page-transition.js" defer></script>
+  </body>
+</html>

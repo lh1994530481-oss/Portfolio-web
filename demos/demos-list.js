@@ -160,10 +160,12 @@
     experienceLink.dataset.slug = project.slug;
     if (project.passwordEnabled) {
       experienceLink.dataset.protectedProject = project.slug;
+      experienceLink.dataset.protectedProjectTitle = title;
       experienceLink.removeAttribute('target');
       experienceLink.removeAttribute('rel');
     } else {
       delete experienceLink.dataset.protectedProject;
+      delete experienceLink.dataset.protectedProjectTitle;
       experienceLink.target = '_blank';
       experienceLink.rel = 'noopener noreferrer';
     }

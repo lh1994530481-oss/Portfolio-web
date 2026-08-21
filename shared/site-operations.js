@@ -93,27 +93,30 @@
   accessDialog.className = "project-access-dialog";
   accessDialog.innerHTML = [
     '<form method="dialog" data-project-access-form>',
-    '  <header><div><span>Private Demo</span><h2>输入访问密码</h2></div><button type="button" data-project-access-close aria-label="关闭">×</button></header>',
-    '  <p>该项目仅向获得访问权限的访客开放。</p>',
-    '  <label><span>访问密码</span><input name="password" type="password" autocomplete="off" required /></label>',
-    '  <div class="project-access-actions"><small data-project-access-status role="status"></small><button type="submit">验证并打开</button></div>',
+    '  <div class="project-access-heading"><h2 data-project-access-title>受保护的项目</h2><p>此作品受密码保护</p></div>',
+    '  <label><span>密码</span><input name="password" type="password" autocomplete="current-password" required /></label>',
+    '  <small data-project-access-status role="status"></small>',
+    '  <button type="submit">提交</button>',
     '</form>',
   ].join("");
   document.body.appendChild(accessDialog);
   const accessForm = accessDialog.querySelector("[data-project-access-form]");
   const accessStatus = accessDialog.querySelector("[data-project-access-status]");
+  const accessTitle = accessDialog.querySelector("[data-project-access-title]");
   document.addEventListener("click", (event) => {
     const link = event.target.closest("[data-protected-project]");
     if (!link) return;
     event.preventDefault();
     protectedSlug = link.dataset.protectedProject;
+    const nearbyTitle = link.closest("article")?.querySelector("h2, h3")?.textContent.trim();
+    const labelledTitle = String(link.getAttribute("aria-label") || "").replace(/^(查看|打开)/, "").replace(/(项目|演示)$/, "").trim();
+    accessTitle.textContent = link.dataset.protectedProjectTitle || nearbyTitle || labelledTitle || "受保护的项目";
     accessStatus.textContent = "";
     accessStatus.classList.remove("is-error");
     accessForm.reset();
     accessDialog.showModal();
     window.setTimeout(() => accessForm.elements.namedItem("password").focus(), 30);
   });
-  accessDialog.querySelector("[data-project-access-close]").addEventListener("click", () => accessDialog.close());
   accessDialog.addEventListener("click", (event) => { if (event.target === accessDialog) accessDialog.close(); });
   accessForm.addEventListener("submit", async (event) => {
     event.preventDefault();

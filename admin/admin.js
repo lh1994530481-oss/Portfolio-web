@@ -689,6 +689,36 @@
     '</article>',
   ].join("\n");
 
+  const projectDocumentBlocks = (item, galleryImages) => {
+    if (Array.isArray(item.contentBlocks) && item.contentBlocks.length) return item.contentBlocks;
+    return [
+      ...(item.mediaUrl ? [{ type: "video", src: item.mediaUrl, caption: "" }] : []),
+      ...galleryImages.map((src) => ({ type: "image", src, alt: "" })),
+    ];
+  };
+
+  const projectDocumentBlockToHtml = (block) => {
+    if (!block) return "";
+    if (block.type === "heading") return '<h2>' + escapeHtml(block.text || "") + '</h2>';
+    if (block.type === "image" && block.src) return [
+      '<figure class="project-document-media is-image" data-project-document-media="image">',
+      '  <img src="' + escapeHtml(block.src) + '" alt="' + escapeHtml(block.alt || block.caption || "") + '" />',
+      '  <figcaption>' + escapeHtml(block.caption || block.alt || "") + '</figcaption>',
+      '  <button type="button" data-remove-project-document-media contenteditable="false" aria-label="移除图片"><i data-lucide="trash-2" aria-hidden="true"></i></button>',
+      '</figure>',
+    ].join("\n");
+    if (block.type === "video" && block.src) return [
+      '<figure class="project-document-media is-video" data-project-document-media="video">',
+      '  <video src="' + escapeHtml(block.src) + '" controls playsinline preload="metadata"></video>',
+      '  <figcaption>' + escapeHtml(block.caption || "") + '</figcaption>',
+      '  <button type="button" data-remove-project-document-media contenteditable="false" aria-label="移除视频"><i data-lucide="trash-2" aria-hidden="true"></i></button>',
+      '</figure>',
+    ].join("\n");
+    return '<p>' + (block.html || escapeHtml(block.text || "")) + '</p>';
+  };
+
+  const projectDocumentBlocksToHtml = (blocks) => (blocks || []).map(projectDocumentBlockToHtml).join("\n");
+
   const demoCategories = ["原型", "练习", "数字孪生"];
   const demoProjectFields = (item, editing) => {
     const category = item.category === "Exercises and Demos" ? "原型" : (item.category || "原型");
@@ -717,6 +747,7 @@
     const gallery = (item.gallery || []).filter(Boolean);
     const cover = item.cover || gallery[0] || "";
     const galleryImages = gallery.length ? gallery : (cover ? [cover] : []);
+    const contentBlocks = projectDocumentBlocks(item, galleryImages);
     return [
       '<input name="itemType" type="hidden" value="portfolio" />',
       '<div class="project-editor-layout">',
@@ -725,16 +756,25 @@
       '      <label class="project-title-field"><span class="visually-hidden">项目标题</span><input name="title" required value="' + escapeHtml(item.title || "") + '" placeholder="输入项目标题" /></label>',
       '      <label class="project-description-field"><span class="visually-hidden">项目描述</span><textarea name="descriptionZh" rows="2" placeholder="请输入作品描述（选填）">' + escapeHtml(item.descriptionZh || "") + '</textarea></label>',
       '    </div>',
-      '    <div class="project-gallery-toolbar">',
-      '      <div><span>作品图片</span><small>按展示顺序排列，可上传或粘贴图片地址</small></div>',
-      '      <div class="project-gallery-add">',
-      '        <input type="url" data-gallery-url-input placeholder="粘贴图片 URL" aria-label="新增作品图片地址" />',
-      '        <button class="button button-secondary" type="button" data-add-gallery-url><i data-lucide="link-2" aria-hidden="true"></i><span>添加地址</span></button>',
-      '        <label class="button button-primary project-upload-button"><i data-lucide="image-up" aria-hidden="true"></i><span>上传图片</span><input type="file" accept="image/jpeg,image/png,image/webp,image/gif" multiple data-gallery-upload /></label>',
+      '    <div class="project-document-toolbar" data-project-document-toolbar role="toolbar" aria-label="项目正文工具栏">',
+      '      <div class="project-document-format-group">',
+      '        <button type="button" data-project-document-format="p" title="正文"><i data-lucide="pilcrow" aria-hidden="true"></i><span>正文</span></button>',
+      '        <button type="button" data-project-document-format="h2" title="二级标题"><i data-lucide="heading-2" aria-hidden="true"></i><span>标题</span></button>',
+      '        <button type="button" data-project-document-command="bold" title="加粗"><i data-lucide="bold" aria-hidden="true"></i></button>',
+      '        <button type="button" data-project-document-command="italic" title="斜体"><i data-lucide="italic" aria-hidden="true"></i></button>',
+      '        <button type="button" data-project-document-link title="插入链接"><i data-lucide="link-2" aria-hidden="true"></i></button>',
+      '      </div>',
+      '      <div class="project-document-insert-group">',
+      '        <button type="button" data-project-document-image-url><i data-lucide="image-plus" aria-hidden="true"></i><span>图片</span></button>',
+      '        <button type="button" data-project-document-video-url><i data-lucide="video" aria-hidden="true"></i><span>视频</span></button>',
+      '        <label><i data-lucide="upload" aria-hidden="true"></i><span>上传媒体</span><input type="file" accept="image/jpeg,image/png,image/webp,image/gif,video/mp4,video/webm" multiple data-project-document-upload /></label>',
       '      </div>',
       '    </div>',
       '    <textarea name="gallery" class="project-gallery-source" hidden>' + escapeHtml(galleryImages.join("\n")) + '</textarea>',
-      '    <div class="project-gallery-list" data-project-gallery>' + (galleryImages.length ? galleryImages.map(projectGalleryCard).join("") : '<div class="project-gallery-empty"><i data-lucide="images" aria-hidden="true"></i><strong>还没有作品图片</strong><span>上传图片或添加地址后会在这里按顺序预览</span></div>') + '</div>',
+      '    <input name="mediaUrl" type="hidden" value="' + escapeHtml(item.mediaUrl || "") + '" />',
+      '    <textarea name="contentBlocks" hidden>' + escapeHtml(JSON.stringify(contentBlocks)) + '</textarea>',
+      '    <div class="project-document-canvas" id="project-document-editor" contenteditable="true" data-placeholder="开始撰写项目内容，可直接粘贴文字、拖入图片或视频……">' + projectDocumentBlocksToHtml(contentBlocks) + '</div>',
+      '    <div class="project-document-hint"><i data-lucide="mouse-pointer-2" aria-hidden="true"></i><span>可直接粘贴内容，或将图片、视频拖进正文</span></div>',
       '  </section>',
       '  <aside class="project-editor-sidebar" aria-label="项目配置">',
       '    <section class="project-cover-panel">',
@@ -829,6 +869,84 @@
     }).filter((item) => item && (item.src || item.text));
   };
 
+  const projectDocumentHtmlToBlocks = (html) => {
+    const documentValue = new DOMParser().parseFromString('<div id="root">' + html + '</div>', "text/html");
+    return Array.from(documentValue.getElementById("root").childNodes).map((node) => {
+      if (node.nodeType === Node.TEXT_NODE) {
+        const text = node.textContent.trim();
+        return text ? { type: "paragraph", text } : null;
+      }
+      if (node.nodeType !== Node.ELEMENT_NODE) return null;
+      if (/^H[1-6]$/.test(node.tagName)) return { type: "heading", text: node.textContent.trim() };
+      const image = node.tagName === "IMG" ? node : node.querySelector("img");
+      if (image) {
+        const caption = node.querySelector("figcaption")?.textContent.trim() || image.getAttribute("alt") || "";
+        return { type: "image", src: image.getAttribute("src") || "", alt: caption, caption };
+      }
+      const video = node.tagName === "VIDEO" ? node : node.querySelector("video");
+      if (video) return { type: "video", src: video.getAttribute("src") || "", caption: node.querySelector("figcaption")?.textContent.trim() || "" };
+      const text = node.textContent.trim();
+      return text ? { type: "paragraph", text, html: sanitizeInlineHtml(node) } : null;
+    }).filter((item) => item && (item.src || item.text));
+  };
+
+  let projectDocumentRange = null;
+  const rememberProjectDocumentRange = () => {
+    const editor = document.getElementById("project-document-editor");
+    const selection = window.getSelection();
+    if (!editor || !selection || !selection.rangeCount || !editor.contains(selection.anchorNode)) return;
+    projectDocumentRange = selection.getRangeAt(0).cloneRange();
+  };
+
+  const restoreProjectDocumentRange = () => {
+    const editor = document.getElementById("project-document-editor");
+    const selection = window.getSelection();
+    if (!editor || !selection) return;
+    editor.focus();
+    selection.removeAllRanges();
+    if (projectDocumentRange && editor.contains(projectDocumentRange.commonAncestorContainer)) selection.addRange(projectDocumentRange);
+    else {
+      const range = document.createRange();
+      range.selectNodeContents(editor);
+      range.collapse(false);
+      selection.addRange(range);
+    }
+  };
+
+  const syncProjectDocumentSources = () => {
+    const editor = document.getElementById("project-document-editor");
+    if (!editor) return [];
+    const blocks = projectDocumentHtmlToBlocks(editor.innerHTML);
+    const contentInput = editorForm.elements.namedItem("contentBlocks");
+    const galleryInput = editorForm.elements.namedItem("gallery");
+    const mediaInput = editorForm.elements.namedItem("mediaUrl");
+    if (contentInput) contentInput.value = JSON.stringify(blocks);
+    if (galleryInput) galleryInput.value = blocks.filter((block) => block.type === "image").map((block) => block.src).filter(Boolean).join("\n");
+    if (mediaInput) mediaInput.value = blocks.find((block) => block.type === "video" && block.src)?.src || "";
+    return blocks;
+  };
+
+  const insertProjectDocumentBlock = (block) => {
+    const editor = document.getElementById("project-document-editor");
+    if (!editor || !block?.src) return;
+    restoreProjectDocumentRange();
+    document.execCommand("insertHTML", false, projectDocumentBlockToHtml(block) + '<p><br></p>');
+    rememberProjectDocumentRange();
+    syncProjectDocumentSources();
+    refreshIcons();
+  };
+
+  const uploadProjectDocumentFiles = async (files) => {
+    const mediaFiles = Array.from(files || []).filter((file) => /^image\//.test(file.type) || /^video\//.test(file.type));
+    if (!mediaFiles.length) return;
+    setSync("上传媒体", "busy");
+    for (const file of mediaFiles) {
+      const url = await api.uploadMedia(file);
+      insertProjectDocumentBlock({ type: /^video\//.test(file.type) ? "video" : "image", src: url, caption: "" });
+    }
+    setSync("媒体已插入", "");
+  };
+
   const articleFields = (item, editing) => [
     '<label class="field"><span>文章标题</span><input name="title" required value="' + escapeHtml(item.title || "") + '" /></label>',
     '<label class="field"><span>Slug</span><input name="slug" required pattern="[a-z0-9-]+" ' + (editing ? "readonly" : "") + ' value="' + escapeHtml(item.slug || "") + '" /></label>',
@@ -907,7 +1025,7 @@
   const openEditor = (type, item) => {
     const editing = Boolean(item);
     const value = item || ((type === "project" || type === "demo")
-      ? { itemType: type === "demo" ? "demo" : "portfolio", category: type === "demo" ? "原型" : "APP Design", sortOrder: state.projects.length, published: true, gallery: [], tags: [] }
+      ? { itemType: type === "demo" ? "demo" : "portfolio", category: type === "demo" ? "原型" : "APP Design", sortOrder: state.projects.length, published: true, gallery: [], contentBlocks: [], tags: [] }
       : type === "article"
         ? { category: "AI", sortOrder: state.articles.length, published: true, blocks: [] }
         : type === "navigation"
@@ -945,6 +1063,7 @@
     if (["navigation", "finance", "note", "quickLink", "quickLinkCategory", "scheduleItem", "quote"].includes(type) && value.id) editorForm.dataset.itemId = value.id;
     else delete editorForm.dataset.itemId;
     editorDialog.showModal();
+    projectDocumentRange = null;
     refreshIcons();
   };
 
@@ -968,7 +1087,14 @@
       values.published = Boolean(editorForm.elements.namedItem("published").checked);
       values.passwordEnabled = Boolean(editorForm.elements.namedItem("passwordEnabled").checked);
       values.tags = String(values.tags || values.category).split(/[，,]/).map((item) => item.trim()).filter(Boolean);
-      values.gallery = String(values.gallery || "").split(/\r?\n/).map((item) => item.trim()).filter(Boolean);
+      if (type === "project") {
+        values.contentBlocks = syncProjectDocumentSources();
+        values.gallery = values.contentBlocks.filter((block) => block.type === "image").map((block) => block.src).filter(Boolean);
+        values.mediaUrl = values.contentBlocks.find((block) => block.type === "video" && block.src)?.src || "";
+      } else {
+        values.gallery = String(values.gallery || "").split(/\r?\n/).map((item) => item.trim()).filter(Boolean);
+        values.contentBlocks = Array.isArray(values.contentBlocks) ? values.contentBlocks : [];
+      }
       await api.saveProject(values, defaultProjects);
     } else if (type === "article") {
       values.sortOrder = Number(values.sortOrder || 0);
@@ -1316,6 +1442,41 @@
   });
 
   editorBody.addEventListener("click", (event) => {
+    const removeDocumentMedia = event.target.closest("[data-remove-project-document-media]");
+    if (removeDocumentMedia) {
+      event.preventDefault();
+      const figure = removeDocumentMedia.closest("[data-project-document-media]");
+      if (figure) figure.remove();
+      syncProjectDocumentSources();
+      return;
+    }
+    const projectEditor = document.getElementById("project-document-editor");
+    const projectCommand = event.target.closest("[data-project-document-command]");
+    const projectFormat = event.target.closest("[data-project-document-format]");
+    const projectLink = event.target.closest("[data-project-document-link]");
+    const projectImage = event.target.closest("[data-project-document-image-url]");
+    const projectVideo = event.target.closest("[data-project-document-video-url]");
+    if (projectEditor && (projectCommand || projectFormat || projectLink || projectImage || projectVideo)) {
+      event.preventDefault();
+      restoreProjectDocumentRange();
+      if (projectCommand) document.execCommand(projectCommand.dataset.projectDocumentCommand, false);
+      if (projectFormat) document.execCommand("formatBlock", false, projectFormat.dataset.projectDocumentFormat);
+      if (projectLink) {
+        const url = window.prompt("输入链接地址");
+        if (url) document.execCommand("createLink", false, url);
+      }
+      if (projectImage) {
+        const url = window.prompt("输入图片地址");
+        if (url) insertProjectDocumentBlock({ type: "image", src: url.trim(), caption: "" });
+      }
+      if (projectVideo) {
+        const url = window.prompt("输入视频地址（MP4 或 WebM）");
+        if (url) insertProjectDocumentBlock({ type: "video", src: url.trim(), caption: "" });
+      }
+      rememberProjectDocumentRange();
+      syncProjectDocumentSources();
+      return;
+    }
     const addGalleryUrl = event.target.closest("[data-add-gallery-url]");
     if (addGalleryUrl) {
       const input = editorBody.querySelector("[data-gallery-url-input]");
@@ -1385,6 +1546,11 @@
   });
 
   editorBody.addEventListener("input", (event) => {
+    if (event.target.closest("#project-document-editor")) {
+      rememberProjectDocumentRange();
+      syncProjectDocumentSources();
+      return;
+    }
     const coverInput = event.target.closest("[data-cover-url]");
     if (coverInput) {
       updateProjectCoverPreview(coverInput.value.trim());
@@ -1399,12 +1565,27 @@
   });
 
   editorBody.addEventListener("keydown", (event) => {
+    if (event.target.closest("#project-document-editor")) {
+      window.setTimeout(rememberProjectDocumentRange, 0);
+      return;
+    }
     if (event.key !== "Enter" || !event.target.matches("[data-gallery-url-input]")) return;
     event.preventDefault();
     editorBody.querySelector("[data-add-gallery-url]")?.click();
   });
 
   editorBody.addEventListener("change", async (event) => {
+    const documentUpload = event.target.closest("[data-project-document-upload]");
+    if (documentUpload && documentUpload.files && documentUpload.files.length) {
+      try {
+        await uploadProjectDocumentFiles(documentUpload.files);
+        documentUpload.value = "";
+      } catch (error) {
+        setSync("上传失败", "error");
+        showToast(error.message, true);
+      }
+      return;
+    }
     const coverUpload = event.target.closest("[data-cover-upload]");
     if (coverUpload && coverUpload.files && coverUpload.files[0]) {
       try {
@@ -1441,6 +1622,45 @@
     const previewUrl = URL.createObjectURL(input.files[0]);
     editorForm.dataset.previewUrl = previewUrl;
     preview.innerHTML = '<img src="' + previewUrl + '" alt="入口图片预览" />';
+  });
+
+  editorBody.addEventListener("mousedown", (event) => {
+    if (event.target.closest("[data-project-document-toolbar] button")) event.preventDefault();
+  });
+
+  editorBody.addEventListener("mouseup", (event) => {
+    if (event.target.closest("#project-document-editor")) rememberProjectDocumentRange();
+  });
+
+  editorBody.addEventListener("paste", (event) => {
+    const editor = event.target.closest("#project-document-editor");
+    const files = Array.from(event.clipboardData?.files || []);
+    if (!editor || !files.some((file) => /^image\//.test(file.type) || /^video\//.test(file.type))) return;
+    event.preventDefault();
+    rememberProjectDocumentRange();
+    uploadProjectDocumentFiles(files).catch((error) => {
+      setSync("上传失败", "error");
+      showToast(error.message, true);
+    });
+  });
+
+  editorBody.addEventListener("dragover", (event) => {
+    if (!event.target.closest("#project-document-editor") || !event.dataTransfer?.types.includes("Files")) return;
+    event.preventDefault();
+    event.dataTransfer.dropEffect = "copy";
+  });
+
+  editorBody.addEventListener("drop", (event) => {
+    const editor = event.target.closest("#project-document-editor");
+    const files = Array.from(event.dataTransfer?.files || []);
+    if (!editor || !files.length) return;
+    event.preventDefault();
+    const range = document.caretRangeFromPoint?.(event.clientX, event.clientY);
+    if (range && editor.contains(range.commonAncestorContainer)) projectDocumentRange = range.cloneRange();
+    uploadProjectDocumentFiles(files).catch((error) => {
+      setSync("上传失败", "error");
+      showToast(error.message, true);
+    });
   });
 
   financeMonth.addEventListener("change", renderFinance);

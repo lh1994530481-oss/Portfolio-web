@@ -153,6 +153,53 @@
     return Array.from(new Set(normalized.length ? normalized : [coverImage].filter(Boolean)));
   };
 
+  const sanitizeInlineHtml = (value) => {
+    const root = document.createElement("div");
+    root.innerHTML = String(value || "");
+    const allowed = new Set(["B", "STRONG", "I", "EM", "U", "S", "A", "BR"]);
+    Array.from(root.querySelectorAll("*")).reverse().forEach(function (element) {
+      if (!allowed.has(element.tagName)) {
+        element.replaceWith(...element.childNodes);
+        return;
+      }
+      const href = element.tagName === "A" ? element.getAttribute("href") || "" : "";
+      Array.from(element.attributes).forEach(function (attribute) { element.removeAttribute(attribute.name); });
+      if (element.tagName === "A") {
+        if (/^(https?:|mailto:|#|\.\.?\/)/i.test(href)) {
+          element.setAttribute("href", href);
+          element.setAttribute("rel", "noopener noreferrer");
+        } else element.replaceWith(...element.childNodes);
+      }
+    });
+    return root.innerHTML;
+  };
+
+  const renderProjectContent = (project, title, coverImage, gallery) => {
+    const blocks = Array.isArray(project.contentBlocks) && project.contentBlocks.length
+      ? project.contentBlocks
+      : [
+          ...(project.mediaUrl ? [{ type: "video", src: project.mediaUrl }] : []),
+          ...gallery.map(function (src) { return { type: "image", src: src }; }),
+        ];
+    return blocks.map(function (block, index) {
+      if (block.type === "heading") return '<h3 class="portfolio-modal-content-heading">' + escapeHtml(block.text || "") + '</h3>';
+      if (block.type === "paragraph") return '<p class="portfolio-modal-content-copy">' + sanitizeInlineHtml(block.html || escapeHtml(block.text || "")) + '</p>';
+      if (block.type === "video" && block.src) return [
+        '<article class="portfolio-modal-media portfolio-modal-video">',
+        '  <video src="' + escapeAttr(block.src) + '" controls playsinline preload="metadata"' + (coverImage ? ' poster="' + escapeAttr(coverImage) + '"' : "") + '></video>',
+        block.caption ? '  <p class="portfolio-modal-media-caption">' + escapeHtml(block.caption) + '</p>' : "",
+        '</article>',
+      ].join("\n");
+      if (block.type === "image" && block.src) return [
+        '<article class="portfolio-modal-media">',
+        '  <img src="' + escapeAttr(block.src) + '" alt="' + escapeAttr(block.alt || block.caption || title + ' 项目展示图 ' + (index + 1)) + '" loading="' + (index === 0 ? "eager" : "lazy") + '" decoding="async" />',
+        block.caption ? '  <p class="portfolio-modal-media-caption">' + escapeHtml(block.caption) + '</p>' : "",
+        '</article>',
+      ].join("\n");
+      return "";
+    }).join("\n");
+  };
+
   const setPageInert = (value) => {
     if (pageHeader) pageHeader.inert = value;
     if (pageMain) pageMain.inert = value;
@@ -175,23 +222,7 @@
     modalDescription.textContent = description;
     modalCategory.textContent = tags.join(" / ") || "项目";
 
-    const videoHtml = project.mediaUrl
-      ? [
-          '<article class="portfolio-modal-media portfolio-modal-video">',
-          '  <video src="' + escapeAttr(project.mediaUrl) + '" controls playsinline preload="metadata"' + (coverImage ? ' poster="' + escapeAttr(coverImage) + '"' : "") + "></video>",
-          "</article>",
-        ].join("\n")
-      : "";
-    const galleryHtml = gallery
-      .map(function (source, index) {
-        return [
-          '<article class="portfolio-modal-media">',
-          '  <img src="' + escapeAttr(source) + '" alt="' + escapeAttr(title) + ' 项目展示图 ' + (index + 1) + '" loading="' + (index === 0 ? "eager" : "lazy") + '" decoding="async" />',
-          "</article>",
-        ].join("\n");
-      })
-      .join("\n");
-    modalGallery.innerHTML = videoHtml + galleryHtml;
+    modalGallery.innerHTML = renderProjectContent(project, title, coverImage, gallery);
 
     lastFocusedElement = trigger || document.activeElement;
     lockedScrollY = window.scrollY;
@@ -338,7 +369,7 @@
         const title = project.title || meta.title;
         const description = project.descriptionZh || meta.description || "";
         const projectHref = project.passwordEnabled ? "#" : "./project-detail.html?slug=" + project.slug;
-        const protectedAttr = project.passwordEnabled ? ' data-protected-project="' + escapeAttr(project.slug) + '"' : "";
+        const protectedAttr = project.passwordEnabled ? ' data-protected-project="' + escapeAttr(project.slug) + '" data-protected-project-title="' + escapeAttr(title) + '"' : "";
         const modalAttr = ' data-project-modal="' + escapeAttr(project.slug) + '"';
         const isReversed = index % 2 === 1;
 

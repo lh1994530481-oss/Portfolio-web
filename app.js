@@ -265,7 +265,7 @@ async function initManagedContent() {
     const title = escapeAttr(project.title);
     const hiddenClass = index === 3 || index === 5 ? " project-card-mobile-hidden" : "";
     return [
-      '<a class="project-card' + hiddenClass + '" href="' + escapeAttr(href) + '" data-column="' + ((index % 3) + 1) + '" data-slug="' + escapeAttr(project.slug) + '"' + (project.passwordEnabled ? ' data-protected-project="' + escapeAttr(project.slug) + '"' : '') + ' aria-label="' + title + '">',
+      '<a class="project-card' + hiddenClass + '" href="' + escapeAttr(href) + '" data-column="' + ((index % 3) + 1) + '" data-slug="' + escapeAttr(project.slug) + '"' + (project.passwordEnabled ? ' data-protected-project="' + escapeAttr(project.slug) + '" data-protected-project-title="' + title + '"' : '') + ' aria-label="' + title + '">',
       '  <div class="project-image-dock"><img src="' + escapeAttr(cover) + '" alt="' + title + '" loading="lazy" decoding="async" /></div>',
       '  <span class="project-meta-label">' + title + "</span>",
       "</a>",

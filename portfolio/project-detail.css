@@ -160,6 +160,16 @@ iframe {
   background: #000;
 }
 .project-media-video { max-height: 86vh; aspect-ratio: 16 / 9; }
+.project-content-heading,
+.project-content-copy {
+  width: min(100%, 820px);
+  margin-right: auto;
+  margin-left: auto;
+}
+.project-content-heading { margin-top: 72px; margin-bottom: 18px; color: var(--fg); font-size: clamp(28px, 4vw, 50px); line-height: 1.2; letter-spacing: -.035em; }
+.project-content-copy { margin-top: 0; margin-bottom: 34px; color: var(--muted); font-size: 17px; line-height: 1.95; }
+.project-content-copy a { color: var(--fg); text-underline-offset: 4px; }
+.project-media-caption { width: min(100%, 820px); margin: 0 auto; padding: 14px 0 28px; color: rgba(255, 255, 255, .45); font-size: 12px; line-height: 1.65; }
 
 .project-media-pdf {
   min-height: 80vh;
@@ -211,6 +221,9 @@ iframe {
     padding: 0 18px;
     font-size: 12px;
   }
+  .project-content-heading { margin-top: 46px; font-size: 27px; }
+  .project-content-copy { font-size: 15px; line-height: 1.85; }
+  .project-media-caption { padding-right: 4px; padding-left: 4px; }
 
   .project-hero {
     padding: 96px 0 40px;

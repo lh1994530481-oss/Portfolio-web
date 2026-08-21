@@ -1,0 +1,115 @@
+.project-access-dialog {
+  width: min(340px, calc(100vw - 32px));
+  padding: 0;
+  overflow: hidden;
+  border: 0;
+  border-radius: 8px;
+  background: #15161a;
+  color: #f8f9fb;
+  box-shadow: 0 30px 90px rgba(0, 0, 0, .58);
+}
+
+.project-access-dialog::backdrop {
+  background: rgba(2, 4, 8, .82);
+  backdrop-filter: blur(2px);
+}
+
+.project-access-dialog form {
+  display: grid;
+  gap: 15px;
+  padding: 31px 30px 29px;
+}
+
+.project-access-heading {
+  margin-bottom: 7px;
+  text-align: center;
+}
+
+.project-access-heading h2 {
+  margin: 0;
+  color: #f7f8fa;
+  font-family: "PingFang SC", "Microsoft YaHei", sans-serif;
+  font-size: 25px;
+  font-weight: 720;
+  line-height: 1.25;
+  letter-spacing: -.02em;
+}
+
+.project-access-heading p {
+  margin: 14px 0 0;
+  color: #777983;
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 1.5;
+}
+
+.project-access-dialog label {
+  display: grid;
+  gap: 8px;
+}
+
+.project-access-dialog label span {
+  color: #e4e6eb;
+  font-size: 12px;
+  font-weight: 650;
+}
+
+.project-access-dialog input {
+  width: 100%;
+  height: 44px;
+  box-sizing: border-box;
+  padding: 0 12px;
+  border: 1px solid #3d414a;
+  border-radius: 5px;
+  outline: none;
+  background: #090b0e;
+  color: #fff;
+  font: inherit;
+  font-size: 15px;
+  transition: border-color .16s ease, box-shadow .16s ease;
+}
+
+.project-access-dialog input:focus {
+  border-color: #2f76f8;
+  box-shadow: 0 0 0 1px #2f76f8, 0 0 0 3px rgba(47, 118, 248, .16);
+}
+
+.project-access-dialog [data-project-access-status] {
+  min-height: 14px;
+  margin: -5px 0 -4px;
+  color: #7e8490;
+  font-size: 10px;
+  line-height: 1.4;
+}
+
+.project-access-dialog [data-project-access-status]:empty { display: none; }
+.project-access-dialog [data-project-access-status].is-error { color: #ff837c; }
+
+.project-access-dialog button[type="submit"] {
+  width: 100%;
+  min-height: 37px;
+  padding: 0 16px;
+  border: 0;
+  border-radius: 4px;
+  background: #2f76f8;
+  color: #fff;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 650;
+  cursor: pointer;
+  transition: background .16s ease, transform .16s ease;
+}
+
+.project-access-dialog button[type="submit"]:hover { background: #3c82ff; }
+.project-access-dialog button[type="submit"]:active { transform: translateY(1px); }
+.project-access-dialog button[type="submit"]:disabled { cursor: wait; opacity: .62; }
+
+@media (max-width: 420px) {
+  .project-access-dialog { width: calc(100vw - 24px); }
+  .project-access-dialog form { padding: 28px 22px 24px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .project-access-dialog input,
+  .project-access-dialog button[type="submit"] { transition: none; }
+}

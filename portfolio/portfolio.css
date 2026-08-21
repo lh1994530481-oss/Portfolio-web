@@ -576,6 +576,34 @@ img {
   object-fit: contain;
 }
 
+.portfolio-modal-content-heading,
+.portfolio-modal-content-copy {
+  width: min(100%, 860px);
+  margin-right: auto;
+  margin-left: auto;
+}
+
+.portfolio-modal-content-heading {
+  margin-top: 34px;
+  margin-bottom: 2px;
+  color: #fff;
+  font-size: clamp(22px, 2vw, 30px);
+  font-weight: 620;
+  line-height: 1.35;
+  letter-spacing: -.02em;
+}
+
+.portfolio-modal-content-copy {
+  margin-top: 0;
+  margin-bottom: 18px;
+  color: rgba(255, 255, 255, .67);
+  font-size: 15px;
+  line-height: 1.9;
+}
+
+.portfolio-modal-content-copy a { color: var(--accent); text-underline-offset: 4px; }
+.portfolio-modal-media-caption { margin: 0; padding: 12px 14px; color: rgba(255, 255, 255, .48); font-size: 12px; line-height: 1.6; }
+
 .portfolio-modal-video video {
   max-height: 78vh;
   aspect-ratio: 16 / 9;
@@ -781,4 +809,7 @@ img {
   .portfolio-modal-media {
     border-radius: 6px;
   }
+
+  .portfolio-modal-content-heading { margin-top: 24px; font-size: 21px; }
+  .portfolio-modal-content-copy { font-size: 14px; line-height: 1.8; }
 }

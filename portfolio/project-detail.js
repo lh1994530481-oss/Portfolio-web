@@ -18,6 +18,26 @@
 
   const escapeAttr = (value) => String(value || "").replace(/"/g, "&quot;");
   const escapeHtml = (value) => String(value || "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+  const sanitizeInlineHtml = (value) => {
+    const node = document.createElement("div");
+    node.innerHTML = String(value || "");
+    const allowed = new Set(["B", "STRONG", "I", "EM", "U", "S", "A", "BR"]);
+    Array.from(node.querySelectorAll("*")).reverse().forEach((element) => {
+      if (!allowed.has(element.tagName)) {
+        element.replaceWith(...element.childNodes);
+        return;
+      }
+      const href = element.tagName === "A" ? element.getAttribute("href") || "" : "";
+      Array.from(element.attributes).forEach((attribute) => element.removeAttribute(attribute.name));
+      if (element.tagName === "A") {
+        if (/^(https?:|mailto:|#|\.\.?\/)/i.test(href)) {
+          element.setAttribute("href", href);
+          element.setAttribute("rel", "noopener noreferrer");
+        } else element.replaceWith(...element.childNodes);
+      }
+    });
+    return node.innerHTML;
+  };
 
   const getBackHref = () => {
     try {
@@ -60,16 +80,29 @@
     : project.media && project.media.length
       ? project.media.filter((item) => item.type === "image").map((item) => item.src)
       : [coverImage];
-  const galleryHtml = gallery.map((source, index) => [
-    '<article class="project-media">',
-    '  <img class="project-media-image" src="' + escapeAttr(source) + '" alt="' + escapeAttr(project.title) + ' - ' + (index + 1) + '" loading="' + (index === 0 ? "eager" : "lazy") + '" decoding="async" />',
-    '</article>',
-  ].join("\n")).join("\n");
-  const previewHtml = project.mediaUrl ? [
-    '<article class="project-media project-video">',
-    '  <video class="project-media-video" src="' + escapeAttr(project.mediaUrl) + '" controls playsinline preload="metadata" poster="' + escapeAttr(coverImage) + '"></video>',
-    '</article>',
-  ].join("\n") : "";
+  const contentBlocks = Array.isArray(project.contentBlocks) && project.contentBlocks.length
+    ? project.contentBlocks
+    : [
+        ...(project.mediaUrl ? [{ type: "video", src: project.mediaUrl }] : []),
+        ...gallery.map((src) => ({ type: "image", src })),
+      ];
+  const projectContentHtml = contentBlocks.map((block, index) => {
+    if (block.type === "heading") return '<h2 class="project-content-heading">' + escapeHtml(block.text || "") + '</h2>';
+    if (block.type === "paragraph") return '<p class="project-content-copy">' + sanitizeInlineHtml(block.html || escapeHtml(block.text || "")) + '</p>';
+    if (block.type === "video" && block.src) return [
+      '<article class="project-media project-video">',
+      '  <video class="project-media-video" src="' + escapeAttr(block.src) + '" controls playsinline preload="metadata" poster="' + escapeAttr(coverImage) + '"></video>',
+      block.caption ? '  <p class="project-media-caption">' + escapeHtml(block.caption) + '</p>' : "",
+      '</article>',
+    ].join("\n");
+    if (block.type === "image" && block.src) return [
+      '<article class="project-media">',
+      '  <img class="project-media-image" src="' + escapeAttr(block.src) + '" alt="' + escapeAttr(block.alt || block.caption || project.title + ' - ' + (index + 1)) + '" loading="' + (index === 0 ? "eager" : "lazy") + '" decoding="async" />',
+      block.caption ? '  <p class="project-media-caption">' + escapeHtml(block.caption) + '</p>' : "",
+      '</article>',
+    ].join("\n");
+    return "";
+  }).join("\n");
   const projectFacts = [project.clientName ? "客户：" + project.clientName : "", project.projectDate ? "日期：" + project.projectDate : ""].filter(Boolean);
 
   root.innerHTML = [
@@ -90,8 +123,7 @@
     "    </div>",
     "  </section>",
     '  <section class="project-gallery" id="project-gallery">',
-    previewHtml,
-    galleryHtml,
+    projectContentHtml,
     "  </section>",
     "</div>",
   ].join("\n");

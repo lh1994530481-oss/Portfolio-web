@@ -400,6 +400,7 @@ on conflict (id) do nothing;
 alter table public.projects
   add column if not exists item_type text not null default 'portfolio',
   add column if not exists gallery jsonb not null default '[]'::jsonb,
+  add column if not exists content_blocks jsonb not null default '[]'::jsonb,
   add column if not exists media_url text not null default '',
   add column if not exists client_name text not null default '',
   add column if not exists project_date date,
@@ -412,6 +413,10 @@ alter table public.projects
 alter table public.projects drop constraint if exists projects_gallery_check;
 alter table public.projects
   add constraint projects_gallery_check check (jsonb_typeof(gallery) = 'array');
+
+alter table public.projects drop constraint if exists projects_content_blocks_check;
+alter table public.projects
+  add constraint projects_content_blocks_check check (jsonb_typeof(content_blocks) = 'array');
 
 create table if not exists public.project_access (
   project_slug text primary key references public.projects(slug) on update cascade on delete cascade,

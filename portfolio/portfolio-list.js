@@ -426,6 +426,13 @@
     openProjectModal(trigger.dataset.projectModal, trigger);
   });
 
+  root.addEventListener("project-access-granted", function (event) {
+    const trigger = event.target.closest ? event.target.closest("[data-project-modal]") : null;
+    if (!trigger) return;
+    event.preventDefault();
+    openProjectModal(event.detail?.slug || trigger.dataset.projectModal, trigger);
+  });
+
   modal.addEventListener("click", function (event) {
     const closeTrigger = event.target.closest ? event.target.closest("[data-modal-close]") : null;
     if (closeTrigger) closeProjectModal();

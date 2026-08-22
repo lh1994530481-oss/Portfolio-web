@@ -89,6 +89,7 @@
   }
 
   let protectedSlug = "";
+  let protectedTrigger = null;
   const accessDialog = document.createElement("dialog");
   accessDialog.className = "project-access-dialog";
   accessDialog.innerHTML = [
@@ -108,6 +109,7 @@
     if (!link) return;
     event.preventDefault();
     protectedSlug = link.dataset.protectedProject;
+    protectedTrigger = link;
     const nearbyTitle = link.closest("article")?.querySelector("h2, h3")?.textContent.trim();
     const labelledTitle = String(link.getAttribute("aria-label") || "").replace(/^(查看|打开)/, "").replace(/(项目|演示)$/, "").trim();
     accessTitle.textContent = link.dataset.protectedProjectTitle || nearbyTitle || labelledTitle || "受保护的项目";
@@ -126,9 +128,24 @@
     try {
       const target = await api.verifyProjectAccess(protectedSlug, accessForm.elements.namedItem("password").value);
       if (!target) throw new Error("访问密码不正确");
-      accessStatus.textContent = "验证成功，正在打开...";
-      track("content_click", { contentType: "protected_demo", contentId: protectedSlug });
-      window.location.href = target;
+      accessStatus.textContent = "验证成功";
+      track("content_click", { contentType: "protected_project", contentId: protectedSlug });
+
+      const trigger = protectedTrigger;
+      const slug = protectedSlug;
+      const grantedEvent = new CustomEvent("project-access-granted", {
+        bubbles: true,
+        cancelable: true,
+        detail: { slug, target, trigger },
+      });
+      accessDialog.close();
+      const handled = trigger
+        ? !trigger.dispatchEvent(grantedEvent)
+        : !document.dispatchEvent(grantedEvent);
+      const destination = trigger?.dataset.protectedSuccessHref || target;
+      protectedSlug = "";
+      protectedTrigger = null;
+      if (!handled && destination) window.location.href = destination;
     } catch (error) {
       accessStatus.textContent = error.message || "验证失败，请重试";
       accessStatus.classList.add("is-error");

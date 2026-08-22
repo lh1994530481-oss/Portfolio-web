@@ -109,6 +109,21 @@
     if (!response.ok) throw new Error("内容服务暂时不可用");
   };
 
+  const publicRpc = async (functionName, params) => {
+    const response = await fetch(config.supabaseUrl.replace(/\/$/, "") + "/rest/v1/rpc/" + encodeURIComponent(functionName), {
+      method: "POST",
+      headers: {
+        apikey: getKey(),
+        Authorization: "Bearer " + getKey(),
+        "Content-Type": "application/json",
+        Accept: "application/json",
+      },
+      body: JSON.stringify(params || {}),
+    });
+    if (!response.ok) throw new Error("验证服务暂时不可用，请稍后再试");
+    return response.json();
+  };
+
   const normalizeProjectClassification = (project) => {
     if (!project || project.slug !== "homi-smart-home-prototype") return project;
     const legacyCategory = project.category === "Exercises and Demos";
@@ -739,9 +754,8 @@
       const project = readLocal("projects", []).find((item) => item.slug === slug);
       return project && project.accessPassword === password ? project.protectedTargetUrl : "";
     }
-    const { data, error } = await getClient().rpc("verify_project_access", { p_project_slug: slug, p_password: password });
-    if (error) throw error;
-    return data || "";
+    const target = await publicRpc("verify_project_access", { p_project_slug: slug, p_password: password });
+    return typeof target === "string" ? target : "";
   };
 
   const saveProject = async (project, fallback) => {

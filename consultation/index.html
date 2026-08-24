@@ -1,0 +1,149 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="description" content="提交项目需求，了解菻桐昕的设计咨询方式与合作流程。" />
+    <title>咨询 | Lin Tong Xin Portfolio</title>
+    <link rel="stylesheet" href="../styles.css?v=20260824-1" />
+    <link rel="stylesheet" href="../shared/site-operations.css?v=20260822-1" />
+    <link rel="stylesheet" href="../assets/page-transition.css" />
+    <link rel="stylesheet" href="./consultation.css?v=20260824-1" />
+  </head>
+  <body class="consultation-body">
+    <header class="site-header consultation-header" aria-label="Primary navigation">
+      <div class="site-header-inner">
+        <a class="site-logo" href="../index.html#top" aria-label="菻桐昕首页">
+          <span class="site-logo-name">菻桐昕</span>
+        </a>
+        <nav class="site-nav" aria-label="Primary" data-managed-navigation>
+          <a class="nav-link" href="../index.html#top">首页</a>
+          <a class="nav-link" href="../portfolio/index.html">作品集</a>
+          <a class="nav-link" href="../demos/index.html">练习与演示</a>
+          <a class="nav-link" href="../articles/index.html">文章</a>
+          <a class="nav-link" href="../index.html#contact">联系</a>
+          <a class="nav-link is-active" href="./index.html" aria-current="page">咨询</a>
+        </nav>
+      </div>
+    </header>
+
+    <main id="top" class="consultation-page">
+      <section class="consultation-hero" aria-labelledby="consultation-title">
+        <p>Project inquiry</p>
+        <h1 id="consultation-title">咨询</h1>
+        <span>用一份清晰的需求表单，开始一次高效的项目沟通。</span>
+      </section>
+
+      <section class="consultation-layout" aria-label="项目咨询">
+        <article class="consultation-card consultation-form-card">
+          <header class="consultation-card-heading">
+            <p>Tell me about your project</p>
+            <h2>项目需求表单</h2>
+            <span>带 * 的项目为必填项，提交后我会尽快与你联系。</span>
+          </header>
+
+          <form class="consultation-form" id="inquiry-form">
+            <div class="consultation-form-row">
+              <label>
+                <span>称呼 *</span>
+                <input name="name" type="text" maxlength="80" autocomplete="name" required placeholder="怎么称呼你" />
+              </label>
+              <label>
+                <span>邮箱 *</span>
+                <input name="email" type="email" maxlength="160" autocomplete="email" required placeholder="name@example.com" />
+              </label>
+            </div>
+
+            <fieldset class="consultation-project-types">
+              <legend>项目类型</legend>
+              <label><input name="projectTypes" type="checkbox" value="产品体验设计" /><span>产品体验设计</span></label>
+              <label><input name="projectTypes" type="checkbox" value="品牌与视觉设计" /><span>品牌与视觉设计</span></label>
+              <label><input name="projectTypes" type="checkbox" value="数据可视化" /><span>数据可视化</span></label>
+              <label><input name="projectTypes" type="checkbox" value="设计咨询" /><span>设计咨询</span></label>
+            </fieldset>
+
+            <label class="consultation-message-field">
+              <span>项目需求 *</span>
+              <textarea name="message" rows="6" minlength="10" maxlength="2000" required placeholder="简单介绍项目背景、目标和时间计划"></textarea>
+              <small>至少填写 10 个字，便于更准确地评估需求。</small>
+            </label>
+
+            <label>
+              <span>预算范围</span>
+              <select name="budget">
+                <option value="待沟通">待沟通</option>
+                <option value="5,000 元以内">5,000 元以内</option>
+                <option value="5,000 - 20,000 元">5,000 - 20,000 元</option>
+                <option value="20,000 - 50,000 元">20,000 - 50,000 元</option>
+                <option value="50,000 元以上">50,000 元以上</option>
+              </select>
+            </label>
+
+            <label class="contact-inquiry-trap" aria-hidden="true">
+              <span>Company</span>
+              <input name="company" tabindex="-1" autocomplete="off" />
+            </label>
+
+            <div class="consultation-form-actions">
+              <p id="inquiry-form-status" role="status" aria-live="polite"></p>
+              <div>
+                <button class="is-secondary" type="submit" data-inquiry-action="quote">获取报价</button>
+                <button type="submit" data-inquiry-action="inquiry">提交咨询</button>
+              </div>
+            </div>
+          </form>
+        </article>
+
+        <aside class="consultation-card consultation-info-card" aria-label="联系信息与服务流程">
+          <section class="consultation-info-section">
+            <p class="consultation-card-kicker">Contact</p>
+            <h2>联系信息</h2>
+            <p class="consultation-info-intro" data-content="contactIntro">如果你也在做品牌体验、数字产品或视觉叙事相关的项目，我们可以聊聊。</p>
+            <dl class="consultation-contact-list">
+              <div>
+                <dt>邮箱</dt>
+                <dd><a href="mailto:13828947379@163.com" data-content="email" data-content-mail="email">13828947379@163.com</a></dd>
+              </div>
+              <div>
+                <dt>微信</dt>
+                <dd data-content="wechat">Yu27007479</dd>
+              </div>
+              <div>
+                <dt>所在地</dt>
+                <dd data-content="location">广东·广州·番禺</dd>
+              </div>
+              <div>
+                <dt>工作时间</dt>
+                <dd data-content="workHours">周一至周五 9:00–18:00</dd>
+              </div>
+            </dl>
+          </section>
+
+          <section class="consultation-process-section">
+            <p class="consultation-card-kicker">Process</p>
+            <h2>服务流程</h2>
+            <ol class="consultation-process-list">
+              <li><span>01</span><strong>需求提交与初步沟通</strong></li>
+              <li><span>02</span><strong>项目评估与报价</strong></li>
+              <li><span>03</span><strong>确认范围与合作排期</strong></li>
+              <li><span>04</span><strong>项目执行与阶段同步</strong></li>
+              <li><span>05</span><strong>验收与最终交付</strong></li>
+              <li><span>06</span><strong>售后服务与维护</strong></li>
+            </ol>
+          </section>
+        </aside>
+      </section>
+    </main>
+
+    <footer class="consultation-footer">
+      <span>菻桐昕 Portfolio</span>
+      <a href="../index.html#top">返回首页</a>
+    </footer>
+
+    <script src="../admin/config.js"></script>
+    <script src="../shared/content-api.js?v=20260824-1"></script>
+    <script src="../shared/site-operations.js?v=20260822-2" defer></script>
+    <script src="./consultation.js?v=20260824-1" defer></script>
+    <script src="../assets/page-transition.js" defer></script>
+  </body>
+</html>

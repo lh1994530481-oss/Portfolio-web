@@ -762,6 +762,61 @@ img {
 .contact-inquiry-actions button:disabled { cursor: wait; opacity: .55; }
 .contact-inquiry-actions button.is-secondary { border: 1px solid rgba(255, 255, 255, .28); background: transparent; color: #fff; }
 
+.consultation-entry-card {
+  --dock-x: 0px;
+  --dock-y: 0px;
+  --dock-scale: 1;
+  display: grid;
+  min-height: 250px;
+  align-content: end;
+  gap: 12px;
+  padding: clamp(28px, 4vw, 52px);
+  border: 1px solid rgba(255, 255, 255, .16);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, .035);
+  transform: translate3d(var(--dock-x), var(--dock-y), 0) scale(var(--dock-scale));
+  transition: border-color .24s ease, background .24s ease, transform .26s var(--ease-out-soft);
+}
+
+.consultation-entry-card:hover,
+.consultation-entry-card:focus-visible {
+  border-color: rgba(255, 255, 255, .4);
+  background: rgba(255, 255, 255, .065);
+}
+
+.consultation-entry-kicker {
+  color: var(--accent);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: .12em;
+  text-transform: uppercase;
+}
+
+.consultation-entry-card strong {
+  color: var(--fg);
+  font-size: clamp(26px, 3vw, 42px);
+  font-weight: 500;
+  line-height: 1.15;
+}
+
+.consultation-entry-card p {
+  max-width: 620px;
+  margin: 0;
+  color: rgba(255, 255, 255, .58);
+  font-size: 14px;
+  line-height: 1.8;
+}
+
+.consultation-entry-action {
+  width: max-content;
+  margin-top: 12px;
+  padding-bottom: 5px;
+  border-bottom: 1px solid rgba(255, 255, 255, .68);
+  color: var(--fg);
+  font-size: 13px;
+  font-weight: 600;
+}
+
 .ai-assistant-trigger {
   position: fixed;
   right: 24px;

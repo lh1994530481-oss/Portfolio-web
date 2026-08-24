@@ -26,6 +26,7 @@
     { id: "10000000-0000-4000-8000-000000000005", label: "练习与演示", href: "./demos/index.html", sortOrder: 2, published: true, openNewTab: false },
     { id: "10000000-0000-4000-8000-000000000003", label: "文章", href: "./articles/index.html", sortOrder: 3, published: true, openNewTab: false },
     { id: "10000000-0000-4000-8000-000000000004", label: "联系", href: "#contact", sortOrder: 4, published: true, openNewTab: false },
+    { id: "10000000-0000-4000-8000-000000000006", label: "咨询", href: "./consultation/index.html", sortOrder: 5, published: true, openNewTab: false },
   ];
 
   const defaultQuickLinkCategories = [
@@ -342,16 +343,19 @@
 
   const sortContent = (items) => items.slice().sort((a, b) => Number(a.sortOrder || 0) - Number(b.sortOrder || 0));
 
-  const ensureDemosNavigation = (items) => {
+  const ensureRequiredNavigation = (items) => {
     const navigation = items.slice();
     const demoDefault = defaultNavigation.find((item) => item.href === "./demos/index.html");
     const hasDemos = navigation.some((item) => item.id === demoDefault.id || item.href === demoDefault.href || item.label === demoDefault.label);
-    if (hasDemos) return navigation;
-    const portfolioIndex = navigation.findIndex((item) => item.href === "./portfolio/index.html" || item.label === "作品集");
-    navigation.splice(portfolioIndex >= 0 ? portfolioIndex + 1 : navigation.length, 0, { ...demoDefault });
+    if (!hasDemos) {
+      const portfolioIndex = navigation.findIndex((item) => item.href === "./portfolio/index.html" || item.label === "作品集");
+      navigation.splice(portfolioIndex >= 0 ? portfolioIndex + 1 : navigation.length, 0, { ...demoDefault });
+    }
+    const consultationDefault = defaultNavigation.find((item) => item.href === "./consultation/index.html");
+    const hasConsultation = navigation.some((item) => item.id === consultationDefault.id || item.href === consultationDefault.href || item.label === consultationDefault.label);
+    if (!hasConsultation) navigation.push({ ...consultationDefault });
     return navigation;
   };
-
   const listProjects = async (fallback, includeDrafts) => {
     const defaults = (fallback || []).map((item, index) => normalizeProjectClassification({ ...item, published: item.published !== false, sortOrder: item.sortOrder ?? index }));
     if (!isConfigured()) return sortContent(readLocal("projects", defaults).map(normalizeProjectClassification)).filter((item) => includeDrafts || item.published !== false);
@@ -399,18 +403,18 @@
       openNewTab: item.openNewTab === true,
       sortOrder: item.sortOrder ?? index,
     }));
-    if (!isConfigured()) return ensureDemosNavigation(sortContent(readLocal("navigation", defaults)).filter((item) => includeDrafts || item.published !== false));
+    if (!isConfigured()) return ensureRequiredNavigation(sortContent(readLocal("navigation", defaults)).filter((item) => includeDrafts || item.published !== false));
 
     try {
       if (includeDrafts) {
         const { data, error } = await getClient().from("navigation_items").select("*").order("sort_order", { ascending: true });
         if (error) throw error;
-        return ensureDemosNavigation(data.map(navigationFromRow));
+        return ensureRequiredNavigation(data.map(navigationFromRow));
       }
       const rows = await publicRequest("navigation_items?select=*&published=eq.true&order=sort_order.asc");
-      return ensureDemosNavigation(rows.map(navigationFromRow));
+      return ensureRequiredNavigation(rows.map(navigationFromRow));
     } catch (error) {
-      return ensureDemosNavigation(defaults.filter((item) => includeDrafts || item.published !== false));
+      return ensureRequiredNavigation(defaults.filter((item) => includeDrafts || item.published !== false));
     }
   };
 

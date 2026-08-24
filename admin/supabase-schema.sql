@@ -164,7 +164,8 @@ values
   ('10000000-0000-4000-8000-000000000002', '作品集', './portfolio/index.html', 1, true, false),
   ('10000000-0000-4000-8000-000000000005', '练习与演示', './demos/index.html', 2, true, false),
   ('10000000-0000-4000-8000-000000000003', '文章', './articles/index.html', 3, true, false),
-  ('10000000-0000-4000-8000-000000000004', '联系', '#contact', 4, true, false)
+  ('10000000-0000-4000-8000-000000000004', '联系', '#contact', 4, true, false),
+  ('10000000-0000-4000-8000-000000000006', '咨询', './consultation/index.html', 5, true, false)
 on conflict (id) do update set
   label = excluded.label,
   href = excluded.href,

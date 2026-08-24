@@ -58,7 +58,7 @@
   display: grid;
   grid-template-columns: minmax(0, 1.08fr) minmax(360px, .92fr);
   gap: 28px;
-  align-items: start;
+  align-items: stretch;
 }
 
 .consultation-card {
@@ -263,8 +263,7 @@
 }
 
 .consultation-info-card {
-  position: sticky;
-  top: 112px;
+  position: static;
 }
 
 .consultation-info-section,

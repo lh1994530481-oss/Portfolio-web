@@ -4,7 +4,7 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Lin Tong Xin | Portfolio</title>
-    <link rel="stylesheet" href="./styles.css?v=20260824-1" />
+    <link rel="stylesheet" href="./styles.css?v=20260824-2" />
     <link rel="stylesheet" href="./shared/site-operations.css?v=20260822-1" />
     <link rel="stylesheet" href="./assets/page-transition.css" />
     <script
@@ -200,27 +200,13 @@
 
       <div class="site-footer-rule"></div>
 
-      <section class="contact-inquiry contact-consultation-entry" aria-labelledby="inquiry-title" data-reveal>
-        <div class="contact-inquiry-heading">
-          <p class="footer-kicker">Project Brief</p>
-          <h2 id="inquiry-title">聊聊你的项目</h2>
-          <p>留下基本需求和联系方式，我会尽快与你确认项目背景与合作方式。</p>
-        </div>
-        <a class="consultation-entry-card magnetic" href="./consultation/index.html">
-          <span class="consultation-entry-kicker">Start a conversation</span>
-          <strong>打开项目咨询表单</strong>
-          <p>在独立页面填写项目类型、预算范围与需求说明，也可以查看联系方式和完整服务流程。</p>
-          <span class="consultation-entry-action">开始咨询</span>
-        </a>
-      </section>
-
-      <div class="site-footer-rule"></div>
 
       <div class="site-footer-bottom">
         <span>菻桐昕 Portfolio <small data-footer-registration hidden></small></span>
         <div class="site-footer-legal">
           <a href="#top">返回顶部</a>
           <a href="./portfolio/index.html">查看作品</a>
+          <button class="admin-login-trigger" type="button" data-admin-login-open>后台</button>
         </div>
       </div>
     </footer>
@@ -236,6 +222,34 @@
         alt="公众号二维码"
       />
       <p id="wechat-dialog-title">扫码关注，获得更多信息。</p>
+    </dialog>
+
+    <dialog class="admin-login-dialog" id="admin-login-dialog" aria-labelledby="admin-login-title">
+      <button class="admin-login-close" type="button" aria-label="关闭后台登录弹窗" data-admin-login-close>
+        <i data-lucide="x" aria-hidden="true"></i>
+      </button>
+      <div class="admin-login-icon" aria-hidden="true"><i data-lucide="shield"></i></div>
+      <header class="admin-login-heading">
+        <h2 id="admin-login-title">管理后台</h2>
+        <p>请输入管理员账号与密码以继续</p>
+      </header>
+      <form class="admin-login-form" id="admin-login-form">
+        <label class="admin-login-field">
+          <i data-lucide="user-round" aria-hidden="true"></i>
+          <span class="sr-only">管理员账号</span>
+          <input name="username" type="text" autocomplete="username" required placeholder="请输入账号" />
+        </label>
+        <label class="admin-login-field">
+          <i data-lucide="lock-keyhole" aria-hidden="true"></i>
+          <span class="sr-only">管理员密码</span>
+          <input name="password" type="password" autocomplete="current-password" required placeholder="请输入密码" />
+        </label>
+        <p class="admin-login-status" data-admin-login-status role="status" aria-live="polite"></p>
+        <button class="admin-login-submit" type="submit">
+          <i data-lucide="log-in" aria-hidden="true"></i>
+          <span>登录</span>
+        </button>
+      </form>
     </dialog>
 
     <button class="ai-assistant-trigger" id="ai-assistant-trigger" type="button" aria-label="打开 AI 设计助手" hidden>AI</button>
@@ -255,9 +269,11 @@
 
     <script src="./portfolio/project-data.js?v=20260820-2"></script>
     <script src="./admin/config.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.57.4"></script>
     <script src="./shared/content-api.js?v=20260824-1"></script>
+    <script src="https://unpkg.com/lucide@0.468.0/dist/umd/lucide.min.js"></script>
     <script src="./shared/site-operations.js?v=20260822-2" defer></script>
-    <script src="./app.js?v=20260822-2" defer></script>
+    <script src="./app.js?v=20260824-2" defer></script>
     <script src="./assets/page-transition.js" defer></script>
   </body>
 </html>

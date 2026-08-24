@@ -1958,14 +1958,18 @@
     refreshIcons();
     document.querySelectorAll('[href="../index.html"]').forEach((link) => { link.href = siteBase; });
     document.getElementById("auth-site-link").href = siteBase;
-    if (window.sessionStorage.getItem(fixedLoginKey) !== "true") return;
     if (!api.isConfigured()) {
+      if (window.sessionStorage.getItem(fixedLoginKey) !== "true") return;
       await showAppWithAuthRetry();
       return;
     }
     const session = await api.getSession();
-    if (session && session.user.email === api.config.supabaseAuthEmail) await showAppWithAuthRetry();
-    else window.sessionStorage.removeItem(fixedLoginKey);
+    if (session && session.user.email === api.config.supabaseAuthEmail) {
+      window.sessionStorage.setItem(fixedLoginKey, "true");
+      await showAppWithAuthRetry();
+    } else {
+      window.sessionStorage.removeItem(fixedLoginKey);
+    }
   };
 
   start().catch((error) => {

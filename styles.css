@@ -762,61 +762,222 @@ img {
 .contact-inquiry-actions button:disabled { cursor: wait; opacity: .55; }
 .contact-inquiry-actions button.is-secondary { border: 1px solid rgba(255, 255, 255, .28); background: transparent; color: #fff; }
 
-.consultation-entry-card {
-  --dock-x: 0px;
-  --dock-y: 0px;
-  --dock-scale: 1;
-  display: grid;
-  min-height: 250px;
-  align-content: end;
-  gap: 12px;
-  padding: clamp(28px, 4vw, 52px);
+
+.admin-login-trigger {
+  margin: 0;
+  padding: 0;
+  border: 0;
+  color: rgba(255, 255, 255, 0.62);
+  background: transparent;
+  font: inherit;
+  font-size: 16px;
+  font-weight: 300;
+  line-height: 1.6;
+  cursor: pointer;
+  transition: color .2s ease;
+}
+
+.admin-login-trigger:hover,
+.admin-login-trigger:focus-visible {
+  color: var(--fg);
+}
+
+.admin-login-dialog {
+  width: min(448px, calc(100vw - 32px));
+  margin: auto;
+  padding: 40px;
+  overflow: visible;
   border: 1px solid rgba(255, 255, 255, .16);
   border-radius: 8px;
-  background: rgba(255, 255, 255, .035);
-  transform: translate3d(var(--dock-x), var(--dock-y), 0) scale(var(--dock-scale));
-  transition: border-color .24s ease, background .24s ease, transform .26s var(--ease-out-soft);
-}
-
-.consultation-entry-card:hover,
-.consultation-entry-card:focus-visible {
-  border-color: rgba(255, 255, 255, .4);
-  background: rgba(255, 255, 255, .065);
-}
-
-.consultation-entry-kicker {
-  color: var(--accent);
-  font-size: 11px;
-  font-weight: 600;
-  letter-spacing: .12em;
-  text-transform: uppercase;
-}
-
-.consultation-entry-card strong {
   color: var(--fg);
-  font-size: clamp(26px, 3vw, 42px);
-  font-weight: 500;
-  line-height: 1.15;
+  background: #050505;
+  box-shadow: 0 30px 100px rgba(0, 0, 0, .72);
 }
 
-.consultation-entry-card p {
-  max-width: 620px;
+.admin-login-dialog::backdrop {
+  background: rgba(0, 0, 0, .78);
+  backdrop-filter: blur(6px);
+}
+
+.admin-login-dialog[open] {
+  animation: admin-login-dialog-in .22s var(--ease-out-soft) both;
+}
+
+.admin-login-close {
+  position: absolute;
+  top: 14px;
+  right: 14px;
+  display: grid;
+  width: 34px;
+  height: 34px;
+  padding: 0;
+  place-items: center;
+  border: 0;
+  border-radius: 50%;
+  color: rgba(255, 255, 255, .46);
+  background: transparent;
+  cursor: pointer;
+  transition: color .2s ease, background .2s ease;
+}
+
+.admin-login-close svg {
+  width: 18px;
+  height: 18px;
+}
+
+.admin-login-close:hover,
+.admin-login-close:focus-visible {
+  color: var(--fg);
+  background: rgba(255, 255, 255, .08);
+}
+
+.admin-login-icon {
+  display: grid;
+  width: 64px;
+  height: 64px;
+  margin: 0 auto 20px;
+  place-items: center;
+  border: 1px solid rgba(255, 255, 255, .72);
+  border-radius: 50%;
+  background: #0d1119;
+}
+
+.admin-login-icon svg {
+  width: 30px;
+  height: 30px;
+}
+
+.admin-login-heading {
+  margin-bottom: 30px;
+  text-align: center;
+}
+
+.admin-login-heading h2 {
   margin: 0;
-  color: rgba(255, 255, 255, .58);
+  font-size: 26px;
+  font-weight: 550;
+  letter-spacing: .02em;
+}
+
+.admin-login-heading p {
+  margin: 8px 0 0;
+  color: rgba(255, 255, 255, .52);
   font-size: 14px;
-  line-height: 1.8;
+  line-height: 1.6;
 }
 
-.consultation-entry-action {
-  width: max-content;
-  margin-top: 12px;
-  padding-bottom: 5px;
-  border-bottom: 1px solid rgba(255, 255, 255, .68);
+.admin-login-form {
+  display: grid;
+  gap: 16px;
+}
+
+.admin-login-field {
+  display: grid;
+  min-height: 54px;
+  grid-template-columns: 22px minmax(0, 1fr);
+  align-items: center;
+  gap: 12px;
+  padding: 0 14px;
+  border: 1px solid rgba(255, 255, 255, .22);
+  border-radius: 8px;
+  background: #0d1119;
+  transition: border-color .2s ease, background .2s ease;
+}
+
+.admin-login-field:focus-within {
+  border-color: rgba(255, 255, 255, .9);
+  background: #10151f;
+}
+
+.admin-login-field svg {
+  width: 19px;
+  height: 19px;
+  color: rgba(255, 255, 255, .48);
+}
+
+.admin-login-field input {
+  width: 100%;
+  min-width: 0;
+  padding: 0;
+  border: 0;
+  outline: 0;
   color: var(--fg);
-  font-size: 13px;
-  font-weight: 600;
+  background: transparent;
+  font: inherit;
+  font-size: 16px;
 }
 
+.admin-login-field input::placeholder {
+  color: rgba(255, 255, 255, .34);
+}
+
+.admin-login-status {
+  min-height: 18px;
+  margin: -4px 0 -2px;
+  color: rgba(255, 255, 255, .6);
+  font-size: 12px;
+  line-height: 1.5;
+  text-align: center;
+}
+
+.admin-login-status.is-error {
+  color: #ff8c86;
+}
+
+.admin-login-submit {
+  display: flex;
+  min-height: 52px;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 0 20px;
+  border: 1px solid #fff;
+  border-radius: 8px;
+  color: #080808;
+  background: #fff;
+  font: inherit;
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: opacity .2s ease, transform .2s ease;
+}
+
+.admin-login-submit:hover {
+  transform: translateY(-1px);
+}
+
+.admin-login-submit:disabled {
+  cursor: wait;
+  opacity: .58;
+  transform: none;
+}
+
+.admin-login-submit svg {
+  width: 19px;
+  height: 19px;
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+@keyframes admin-login-dialog-in {
+  from {
+    opacity: 0;
+    transform: translateY(12px) scale(.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
 .ai-assistant-trigger {
   position: fixed;
   right: 24px;
@@ -1034,6 +1195,10 @@ img {
   .contact-inquiry-actions { align-items: stretch; flex-direction: column; }
   .contact-inquiry-actions > div { width: 100%; flex-direction: column; }
   .contact-inquiry-actions button { width: 100%; }
+  .admin-login-dialog {
+    padding: 32px 24px;
+  }
+
   .ai-assistant-trigger { right: 16px; bottom: 16px; }
   .ai-assistant-dialog { margin: auto 16px 16px auto; }
 }

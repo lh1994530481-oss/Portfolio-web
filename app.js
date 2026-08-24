@@ -291,6 +291,10 @@ function initWechatDialog() {
   });
 
   closeButton.addEventListener("click", closeDialog);
+  dialog.addEventListener("close", () => {
+    form.reset();
+    setStatus("");
+  });
   dialog.addEventListener("click", (event) => {
     if (event.target !== dialog) return;
     const rect = dialog.getBoundingClientRect();
@@ -300,6 +304,90 @@ function initWechatDialog() {
       event.clientY < rect.top ||
       event.clientY > rect.bottom;
     if (outside) closeDialog();
+  });
+}
+
+function initAdminLoginDialog() {
+  const dialog = document.getElementById("admin-login-dialog");
+  const openButton = document.querySelector("[data-admin-login-open]");
+  const closeButton = document.querySelector("[data-admin-login-close]");
+  const form = document.getElementById("admin-login-form");
+  const status = document.querySelector("[data-admin-login-status]");
+  const api = window.ContentAPI;
+  if (!dialog || !openButton || !closeButton || !form || !status || typeof dialog.showModal !== "function") return;
+
+  const usernameInput = form.elements.username;
+  const passwordInput = form.elements.password;
+  const submitButton = form.querySelector("button[type='submit']");
+  const adminUrl = new URL("./admin/", window.location.href).href;
+
+  const setStatus = (message, isError = false) => {
+    status.textContent = message;
+    status.classList.toggle("is-error", isError);
+  };
+
+  const closeDialog = () => {
+    if (!dialog.open) return;
+    dialog.close();
+    form.reset();
+    setStatus("");
+  };
+
+  openButton.addEventListener("click", () => {
+    form.reset();
+    setStatus("");
+    if (!dialog.open) dialog.showModal();
+    window.requestAnimationFrame(() => usernameInput.focus());
+  });
+
+  closeButton.addEventListener("click", closeDialog);
+  dialog.addEventListener("close", () => {
+    form.reset();
+    setStatus("");
+  });
+  dialog.addEventListener("click", (event) => {
+    if (event.target !== dialog) return;
+    const rect = dialog.getBoundingClientRect();
+    const outside = event.clientX < rect.left || event.clientX > rect.right || event.clientY < rect.top || event.clientY > rect.bottom;
+    if (outside) closeDialog();
+  });
+
+  form.addEventListener("submit", async (event) => {
+    event.preventDefault();
+    const username = String(usernameInput.value || "").trim();
+    const password = String(passwordInput.value || "");
+
+    if (!api || !api.isConfigured() || typeof api.signIn !== "function") {
+      setStatus("登录服务暂时不可用，请稍后重试", true);
+      return;
+    }
+    if (username !== api.config.adminUsername || !password) {
+      setStatus("账号或密码错误", true);
+      passwordInput.select();
+      return;
+    }
+
+    const adminTab = window.open("about:blank", "_blank");
+    submitButton.disabled = true;
+    setStatus("正在验证…");
+
+    try {
+      await api.signIn(api.config.supabaseAuthEmail, password);
+      if (!adminTab) {
+        setStatus("登录成功，请允许浏览器打开新标签页后重试", true);
+        return;
+      }
+      form.reset();
+      dialog.close();
+      adminTab.location.replace(adminUrl);
+      adminTab.opener = null;
+    } catch (error) {
+      if (adminTab && !adminTab.closed) adminTab.close();
+      setStatus("账号或密码错误", true);
+      passwordInput.select();
+    } finally {
+      submitButton.disabled = false;
+    }
   });
 }
 
@@ -470,6 +558,8 @@ window.addEventListener("DOMContentLoaded", async () => {
   initMagnetic();
   initProjectWall();
   initWechatDialog();
+  initAdminLoginDialog();
+  if (window.lucide) window.lucide.createIcons({ attrs: { "stroke-width": 1.8 } });
   initAboutWords();
   initScrollScene();
 });

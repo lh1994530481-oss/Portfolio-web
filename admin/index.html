@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="robots" content="noindex, nofollow" />
     <title>Lin Tong Xin | Portfolio CMS</title>
-    <link rel="stylesheet" href="./admin.css?v=20260822-1" />
+    <link rel="stylesheet" href="./admin.css?v=20260824-1" />
   </head>
   <body>
     <main class="auth-screen" id="auth-screen">
@@ -206,17 +206,34 @@
             <div class="content-list" id="demo-list"></div>
           </section>
 
-          <section class="admin-section" data-panel="articles">
-            <div class="section-toolbar">
-              <div><p class="eyebrow">Articles</p><h2>文章内容</h2><p>编辑文章摘要、正文结构与发布状态。</p></div>
-              <button class="button button-primary" type="button" data-create="article"><i data-lucide="plus" aria-hidden="true"></i><span>新建文章</span></button>
+          <section class="admin-section article-admin-section" data-panel="articles">
+            <div class="article-page-toolbar">
+              <div class="article-page-title">
+                <div><p class="eyebrow">Articles</p><h2>文章管理</h2></div>
+                <button class="button button-primary article-create-button" type="button" data-create="article"><i data-lucide="plus" aria-hidden="true"></i><span>新建文章</span></button>
+              </div>
+              <label class="content-search article-search"><i data-lucide="search" aria-hidden="true"></i><input id="article-search" type="search" placeholder="搜索文章" /></label>
             </div>
-            <div class="content-tools">
-              <label class="content-search"><i data-lucide="search" aria-hidden="true"></i><input id="article-search" type="search" placeholder="搜索文章名称、分类或 Slug" /></label>
-              <select id="article-status-filter" aria-label="筛选文章状态"><option value="all">全部状态</option><option value="published">已发布</option><option value="draft">草稿</option></select>
-              <span class="content-count" id="article-count"></span>
+            <div class="article-management-layout">
+              <aside class="article-category-panel" aria-label="文章分类">
+                <div class="article-category-heading">
+                  <strong>分类</strong>
+                  <div>
+                    <button class="article-mini-button" type="button" data-reset-article-category aria-label="显示全部分类" title="显示全部"><i data-lucide="settings-2" aria-hidden="true"></i></button>
+                    <button class="article-mini-button" type="button" data-add-article-category aria-label="新增文章分类" title="新增分类"><i data-lucide="plus" aria-hidden="true"></i></button>
+                  </div>
+                </div>
+                <div class="article-category-list" id="article-category-list"></div>
+              </aside>
+              <section class="article-list-panel" aria-label="文章列表">
+                <div class="article-list-tools">
+                  <span class="content-count" id="article-count"></span>
+                  <select id="article-status-filter" aria-label="筛选文章状态"><option value="all">全部状态</option><option value="published">已发布</option><option value="draft">草稿</option></select>
+                </div>
+                <div class="article-list" id="article-list"></div>
+                <footer class="article-pagination" id="article-pagination" aria-label="文章分页"></footer>
+              </section>
             </div>
-            <div class="content-list" id="article-list"></div>
           </section>
 
           <section class="admin-section" data-panel="navigation">
@@ -345,7 +362,7 @@
       <form class="editor-form" id="editor-form" method="dialog">
         <header class="editor-header">
           <div class="editor-heading"><p class="eyebrow" id="editor-eyebrow">Content</p><h2 id="editor-title">编辑内容</h2></div>
-          <div class="project-editor-actions" aria-label="作品编辑操作">
+          <div class="project-editor-actions" aria-label="内容编辑操作">
             <button class="button button-primary" type="submit"><i data-lucide="check" aria-hidden="true"></i><span id="editor-save-label">保存修改</span></button>
             <button class="button button-secondary" type="button" data-close-editor><i data-lucide="arrow-left" aria-hidden="true"></i><span>返回列表</span></button>
           </div>
@@ -362,8 +379,8 @@
     <script src="../articles/articles-data.js"></script>
     <script src="./config.js?v=20260820-5"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <script src="../shared/content-api.js?v=20260822-1"></script>
+    <script src="../shared/content-api.js?v=20260824-1"></script>
     <script src="https://unpkg.com/lucide@0.468.0/dist/umd/lucide.min.js"></script>
-    <script src="./admin.js?v=20260822-1" defer></script>
+    <script src="./admin.js?v=20260824-1" defer></script>
   </body>
 </html>

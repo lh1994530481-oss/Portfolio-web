@@ -33,6 +33,9 @@
   const projectList = document.getElementById("project-list");
   const demoList = document.getElementById("demo-list");
   const articleList = document.getElementById("article-list");
+  const articleCategoryList = document.getElementById("article-category-list");
+  const articlePagination = document.getElementById("article-pagination");
+  const articlePanel = document.querySelector('[data-panel="articles"]');
   const navigationList = document.getElementById("navigation-list");
   const analyticsMetrics = document.getElementById("analytics-metrics");
   const analyticsTrend = document.getElementById("analytics-trend");
@@ -84,6 +87,10 @@
   const state = {
     projects: [],
     articles: [],
+    activeArticleCategory: "all",
+    pendingArticleCategory: "",
+    articlePage: 1,
+    articlePageSize: 10,
     navigation: [],
     settings: { ...api.defaultSettings },
     events: [],
@@ -150,7 +157,9 @@
     document.querySelectorAll("[data-section]").forEach((button) => button.classList.toggle("is-active", button.dataset.section === name));
     document.querySelectorAll("[data-panel]").forEach((panel) => panel.classList.toggle("is-active", panel.dataset.panel === name));
     sectionTitle.textContent = sectionNames[name] || "后台";
-    document.querySelector(".admin-header").classList.toggle("is-overview", name === "overview");
+    const adminHeader = document.querySelector(".admin-header");
+    adminHeader.classList.toggle("is-overview", name === "overview");
+    adminHeader.classList.toggle("is-article-section", name === "articles");
     document.getElementById("metric-grid").hidden = name !== "overview";
     sidebar.classList.remove("is-open");
   };
@@ -340,6 +349,59 @@
     }).join("");
   };
 
+  const articleCategories = (extraCategory) => Array.from(new Set([
+    "AI",
+    "设计分享",
+    ...state.articles.map((item) => String(item.category || "").trim()),
+    String(extraCategory || "").trim(),
+  ].filter(Boolean)));
+
+  const articleDisplayDate = (item) => {
+    if (item.updatedAt || item.createdAt) return formatDateTime(item.updatedAt || item.createdAt);
+    return item.date || "未设置日期";
+  };
+
+  const renderArticleCategories = () => {
+    const categories = articleCategories();
+    const rows = [{ name: "all", label: "全部", count: state.articles.length }].concat(categories.map((category) => ({
+      name: category,
+      label: category,
+      count: state.articles.filter((item) => item.category === category).length,
+    })));
+    articleCategoryList.innerHTML = rows.map((item) => [
+      '<button class="article-category-item' + (state.activeArticleCategory === item.name ? ' is-active' : '') + '" type="button" data-article-category="' + escapeHtml(item.name) + '" aria-pressed="' + (state.activeArticleCategory === item.name) + '">',
+      '  <span>' + escapeHtml(item.label) + '</span><strong>' + item.count + '</strong>',
+      '</button>',
+    ].join("\n")).join("");
+  };
+
+  const renderArticleRows = (items) => {
+    if (!items.length) return '<div class="empty-state article-empty-state">没有符合条件的文章。</div>';
+    return items.map((item) => {
+      const supporting = item.readTime || ((item.blocks || []).length ? (item.blocks || []).length + " 个内容块" : item.category);
+      return [
+        '<article class="article-management-row">',
+        '  <div class="article-row-copy"><strong>' + escapeHtml(item.title) + '</strong><span class="article-publish-pill' + (item.published === false ? ' is-draft' : '') + '">' + (item.published === false ? '草稿' : '已发布') + '</span></div>',
+        '  <div class="article-row-meta"><span>' + escapeHtml(articleDisplayDate(item)) + '</span><span>' + escapeHtml(supporting) + '</span></div>',
+        '  <div class="article-row-actions">',
+        '    <button class="icon-button" type="button" data-edit="article" data-slug="' + escapeHtml(item.slug) + '" aria-label="编辑' + escapeHtml(item.title) + '" title="编辑"><i data-lucide="square-pen"></i></button>',
+        '    <button class="icon-button is-danger" type="button" data-delete="article" data-slug="' + escapeHtml(item.slug) + '" aria-label="删除' + escapeHtml(item.title) + '" title="删除"><i data-lucide="trash-2"></i></button>',
+        '  </div>',
+        '</article>',
+      ].join("\n");
+    }).join("");
+  };
+
+  const renderArticlePagination = (total, pageCount) => {
+    const start = total ? ((state.articlePage - 1) * state.articlePageSize) + 1 : 0;
+    const end = Math.min(total, state.articlePage * state.articlePageSize);
+    articlePagination.innerHTML = [
+      '<span>共 ' + total + ' 条 · ' + start + '-' + end + '</span>',
+      '<label><span class="visually-hidden">每页数量</span><select data-article-page-size><option value="10"' + (state.articlePageSize === 10 ? ' selected' : '') + '>10条/页</option><option value="20"' + (state.articlePageSize === 20 ? ' selected' : '') + '>20条/页</option><option value="50"' + (state.articlePageSize === 50 ? ' selected' : '') + '>50条/页</option></select></label>',
+      '<div class="article-page-buttons"><button type="button" data-article-page="' + Math.max(1, state.articlePage - 1) + '" aria-label="上一页"' + (state.articlePage <= 1 ? ' disabled' : '') + '><i data-lucide="chevron-left"></i></button><strong>' + state.articlePage + '</strong><button type="button" data-article-page="' + Math.min(pageCount, state.articlePage + 1) + '" aria-label="下一页"' + (state.articlePage >= pageCount ? ' disabled' : '') + '><i data-lucide="chevron-right"></i></button></div>',
+      '<label class="article-page-jump"><span>前往</span><input data-article-page-input type="number" min="1" max="' + pageCount + '" value="' + state.articlePage + '" /><span>页</span></label>',
+    ].join("");
+  };
   const renderNavigationList = (items) => {
     if (!items.length) return '<div class="empty-state">没有符合条件的导航。</div>';
     return items.map((item) => [
@@ -404,21 +466,26 @@
     const demoItems = state.projects.filter((item) => item.itemType === "demo");
     const projects = filteredItems("project", portfolioItems);
     const demos = filteredItems("demo", demoItems);
-    const articles = filteredItems("article", state.articles);
+    if (state.activeArticleCategory !== "all" && !articleCategories().includes(state.activeArticleCategory)) state.activeArticleCategory = "all";
+    const matchingArticles = filteredItems("article", state.articles).filter((item) => state.activeArticleCategory === "all" || item.category === state.activeArticleCategory);
     const navigation = filteredItems("navigation", state.navigation);
+    const articlePageCount = Math.max(1, Math.ceil(matchingArticles.length / state.articlePageSize));
+    state.articlePage = Math.min(Math.max(1, state.articlePage), articlePageCount);
+    const articleStart = (state.articlePage - 1) * state.articlePageSize;
+    const visibleArticles = matchingArticles.slice(articleStart, articleStart + state.articlePageSize);
     projectList.innerHTML = projects.length || !state.projects.length
       ? renderContentList(projects, "project")
       : '<div class="empty-state">没有符合条件的项目。</div>';
     demoList.innerHTML = demos.length || !demoItems.length
       ? renderContentList(demos, "demo")
       : '<div class="empty-state">没有符合条件的 Demo。</div>';
-    articleList.innerHTML = articles.length || !state.articles.length
-      ? renderContentList(articles, "article")
-      : '<div class="empty-state">没有符合条件的文章。</div>';
+    renderArticleCategories();
+    articleList.innerHTML = renderArticleRows(visibleArticles);
+    renderArticlePagination(matchingArticles.length, articlePageCount);
     navigationList.innerHTML = renderNavigationList(navigation);
     listControls.project.count.textContent = "显示 " + projects.length + " / " + portfolioItems.length;
     listControls.demo.count.textContent = "显示 " + demos.length + " / " + demoItems.length;
-    listControls.article.count.textContent = "显示 " + articles.length + " / " + state.articles.length;
+    listControls.article.count.textContent = "共 " + matchingArticles.length + " 篇文章";
     listControls.navigation.count.textContent = "显示 " + navigation.length + " / " + state.navigation.length;
     refreshIcons();
   };
@@ -832,6 +899,11 @@
     if (block.type === "image") return '<figure><img src="' + escapeHtml(block.src) + '" alt="' + escapeHtml(block.alt || "") + '"><figcaption>' + escapeHtml(block.alt || "") + '</figcaption></figure>';
     if (block.type === "quote") return '<blockquote>' + (block.html || escapeHtml(block.text)) + '</blockquote>';
     if (block.type === "code") return '<pre>' + escapeHtml(block.text) + '</pre>';
+    if (block.type === "list") {
+      const tag = block.ordered ? "ol" : "ul";
+      const items = (block.items || []).map((item) => '<li>' + (typeof item === "string" ? escapeHtml(item) : (item.html || escapeHtml(item.text || ""))) + '</li>').join("");
+      return '<' + tag + '>' + items + '</' + tag + '>';
+    }
     return '<p>' + (block.html || escapeHtml(block.text || "")) + '</p>';
   }).join("");
 
@@ -865,8 +937,13 @@
       }
       if (node.tagName === "BLOCKQUOTE") return { type: "quote", text: node.textContent.trim(), html: sanitizeInlineHtml(node) };
       if (node.tagName === "PRE") return { type: "code", text: node.textContent };
+      if (node.tagName === "UL" || node.tagName === "OL") return {
+        type: "list",
+        ordered: node.tagName === "OL",
+        items: Array.from(node.children).filter((item) => item.tagName === "LI").map((item) => ({ text: item.textContent.trim(), html: sanitizeInlineHtml(item) })),
+      };
       return { type: "paragraph", text: node.textContent.trim(), html: sanitizeInlineHtml(node) };
-    }).filter((item) => item && (item.src || item.text));
+    }).filter((item) => item && (item.src || item.text || (item.items && item.items.length)));
   };
 
   const projectDocumentHtmlToBlocks = (html) => {
@@ -913,6 +990,28 @@
     }
   };
 
+  let articleEditorRange = null;
+  const rememberArticleEditorRange = () => {
+    const editor = document.getElementById("rich-article-editor");
+    const selection = window.getSelection();
+    if (!editor || !selection || !selection.rangeCount || !editor.contains(selection.anchorNode)) return;
+    articleEditorRange = selection.getRangeAt(0).cloneRange();
+  };
+
+  const restoreArticleEditorRange = () => {
+    const editor = document.getElementById("rich-article-editor");
+    const selection = window.getSelection();
+    if (!editor || !selection) return;
+    editor.focus();
+    selection.removeAllRanges();
+    if (articleEditorRange && editor.contains(articleEditorRange.commonAncestorContainer)) selection.addRange(articleEditorRange);
+    else {
+      const range = document.createRange();
+      range.selectNodeContents(editor);
+      range.collapse(false);
+      selection.addRange(range);
+    }
+  };
   const syncProjectDocumentSources = () => {
     const editor = document.getElementById("project-document-editor");
     if (!editor) return [];
@@ -947,20 +1046,44 @@
     setSync("媒体已插入", "");
   };
 
-  const articleFields = (item, editing) => [
-    '<label class="field"><span>文章标题</span><input name="title" required value="' + escapeHtml(item.title || "") + '" /></label>',
-    '<label class="field"><span>Slug</span><input name="slug" required pattern="[a-z0-9-]+" ' + (editing ? "readonly" : "") + ' value="' + escapeHtml(item.slug || "") + '" /></label>',
-    '<label class="field"><span>分类</span><select name="category">' + ["AI", "设计分享"].map((value) => '<option value="' + value + '"' + (item.category === value ? " selected" : "") + ">" + value + "</option>").join("") + "</select></label>",
-    '<label class="field"><span>排序</span><input name="sortOrder" type="number" min="0" value="' + Number(item.sortOrder || 0) + '" /></label>',
-    '<label class="field"><span>日期标签</span><input name="date" value="' + escapeHtml(item.date || "") + '" /></label>',
-    '<label class="field"><span>阅读信息</span><input name="readTime" value="' + escapeHtml(item.readTime || "") + '" /></label>',
-    '<label class="field field-wide"><span>摘要</span><textarea name="summary" rows="4">' + escapeHtml(item.summary || "") + "</textarea></label>",
-    '<label class="field"><span>原文链接</span><input name="sourceUrl" type="url" value="' + escapeHtml(item.sourceUrl || "") + '" /></label>',
-    '<label class="field"><span>来源名称</span><input name="sourceLabel" value="' + escapeHtml(item.sourceLabel || "") + '" /></label>',
-    '<div class="field field-wide"><span>文章正文</span><div class="rich-toolbar" role="toolbar" aria-label="正文格式"><button type="button" data-rich-command="bold" title="加粗"><strong>B</strong></button><button type="button" data-rich-command="italic" title="斜体"><i>I</i></button><button type="button" data-rich-command="underline" title="下划线"><u>U</u></button><button type="button" data-rich-command="strikeThrough" title="删除线"><s>S</s></button><button type="button" data-rich-format="h2" title="标题">H2</button><button type="button" data-rich-format="blockquote" title="引用"><i data-lucide="quote"></i></button><button type="button" data-rich-format="pre" title="代码"><i data-lucide="code-2"></i></button><button type="button" data-rich-link title="插入链接"><i data-lucide="link"></i></button><button type="button" data-rich-image title="插入图片"><i data-lucide="image-plus"></i></button></div><div class="rich-editor" id="rich-article-editor" contenteditable="true">' + articleBlocksToHtml(item.blocks || []) + '</div><textarea name="blocks" hidden>' + escapeHtml(JSON.stringify(item.blocks || [])) + '</textarea></div>',
-    '<label class="toggle-field field-wide"><span>公开发布</span><input name="published" type="checkbox"' + (item.published === false ? "" : " checked") + " /></label>",
-  ].join("\n");
-
+  const articleFields = (item, editing) => {
+    const selectedCategory = item.category || state.pendingArticleCategory || "AI";
+    const categories = articleCategories(selectedCategory);
+    const slug = item.slug || ("article-" + Date.now());
+    const dateLabel = item.date || new Date().toISOString().slice(0, 10).replace(/-/g, ".");
+    const publishTime = item.updatedAt || item.createdAt ? formatDateTime(item.updatedAt || item.createdAt) : "保存后自动生成";
+    return [
+      '<div class="article-editor-layout">',
+      '  <section class="article-editor-main" aria-label="文章正文编辑区">',
+      '    <label class="article-title-field"><span class="visually-hidden">文章标题</span><input name="title" required value="' + escapeHtml(item.title || "") + '" placeholder="请输入文章标题" autocomplete="off" /></label>',
+      '    <div class="article-rich-toolbar" role="toolbar" aria-label="文章正文格式">',
+      '      <div class="article-toolbar-group"><button type="button" data-rich-command="bold" title="加粗"><strong>B</strong></button><button type="button" data-rich-command="italic" title="斜体"><i>I</i></button><button type="button" data-rich-command="underline" title="下划线"><u>U</u></button><button type="button" data-rich-command="strikeThrough" title="删除线"><s>S</s></button></div>',
+      '      <div class="article-toolbar-group"><button type="button" data-rich-format="blockquote" title="引用"><i data-lucide="quote"></i></button><button type="button" data-rich-format="pre" title="代码"><i data-lucide="code-2"></i></button></div>',
+      '      <label class="article-toolbar-select"><span class="visually-hidden">段落样式</span><select data-rich-format-select><option value="p">正文</option><option value="h2">标题 2</option><option value="h3">标题 3</option><option value="blockquote">引用</option><option value="pre">代码</option></select></label>',
+      '      <div class="article-toolbar-group"><button type="button" data-rich-command="insertUnorderedList" title="无序列表"><i data-lucide="list"></i></button><button type="button" data-rich-command="insertOrderedList" title="有序列表"><i data-lucide="list-ordered"></i></button><button type="button" data-rich-command="outdent" title="减少缩进"><i data-lucide="outdent"></i></button><button type="button" data-rich-command="indent" title="增加缩进"><i data-lucide="indent-increase"></i></button></div>',
+      '      <label class="article-toolbar-select article-font-size"><span class="visually-hidden">字号</span><select data-rich-font-size><option value="3">字号</option><option value="2">小</option><option value="3">正文</option><option value="4">大</option><option value="5">特大</option></select></label>',
+      '      <div class="article-toolbar-group"><button type="button" data-rich-command="justifyLeft" title="左对齐"><i data-lucide="align-left"></i></button><button type="button" data-rich-command="justifyCenter" title="居中"><i data-lucide="align-center"></i></button><button type="button" data-rich-command="justifyRight" title="右对齐"><i data-lucide="align-right"></i></button></div>',
+      '      <div class="article-toolbar-group article-toolbar-insert"><button type="button" data-rich-link title="插入链接"><i data-lucide="link"></i><span>链接</span></button><button type="button" data-rich-image title="使用图片地址"><i data-lucide="image-plus"></i><span>图片</span></button><label title="上传图片"><i data-lucide="upload"></i><span>上传</span><input data-rich-image-upload type="file" accept="image/*" /></label><button type="button" data-rich-command="removeFormat" title="清除格式"><i data-lucide="eraser"></i><span>清除</span></button></div>',
+      '    </div>',
+      '    <div class="rich-editor article-rich-editor" id="rich-article-editor" contenteditable="true" data-placeholder="从这里开始写正文，使用标题可自动生成文章大纲。">' + articleBlocksToHtml(item.blocks || []) + '</div>',
+      '    <textarea name="blocks" hidden>' + escapeHtml(JSON.stringify(item.blocks || [])) + '</textarea>',
+      '  </section>',
+      '  <aside class="article-editor-sidebar" aria-label="文章发布设置">',
+      '    <div class="article-sidebar-field"><span>分类 <em>*</em></span><div class="article-category-control"><select name="category" required>' + categories.map((value) => '<option value="' + escapeHtml(value) + '"' + (selectedCategory === value ? ' selected' : '') + '>' + escapeHtml(value) + '</option>').join("") + '</select><button type="button" data-add-article-category><i data-lucide="plus"></i><span>新增分类</span></button></div></div>',
+      '    <label class="article-publish-switch"><span><strong>发布状态</strong><small>关闭后保存为草稿</small></span><input name="published" type="checkbox"' + (item.published === false ? "" : " checked") + ' /></label>',
+      '    <label class="article-sidebar-field"><span>发布时间</span><span class="article-publish-time"><i data-lucide="clock-3"></i><input value="' + escapeHtml(publishTime) + '" readonly /></span></label>',
+      '    <details class="article-advanced-settings"><summary><span>更多文章信息</span><i data-lucide="chevron-down"></i></summary><div>',
+      '      <label class="article-sidebar-field"><span>Slug</span><input name="slug" required pattern="[a-z0-9-]+" ' + (editing ? "readonly" : "") + ' value="' + escapeHtml(slug) + '" /></label>',
+      '      <div class="article-sidebar-split"><label class="article-sidebar-field"><span>排序</span><input name="sortOrder" type="number" min="0" value="' + Number(item.sortOrder || 0) + '" /></label><label class="article-sidebar-field"><span>日期标签</span><input name="date" value="' + escapeHtml(dateLabel) + '" /></label></div>',
+      '      <label class="article-sidebar-field"><span>阅读信息</span><input name="readTime" value="' + escapeHtml(item.readTime || "") + '" placeholder="例如：8 分钟阅读" /></label>',
+      '      <label class="article-sidebar-field"><span>文章摘要</span><textarea name="summary" rows="4" placeholder="用于文章列表和详情页导语">' + escapeHtml(item.summary || "") + '</textarea></label>',
+      '      <label class="article-sidebar-field"><span>原文链接</span><input name="sourceUrl" type="url" value="' + escapeHtml(item.sourceUrl || "") + '" /></label>',
+      '      <label class="article-sidebar-field"><span>来源名称</span><input name="sourceLabel" value="' + escapeHtml(item.sourceLabel || "") + '" /></label>',
+      '    </div></details>',
+      '  </aside>',
+      '</div>',
+    ].join("\n");
+  };
   const navigationFields = (item) => [
     '<label class="field"><span>导航名称</span><input name="label" required value="' + escapeHtml(item.label || "") + '" placeholder="例如：服务" /></label>',
     '<label class="field"><span>排序</span><input name="sortOrder" type="number" min="0" value="' + Number(item.sortOrder || 0) + '" /></label>',
@@ -1027,7 +1150,7 @@
     const value = item || ((type === "project" || type === "demo")
       ? { itemType: type === "demo" ? "demo" : "portfolio", category: type === "demo" ? "原型" : "APP Design", sortOrder: state.projects.length, published: true, gallery: [], contentBlocks: [], tags: [] }
       : type === "article"
-        ? { category: "AI", sortOrder: state.articles.length, published: true, blocks: [] }
+        ? { category: state.pendingArticleCategory || "AI", sortOrder: state.articles.length, published: true, blocks: [] }
         : type === "navigation"
           ? { sortOrder: state.navigation.length, published: true, openNewTab: false }
           : type === "note"
@@ -1042,7 +1165,8 @@
     editorForm.dataset.type = type;
     editorDialog.classList.toggle("is-quick-entry", type === "quickLink" || type === "quickLinkCategory");
     editorDialog.classList.toggle("is-project-editor", type === "project");
-    document.body.classList.toggle("project-editor-open", type === "project");
+    editorDialog.classList.toggle("is-article-editor", type === "article");
+    document.body.classList.toggle("project-editor-open", type === "project" || type === "article");
     const labels = {
       project: ["Portfolio", "项目"], demo: ["Practice & Demo", "练习与演示"], article: ["Article", "文章"], navigation: ["Navigation", "导航"], finance: ["Finance", "收支记录"], note: ["Thinking", "便签"], quickLink: ["Quick Entry", "网站"], quickLinkCategory: ["Quick Entry", "分类"], scheduleItem: ["Calendar", "事项"], quote: ["AI Quote", "报价"],
     };
@@ -1050,7 +1174,7 @@
     document.getElementById("editor-title").textContent = (type === "quickLink" || type === "quickLinkCategory")
       ? (editing ? "编辑" : "添加") + labels[type][1]
       : (editing ? "编辑" : "新建") + labels[type][1];
-    document.getElementById("editor-save-label").textContent = editing ? "保存修改" : "创建项目";
+    document.getElementById("editor-save-label").textContent = editing ? "保存修改" : type === "article" ? "创建文章" : type === "project" ? "创建项目" : "创建内容";
     editorBody.innerHTML = type === "project" || type === "demo" ? projectFields(value, editing, type)
       : type === "article" ? articleFields(value, editing)
         : type === "navigation" ? navigationFields(value)
@@ -1064,6 +1188,8 @@
     else delete editorForm.dataset.itemId;
     editorDialog.showModal();
     projectDocumentRange = null;
+    articleEditorRange = null;
+    if (type === "article") state.pendingArticleCategory = "";
     refreshIcons();
   };
 
@@ -1220,9 +1346,15 @@
   });
 
   document.querySelectorAll("[data-section]").forEach((button) => button.addEventListener("click", () => setActiveSection(button.dataset.section)));
-  Object.values(listControls).forEach((controls) => {
-    controls.search.addEventListener("input", renderContentLists);
-    controls.status.addEventListener("change", renderContentLists);
+  Object.entries(listControls).forEach(([type, controls]) => {
+    controls.search.addEventListener("input", () => {
+      if (type === "article") state.articlePage = 1;
+      renderContentLists();
+    });
+    controls.status.addEventListener("change", () => {
+      if (type === "article") state.articlePage = 1;
+      renderContentLists();
+    });
   });
   document.getElementById("mobile-menu").addEventListener("click", () => sidebar.classList.toggle("is-open"));
   document.getElementById("logout-button").addEventListener("click", async () => {
@@ -1236,6 +1368,47 @@
   projectList.addEventListener("click", (event) => handleListAction(event).catch((error) => { setSync("保存失败", "error"); showToast(error.message, true); }));
   demoList.addEventListener("click", (event) => handleListAction(event).catch((error) => { setSync("保存失败", "error"); showToast(error.message, true); }));
   articleList.addEventListener("click", (event) => handleListAction(event).catch((error) => { setSync("保存失败", "error"); showToast(error.message, true); }));
+  articlePanel.addEventListener("click", (event) => {
+    const categoryButton = event.target.closest("[data-article-category]");
+    const resetCategory = event.target.closest("[data-reset-article-category]");
+    const addCategory = event.target.closest("[data-add-article-category]");
+    const pageButton = event.target.closest("[data-article-page]");
+    if (categoryButton) {
+      state.activeArticleCategory = categoryButton.dataset.articleCategory;
+      state.articlePage = 1;
+      renderContentLists();
+      return;
+    }
+    if (resetCategory) {
+      state.activeArticleCategory = "all";
+      state.articlePage = 1;
+      renderContentLists();
+      return;
+    }
+    if (addCategory && !addCategory.closest(".article-editor-sidebar")) {
+      const category = window.prompt("输入新的文章分类");
+      if (!category || !category.trim()) return;
+      state.pendingArticleCategory = category.trim();
+      openEditor("article");
+      return;
+    }
+    if (pageButton && !pageButton.disabled) {
+      state.articlePage = Number(pageButton.dataset.articlePage || 1);
+      renderContentLists();
+    }
+  });
+  articlePanel.addEventListener("change", (event) => {
+    const pageSize = event.target.closest("[data-article-page-size]");
+    const pageInput = event.target.closest("[data-article-page-input]");
+    if (pageSize) {
+      state.articlePageSize = Number(pageSize.value || 10);
+      state.articlePage = 1;
+      renderContentLists();
+    } else if (pageInput) {
+      state.articlePage = Math.max(1, Number(pageInput.value || 1));
+      renderContentLists();
+    }
+  });
   navigationList.addEventListener("click", (event) => handleListAction(event).catch((error) => { setSync("保存失败", "error"); showToast(error.message, true); }));
   financeIncomeList.addEventListener("click", (event) => handleListAction(event).catch((error) => { setSync("保存失败", "error"); showToast(error.message, true); }));
   financeExpenseList.addEventListener("click", (event) => handleListAction(event).catch((error) => { setSync("保存失败", "error"); showToast(error.message, true); }));
@@ -1524,6 +1697,16 @@
       if (category && category.trim()) editorForm.elements.namedItem("category").value = category.trim();
       return;
     }
+    const addArticleCategory = event.target.closest("[data-add-article-category]");
+    if (addArticleCategory) {
+      const category = window.prompt("输入新的文章分类");
+      if (!category || !category.trim()) return;
+      const select = editorForm.elements.namedItem("category");
+      const value = category.trim();
+      if (!Array.from(select.options).some((option) => option.value === value)) select.add(new Option(value, value));
+      select.value = value;
+      return;
+    }
     const editor = document.getElementById("rich-article-editor");
     if (!editor) return;
     const command = event.target.closest("[data-rich-command]");
@@ -1532,7 +1715,7 @@
     const image = event.target.closest("[data-rich-image]");
     if (!command && !format && !link && !image) return;
     event.preventDefault();
-    editor.focus();
+    restoreArticleEditorRange();
     if (command) document.execCommand(command.dataset.richCommand, false);
     if (format) document.execCommand("formatBlock", false, format.dataset.richFormat);
     if (link) {
@@ -1543,12 +1726,17 @@
       const url = window.prompt("输入图片地址");
       if (url) document.execCommand("insertImage", false, url);
     }
+    rememberArticleEditorRange();
   });
 
   editorBody.addEventListener("input", (event) => {
     if (event.target.closest("#project-document-editor")) {
       rememberProjectDocumentRange();
       syncProjectDocumentSources();
+      return;
+    }
+    if (event.target.closest("#rich-article-editor")) {
+      rememberArticleEditorRange();
       return;
     }
     const coverInput = event.target.closest("[data-cover-url]");
@@ -1569,12 +1757,41 @@
       window.setTimeout(rememberProjectDocumentRange, 0);
       return;
     }
+    if (event.target.closest("#rich-article-editor")) {
+      window.setTimeout(rememberArticleEditorRange, 0);
+      return;
+    }
     if (event.key !== "Enter" || !event.target.matches("[data-gallery-url-input]")) return;
     event.preventDefault();
     editorBody.querySelector("[data-add-gallery-url]")?.click();
   });
 
   editorBody.addEventListener("change", async (event) => {
+    const articleFormat = event.target.closest("[data-rich-format-select]");
+    const articleFontSize = event.target.closest("[data-rich-font-size]");
+    if (articleFormat || articleFontSize) {
+      restoreArticleEditorRange();
+      if (articleFormat) document.execCommand("formatBlock", false, articleFormat.value);
+      if (articleFontSize) document.execCommand("fontSize", false, articleFontSize.value);
+      rememberArticleEditorRange();
+      return;
+    }
+    const articleImageUpload = event.target.closest("[data-rich-image-upload]");
+    if (articleImageUpload && articleImageUpload.files && articleImageUpload.files[0]) {
+      try {
+        setSync("上传文章图片", "busy");
+        const url = await api.uploadMedia(articleImageUpload.files[0]);
+        restoreArticleEditorRange();
+        document.execCommand("insertImage", false, url);
+        rememberArticleEditorRange();
+        articleImageUpload.value = "";
+        setSync("图片已插入", "");
+      } catch (error) {
+        setSync("上传失败", "error");
+        showToast(error.message, true);
+      }
+      return;
+    }
     const documentUpload = event.target.closest("[data-project-document-upload]");
     if (documentUpload && documentUpload.files && documentUpload.files.length) {
       try {
@@ -1626,10 +1843,15 @@
 
   editorBody.addEventListener("mousedown", (event) => {
     if (event.target.closest("[data-project-document-toolbar] button")) event.preventDefault();
+    if (event.target.closest(".article-rich-toolbar")) {
+      rememberArticleEditorRange();
+      if (event.target.closest("button")) event.preventDefault();
+    }
   });
 
   editorBody.addEventListener("mouseup", (event) => {
     if (event.target.closest("#project-document-editor")) rememberProjectDocumentRange();
+    if (event.target.closest("#rich-article-editor")) rememberArticleEditorRange();
   });
 
   editorBody.addEventListener("paste", (event) => {

@@ -83,6 +83,14 @@
             ].join("\n");
           }
 
+          if (block.type === "list") {
+            const tag = block.ordered ? "ol" : "ul";
+            const items = (block.items || []).map(function (item) {
+              return '<li>' + (typeof item === "string" ? escapeHtml(item) : (safeInlineHtml(item.html) || escapeHtml(item.text))) + '</li>';
+            }).join("");
+            return '<' + tag + ' class="article-detail-list">' + items + '</' + tag + '>';
+          }
+
           return '<p class="article-detail-paragraph">' + (safeInlineHtml(block.html) || escapeHtml(block.text)) + "</p>";
         })
         .join("\n")

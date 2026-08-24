@@ -191,6 +191,8 @@
     blocks: Array.isArray(row.blocks) ? row.blocks : [],
     published: row.published !== false,
     sortOrder: Number(row.sort_order || 0),
+    createdAt: row.created_at || "",
+    updatedAt: row.updated_at || "",
   });
 
   const articleToRow = (article) => ({
@@ -205,6 +207,7 @@
     blocks: article.blocks || [],
     published: article.published !== false,
     sort_order: Number(article.sortOrder || 0),
+    updated_at: new Date().toISOString(),
   });
 
   const navigationFromRow = (row) => ({

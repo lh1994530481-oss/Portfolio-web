@@ -672,11 +672,13 @@
     });
     inquiryCount.textContent = "显示 " + items.length + " / " + state.inquiries.length;
     inquiryList.innerHTML = items.length ? items.map((item) => [
-      '<article class="inquiry-row"><div class="inquiry-person"><strong>' + escapeHtml(item.name) + '</strong><a href="mailto:' + escapeHtml(item.contact) + '">' + escapeHtml(item.contact) + '</a></div>',
-      '<div class="inquiry-message"><span>' + escapeHtml((item.projectTypes || []).join(" / ") || item.projectType || "其他") + '</span><p>' + escapeHtml(item.message) + (item.budget ? '<small>预算：' + escapeHtml(item.budget) + '</small>' : '') + '</p></div>',
-      '<time>' + formatDateTime(item.createdAt) + '</time>',
-      '<select class="inquiry-status" data-inquiry-status="' + escapeHtml(item.id) + '" aria-label="咨询状态">' + Object.entries(inquiryStatusNames).map(([value, label]) => '<option value="' + value + '"' + (item.status === value ? " selected" : "") + '>' + label + '</option>').join("") + '</select>',
-      '<button class="icon-button is-danger" type="button" data-delete-inquiry="' + escapeHtml(item.id) + '" aria-label="删除咨询"><i data-lucide="trash-2"></i></button></article>',
+      '<article class="inquiry-row is-clickable" data-open-inquiry="' + escapeHtml(item.id) + '" tabindex="0" role="button" aria-label="查看' + escapeHtml(item.name || "客户") + '的咨询详情">',
+      '  <div class="inquiry-person"><strong>' + escapeHtml(item.name) + '</strong><span>' + escapeHtml(item.contact) + '</span></div>',
+      '  <div class="inquiry-message"><span>' + escapeHtml((item.projectTypes || []).join(" / ") || item.projectType || "其他") + '</span><p>' + escapeHtml(item.message) + (item.budget ? '<small>预算：' + escapeHtml(item.budget) + '</small>' : '') + '</p></div>',
+      '  <time>' + formatDateTime(item.createdAt) + '</time>',
+      '  <span class="inquiry-status-pill is-' + escapeHtml(item.status || "new") + '">' + escapeHtml(inquiryStatusNames[item.status] || item.status || "待处理") + '</span>',
+      '  <div class="inquiry-row-actions"><span>查看详情</span><i data-lucide="chevron-right" aria-hidden="true"></i></div>',
+      '</article>',
     ].join("")).join("") : '<div class="empty-state">没有符合条件的咨询。</div>';
     refreshIcons();
   };
@@ -787,43 +789,26 @@
   const projectDocumentBlocksToHtml = (blocks) => (blocks || []).map(projectDocumentBlockToHtml).join("\n");
 
   const demoCategories = ["原型", "练习", "数字孪生"];
-  const demoProjectFields = (item, editing) => {
-    const category = item.category === "Exercises and Demos" ? "原型" : (item.category || "原型");
-    const categories = demoCategories.includes(category) ? demoCategories : [...demoCategories, category];
-    return [
-      '<input name="itemType" type="hidden" value="demo" />',
-      '<label class="field"><span>演示标题</span><input name="title" required value="' + escapeHtml(item.title || "") + '" /></label>',
-      '<label class="field"><span>Slug</span><input name="slug" required pattern="[a-z0-9-]+" ' + (editing ? "readonly" : "") + ' value="' + escapeHtml(item.slug || "") + '" /></label>',
-      '<label class="field"><span>分类</span><select name="category">' + categories.map((value) => '<option value="' + escapeHtml(value) + '"' + (category === value ? " selected" : "") + '>' + escapeHtml(value) + '</option>').join("") + '</select></label>',
-      '<label class="field"><span>排序</span><input name="sortOrder" type="number" min="0" value="' + Number(item.sortOrder || 0) + '" /></label>',
-      '<label class="field field-wide"><span>演示描述</span><textarea name="descriptionZh" rows="5">' + escapeHtml(item.descriptionZh || "") + '</textarea></label>',
-      '<label class="field field-wide"><span>封面地址</span><input name="cover" value="' + escapeHtml(item.cover || "") + '" placeholder="图片 URL 或站内路径" /></label>',
-      '<label class="field field-wide"><span>项目画廊</span><textarea name="gallery" rows="5" placeholder="每行一个图片地址">' + escapeHtml((item.gallery || []).join("\n")) + '</textarea></label>',
-      '<label class="field"><span>技术栈</span><input name="tags" value="' + escapeHtml((item.tags || []).join("，")) + '" placeholder="使用逗号分隔" /></label>',
-      '<label class="field"><span>预览视频 / 媒体</span><input name="mediaUrl" value="' + escapeHtml(item.mediaUrl || "") + '" /></label>',
-      '<label class="field field-wide"><span>原型体验地址</span><input name="prototypeHref" value="' + escapeHtml(item.prototypeHref || "") + '" placeholder="https:// 或站内路径" /></label>',
-      '<label class="toggle-field"><span>密码保护</span><input name="passwordEnabled" type="checkbox"' + (item.passwordEnabled ? " checked" : "") + ' /></label>',
-      '<label class="field"><span>访问密码</span><input name="accessPassword" type="password" placeholder="' + (item.passwordEnabled ? "留空则保留当前密码" : "启用后填写") + '" /></label>',
-      '<label class="field field-wide"><span>受保护跳转地址</span><input name="protectedTargetUrl" value="' + escapeHtml(item.protectedTargetUrl || "") + '" placeholder="验证成功后才返回此地址" /></label>',
-      '<label class="toggle-field field-wide"><span>公开发布</span><input name="published" type="checkbox"' + (item.published === false ? "" : " checked") + ' /></label>',
-    ].join("\n");
-  };
-
   const projectFields = (item, editing, type) => {
-    if (type === "demo") return demoProjectFields(item, editing);
+    const isDemo = type === "demo";
     const gallery = (item.gallery || []).filter(Boolean);
     const cover = item.cover || gallery[0] || "";
     const galleryImages = gallery.length ? gallery : (cover ? [cover] : []);
     const contentBlocks = projectDocumentBlocks(item, galleryImages);
+    const demoCategory = item.category === "Exercises and Demos" ? "原型" : (item.category || "原型");
+    const availableDemoCategories = demoCategories.includes(demoCategory) ? demoCategories : [...demoCategories, demoCategory];
+    const categoryControl = isDemo
+      ? '<label class="project-compact-field"><span>分类</span><select name="category">' + availableDemoCategories.map((value) => '<option value="' + escapeHtml(value) + '"' + (demoCategory === value ? " selected" : "") + '>' + escapeHtml(value) + '</option>').join("") + '</select></label>'
+      : '<div class="project-category-row"><label class="project-compact-field"><span>分类</span><input name="category" list="project-categories" value="' + escapeHtml(item.category || "APP Design") + '" /></label><button type="button" data-add-project-category><i data-lucide="plus" aria-hidden="true"></i><span>新增分类</span></button></div><datalist id="project-categories">' + ["APP Design", "Web Design", "Data visualization", "IP Design"].map((value) => '<option value="' + value + '"></option>').join("") + '</datalist>';
     return [
-      '<input name="itemType" type="hidden" value="portfolio" />',
+      '<input name="itemType" type="hidden" value="' + (isDemo ? "demo" : "portfolio") + '" />',
       '<div class="project-editor-layout">',
-      '  <section class="project-editor-main" aria-label="作品内容">',
+      '  <section class="project-editor-main" aria-label="' + (isDemo ? "演示内容" : "作品内容") + '">',
       '    <div class="project-editor-intro">',
-      '      <label class="project-title-field"><span class="visually-hidden">项目标题</span><input name="title" required value="' + escapeHtml(item.title || "") + '" placeholder="输入项目标题" /></label>',
-      '      <label class="project-description-field"><span class="visually-hidden">项目描述</span><textarea name="descriptionZh" rows="2" placeholder="请输入作品描述（选填）">' + escapeHtml(item.descriptionZh || "") + '</textarea></label>',
+      '      <label class="project-title-field"><span class="visually-hidden">' + (isDemo ? "演示标题" : "项目标题") + '</span><input name="title" required value="' + escapeHtml(item.title || "") + '" placeholder="输入' + (isDemo ? "演示" : "项目") + '标题" /></label>',
+      '      <label class="project-description-field"><span class="visually-hidden">' + (isDemo ? "演示描述" : "项目描述") + '</span><textarea name="descriptionZh" rows="2" placeholder="请输入' + (isDemo ? "演示说明" : "作品描述") + '（选填）">' + escapeHtml(item.descriptionZh || "") + '</textarea></label>',
       '    </div>',
-      '    <div class="project-document-toolbar" data-project-document-toolbar role="toolbar" aria-label="项目正文工具栏">',
+      '    <div class="project-document-toolbar" data-project-document-toolbar role="toolbar" aria-label="' + (isDemo ? "演示" : "项目") + '正文工具栏">',
       '      <div class="project-document-format-group">',
       '        <button type="button" data-project-document-format="p" title="正文"><i data-lucide="pilcrow" aria-hidden="true"></i><span>正文</span></button>',
       '        <button type="button" data-project-document-format="h2" title="二级标题"><i data-lucide="heading-2" aria-hidden="true"></i><span>标题</span></button>',
@@ -840,10 +825,10 @@
       '    <textarea name="gallery" class="project-gallery-source" hidden>' + escapeHtml(galleryImages.join("\n")) + '</textarea>',
       '    <input name="mediaUrl" type="hidden" value="' + escapeHtml(item.mediaUrl || "") + '" />',
       '    <textarea name="contentBlocks" hidden>' + escapeHtml(JSON.stringify(contentBlocks)) + '</textarea>',
-      '    <div class="project-document-canvas" id="project-document-editor" contenteditable="true" data-placeholder="开始撰写项目内容，可直接粘贴文字、拖入图片或视频……">' + projectDocumentBlocksToHtml(contentBlocks) + '</div>',
+      '    <div class="project-document-canvas" id="project-document-editor" contenteditable="true" data-placeholder="开始撰写' + (isDemo ? "演示" : "项目") + '内容，可直接粘贴文字、拖入图片或视频……">' + projectDocumentBlocksToHtml(contentBlocks) + '</div>',
       '    <div class="project-document-hint"><i data-lucide="mouse-pointer-2" aria-hidden="true"></i><span>可直接粘贴内容，或将图片、视频拖进正文</span></div>',
       '  </section>',
-      '  <aside class="project-editor-sidebar" aria-label="项目配置">',
+      '  <aside class="project-editor-sidebar" aria-label="' + (isDemo ? "演示" : "项目") + '配置">',
       '    <section class="project-cover-panel">',
       '      <div class="project-sidebar-heading"><span>封面图片</span><small>必填</small></div>',
       '      <div class="project-cover-preview" data-cover-preview>' + (cover ? '<img src="' + escapeHtml(cover) + '" alt="项目封面预览" />' : '<div><i data-lucide="image-plus" aria-hidden="true"></i><span>添加封面图片</span></div>') + '</div>',
@@ -851,13 +836,12 @@
       '      <label class="project-compact-field"><span>封面地址</span><input name="cover" value="' + escapeHtml(item.cover || "") + '" placeholder="图片 URL 或站内路径" data-cover-url /></label>',
       '    </section>',
       '    <div class="project-sidebar-fields">',
-      '      <div class="project-category-row"><label class="project-compact-field"><span>分类</span><input name="category" list="project-categories" value="' + escapeHtml(item.category || "APP Design") + '" /></label><button type="button" data-add-project-category><i data-lucide="plus" aria-hidden="true"></i><span>新增分类</span></button></div>',
-      '      <datalist id="project-categories">' + ["APP Design", "Web Design", "Data visualization", "IP Design"].map((value) => '<option value="' + value + '"></option>').join("") + '</datalist>',
+      '      ' + categoryControl,
       '      <label class="project-compact-field"><span>技术标签</span><input name="tags" value="' + escapeHtml((item.tags || []).join("，")) + '" placeholder="多个标签用逗号分隔" /></label>',
-      '      <label class="project-compact-field"><span>客户</span><input name="clientName" value="' + escapeHtml(item.clientName || "") + '" placeholder="请输入客户名称" /></label>',
-      '      <label class="project-compact-field"><span>项目链接</span><input name="prototypeHref" value="' + escapeHtml(item.prototypeHref || "") + '" placeholder="https:// 或站内路径" /></label>',
-      '      <label class="project-compact-field"><span>项目日期</span><input name="projectDate" type="date" value="' + escapeHtml(item.projectDate || "") + '" /></label>',
-      '      <div class="project-field-split"><label class="project-compact-field"><span>Slug</span><input name="slug" required pattern="[a-z0-9-]+" ' + (editing ? "readonly" : "") + ' value="' + escapeHtml(item.slug || "") + '" placeholder="project-slug" /></label><label class="project-compact-field"><span>项目排序</span><input name="sortOrder" type="number" min="0" value="' + Number(item.sortOrder || 0) + '" /></label></div>',
+      isDemo ? '' : '      <label class="project-compact-field"><span>客户</span><input name="clientName" value="' + escapeHtml(item.clientName || "") + '" placeholder="请输入客户名称" /></label>',
+      '      <label class="project-compact-field"><span>' + (isDemo ? "原型体验地址" : "项目链接") + '</span><input name="prototypeHref" value="' + escapeHtml(item.prototypeHref || "") + '" placeholder="https:// 或站内路径" /></label>',
+      '      <label class="project-compact-field"><span>' + (isDemo ? "演示日期" : "项目日期") + '</span><input name="projectDate" type="date" value="' + escapeHtml(item.projectDate || "") + '" /></label>',
+      '      <div class="project-field-split"><label class="project-compact-field"><span>Slug</span><input name="slug" required pattern="[a-z0-9\\-]+" ' + (editing ? "readonly" : "") + ' value="' + escapeHtml(item.slug || "") + '" placeholder="' + (isDemo ? "demo-slug" : "project-slug") + '" /></label><label class="project-compact-field"><span>' + (isDemo ? "演示排序" : "项目排序") + '</span><input name="sortOrder" type="number" min="0" value="' + Number(item.sortOrder || 0) + '" /></label></div>',
       '      <label class="project-switch-field"><span><strong>是否私密</strong><small>开启后需输入访问密码</small></span><input name="passwordEnabled" type="checkbox"' + (item.passwordEnabled ? " checked" : "") + ' /></label>',
       '      <label class="project-compact-field"><span>访问密码</span><input name="accessPassword" type="password" placeholder="' + (item.passwordEnabled ? "留空则保留当前密码" : "开启私密后填写") + '" /></label>',
       '      <label class="project-compact-field"><span>受保护跳转地址</span><input name="protectedTargetUrl" value="' + escapeHtml(item.protectedTargetUrl || "") + '" placeholder="验证通过后打开的地址" /></label>',
@@ -1073,7 +1057,7 @@
       '    <label class="article-publish-switch"><span><strong>发布状态</strong><small>关闭后保存为草稿</small></span><input name="published" type="checkbox"' + (item.published === false ? "" : " checked") + ' /></label>',
       '    <label class="article-sidebar-field"><span>发布时间</span><span class="article-publish-time"><i data-lucide="clock-3"></i><input value="' + escapeHtml(publishTime) + '" readonly /></span></label>',
       '    <details class="article-advanced-settings"><summary><span>更多文章信息</span><i data-lucide="chevron-down"></i></summary><div>',
-      '      <label class="article-sidebar-field"><span>Slug</span><input name="slug" required pattern="[a-z0-9-]+" ' + (editing ? "readonly" : "") + ' value="' + escapeHtml(slug) + '" /></label>',
+      '      <label class="article-sidebar-field"><span>Slug</span><input name="slug" required pattern="[a-z0-9\\-]+" ' + (editing ? "readonly" : "") + ' value="' + escapeHtml(slug) + '" /></label>',
       '      <div class="article-sidebar-split"><label class="article-sidebar-field"><span>排序</span><input name="sortOrder" type="number" min="0" value="' + Number(item.sortOrder || 0) + '" /></label><label class="article-sidebar-field"><span>日期标签</span><input name="date" value="' + escapeHtml(dateLabel) + '" /></label></div>',
       '      <label class="article-sidebar-field"><span>阅读信息</span><input name="readTime" value="' + escapeHtml(item.readTime || "") + '" placeholder="例如：8 分钟阅读" /></label>',
       '      <label class="article-sidebar-field"><span>文章摘要</span><textarea name="summary" rows="4" placeholder="用于文章列表和详情页导语">' + escapeHtml(item.summary || "") + '</textarea></label>',
@@ -1145,6 +1129,43 @@
     '<label class="field field-wide"><span>状态</span><select name="status">' + Object.entries(quoteStatusNames).map(([value, label]) => '<option value="' + value + '"' + (item.status === value ? " selected" : "") + '>' + label + '</option>').join("") + '</select></label>',
   ].join("\n");
 
+  const inquiryFields = (item) => {
+    const projectTypes = (item.projectTypes || []).length ? item.projectTypes : [item.projectType || "其他"];
+    const primaryContact = String(item.email || item.contact || "").trim();
+    const contactMarkup = primaryContact.includes("@")
+      ? '<a href="mailto:' + escapeHtml(primaryContact) + '">' + escapeHtml(primaryContact) + '</a>'
+      : '<strong>' + escapeHtml(primaryContact || "未提供") + '</strong>';
+    return [
+      '<div class="inquiry-detail-layout">',
+      '  <main class="inquiry-detail-main">',
+      '    <section class="inquiry-detail-hero">',
+      '      <span class="inquiry-detail-kicker">Customer inquiry</span>',
+      '      <h3>' + escapeHtml(item.name || "未署名客户") + '的项目咨询</h3>',
+      '      <p>提交于 ' + escapeHtml(formatDateTime(item.createdAt)) + '</p>',
+      '      <div class="inquiry-detail-tags">' + projectTypes.map((value) => '<span>' + escapeHtml(value) + '</span>').join("") + '</div>',
+      '    </section>',
+      '    <section class="inquiry-detail-section">',
+      '      <div class="inquiry-detail-section-heading"><span>需求说明</span><small>客户原始提交内容</small></div>',
+      '      <div class="inquiry-detail-message">' + escapeHtml(item.message || "未填写需求说明").replace(/\r?\n/g, "<br>") + '</div>',
+      '    </section>',
+      '    <section class="inquiry-detail-summary">',
+      '      <article><span>预算范围</span><strong>' + escapeHtml(item.budget || "未填写") + '</strong></article>',
+      '      <article><span>需求类型</span><strong>' + escapeHtml(projectTypes.join(" / ")) + '</strong></article>',
+      '    </section>',
+      '  </main>',
+      '  <aside class="project-editor-sidebar inquiry-detail-sidebar" aria-label="咨询处理设置">',
+      '    <div class="project-sidebar-heading"><span>处理信息</span><small>可更新</small></div>',
+      '    <div class="project-sidebar-fields">',
+      '      <label class="project-compact-field"><span>咨询状态</span><select name="status">' + Object.entries(inquiryStatusNames).map(([value, label]) => '<option value="' + value + '"' + (item.status === value ? " selected" : "") + '>' + label + '</option>').join("") + '</select></label>',
+      '      <div class="inquiry-contact-card"><span>联系方式</span>' + contactMarkup + (item.contact && item.contact !== primaryContact ? '<small>' + escapeHtml(item.contact) + '</small>' : '') + '</div>',
+      '      <div class="inquiry-contact-card"><span>提交时间</span><strong>' + escapeHtml(formatDateTime(item.createdAt)) + '</strong></div>',
+      '      <button class="button inquiry-delete-button" type="button" data-delete-current-inquiry="' + escapeHtml(item.id) + '"><i data-lucide="trash-2" aria-hidden="true"></i><span>删除这条咨询</span></button>',
+      '    </div>',
+      '  </aside>',
+      '</div>',
+    ].join("\n");
+  };
+
   const openEditor = (type, item) => {
     const editing = Boolean(item);
     const value = item || ((type === "project" || type === "demo")
@@ -1164,19 +1185,23 @@
               : { entryType: "income", category: "项目收入", amountCents: 0, paymentStatus: "paid", occurredOn: new Date().toISOString().slice(0, 10) });
     editorForm.dataset.type = type;
     editorDialog.classList.toggle("is-quick-entry", type === "quickLink" || type === "quickLinkCategory");
-    editorDialog.classList.toggle("is-project-editor", type === "project");
+    editorDialog.classList.toggle("is-project-editor", type === "project" || type === "demo" || type === "inquiry");
+    editorDialog.classList.toggle("is-inquiry-editor", type === "inquiry");
     editorDialog.classList.toggle("is-article-editor", type === "article");
-    document.body.classList.toggle("project-editor-open", type === "project" || type === "article");
+    document.body.classList.toggle("project-editor-open", type === "project" || type === "demo" || type === "inquiry" || type === "article");
     const labels = {
-      project: ["Portfolio", "项目"], demo: ["Practice & Demo", "练习与演示"], article: ["Article", "文章"], navigation: ["Navigation", "导航"], finance: ["Finance", "收支记录"], note: ["Thinking", "便签"], quickLink: ["Quick Entry", "网站"], quickLinkCategory: ["Quick Entry", "分类"], scheduleItem: ["Calendar", "事项"], quote: ["AI Quote", "报价"],
+      project: ["Portfolio", "项目"], demo: ["Practice & Demo", "练习与演示"], article: ["Article", "文章"], navigation: ["Navigation", "导航"], finance: ["Finance", "收支记录"], note: ["Thinking", "便签"], quickLink: ["Quick Entry", "网站"], quickLinkCategory: ["Quick Entry", "分类"], scheduleItem: ["Calendar", "事项"], quote: ["AI Quote", "报价"], inquiry: ["Inquiry", "客户咨询"],
     };
     document.getElementById("editor-eyebrow").textContent = labels[type][0];
-    document.getElementById("editor-title").textContent = (type === "quickLink" || type === "quickLinkCategory")
+    document.getElementById("editor-title").textContent = type === "inquiry"
+      ? "客户咨询详情"
+      : (type === "quickLink" || type === "quickLinkCategory")
       ? (editing ? "编辑" : "添加") + labels[type][1]
       : (editing ? "编辑" : "新建") + labels[type][1];
-    document.getElementById("editor-save-label").textContent = editing ? "保存修改" : type === "article" ? "创建文章" : type === "project" ? "创建项目" : "创建内容";
+    document.getElementById("editor-save-label").textContent = type === "inquiry" ? "保存状态" : editing ? "保存修改" : type === "article" ? "创建文章" : type === "project" ? "创建项目" : type === "demo" ? "创建演示" : "创建内容";
     editorBody.innerHTML = type === "project" || type === "demo" ? projectFields(value, editing, type)
       : type === "article" ? articleFields(value, editing)
+        : type === "inquiry" ? inquiryFields(value)
         : type === "navigation" ? navigationFields(value)
           : type === "finance" ? financeFields(value)
             : type === "note" ? noteFields(value)
@@ -1184,7 +1209,7 @@
                 : type === "quickLinkCategory" ? quickLinkCategoryFields(value)
                   : type === "scheduleItem" ? scheduleItemFields(value)
                     : quoteFields(value);
-    if (["navigation", "finance", "note", "quickLink", "quickLinkCategory", "scheduleItem", "quote"].includes(type) && value.id) editorForm.dataset.itemId = value.id;
+    if (["navigation", "finance", "note", "quickLink", "quickLinkCategory", "scheduleItem", "quote", "inquiry"].includes(type) && value.id) editorForm.dataset.itemId = value.id;
     else delete editorForm.dataset.itemId;
     editorDialog.showModal();
     projectDocumentRange = null;
@@ -1213,14 +1238,9 @@
       values.published = Boolean(editorForm.elements.namedItem("published").checked);
       values.passwordEnabled = Boolean(editorForm.elements.namedItem("passwordEnabled").checked);
       values.tags = String(values.tags || values.category).split(/[，,]/).map((item) => item.trim()).filter(Boolean);
-      if (type === "project") {
-        values.contentBlocks = syncProjectDocumentSources();
-        values.gallery = values.contentBlocks.filter((block) => block.type === "image").map((block) => block.src).filter(Boolean);
-        values.mediaUrl = values.contentBlocks.find((block) => block.type === "video" && block.src)?.src || "";
-      } else {
-        values.gallery = String(values.gallery || "").split(/\r?\n/).map((item) => item.trim()).filter(Boolean);
-        values.contentBlocks = Array.isArray(values.contentBlocks) ? values.contentBlocks : [];
-      }
+      values.contentBlocks = syncProjectDocumentSources();
+      values.gallery = values.contentBlocks.filter((block) => block.type === "image").map((block) => block.src).filter(Boolean);
+      values.mediaUrl = values.contentBlocks.find((block) => block.type === "video" && block.src)?.src || "";
       await api.saveProject(values, defaultProjects);
     } else if (type === "article") {
       values.sortOrder = Number(values.sortOrder || 0);
@@ -1270,6 +1290,8 @@
       await api.saveWorkbenchScheduleItem(values);
       state.selectedCalendarDate = values.date;
       state.calendarViewDate = dateFromKey(values.date);
+    } else if (type === "inquiry") {
+      await api.updateInquiryStatus(editorForm.dataset.itemId, values.status);
     } else if (type === "quote") {
       await api.updateQuoteRequest(editorForm.dataset.itemId, {
         status: values.status,
@@ -1279,7 +1301,7 @@
     }
     closeEditor();
     await loadData();
-    showToast("内容已保存");
+    showToast(type === "inquiry" ? "咨询状态已更新" : "内容已保存");
   };
 
   const handleListAction = async (event) => {
@@ -1501,17 +1523,17 @@
     }
   });
   inquiryList.addEventListener("click", async (event) => {
-    const button = event.target.closest("[data-delete-inquiry]");
-    if (!button || !window.confirm("确认删除这条咨询吗？此操作无法撤销。")) return;
-    try {
-      setSync("删除中", "busy");
-      await api.deleteInquiry(button.dataset.deleteInquiry);
-      await loadData();
-      showToast("咨询已删除");
-    } catch (error) {
-      setSync("删除失败", "error");
-      showToast(error.message, true);
-    }
+    const row = event.target.closest("[data-open-inquiry]");
+    const item = row && state.inquiries.find((entry) => entry.id === row.dataset.openInquiry);
+    if (item) openEditor("inquiry", item);
+  });
+  inquiryList.addEventListener("keydown", (event) => {
+    if (event.key !== "Enter" && event.key !== " ") return;
+    const row = event.target.closest("[data-open-inquiry]");
+    if (!row) return;
+    event.preventDefault();
+    const item = state.inquiries.find((entry) => entry.id === row.dataset.openInquiry);
+    if (item) openEditor("inquiry", item);
   });
 
   quoteSearch.addEventListener("input", renderQuotes);
@@ -1614,7 +1636,22 @@
     }
   });
 
-  editorBody.addEventListener("click", (event) => {
+  editorBody.addEventListener("click", async (event) => {
+    const deleteCurrentInquiry = event.target.closest("[data-delete-current-inquiry]");
+    if (deleteCurrentInquiry) {
+      if (!window.confirm("确认删除这条咨询吗？此操作无法撤销。")) return;
+      try {
+        setSync("删除中", "busy");
+        await api.deleteInquiry(deleteCurrentInquiry.dataset.deleteCurrentInquiry);
+        closeEditor();
+        await loadData();
+        showToast("咨询已删除");
+      } catch (error) {
+        setSync("删除失败", "error");
+        showToast(error.message, true);
+      }
+      return;
+    }
     const removeDocumentMedia = event.target.closest("[data-remove-project-document-media]");
     if (removeDocumentMedia) {
       event.preventDefault();

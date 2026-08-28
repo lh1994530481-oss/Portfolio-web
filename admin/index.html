@@ -67,6 +67,9 @@
           <button class="nav-item" type="button" data-section="inquiries" aria-label="客户咨询" data-label="客户咨询" title="客户咨询">
             <i data-lucide="messages-square" aria-hidden="true"></i><span>客户咨询</span>
           </button>
+          <button class="nav-item" type="button" data-section="consultation" aria-label="咨询配置" data-label="咨询配置" title="咨询配置">
+            <i data-lucide="file-cog" aria-hidden="true"></i><span>咨询配置</span>
+          </button>
           <button class="nav-item" type="button" data-section="quotes" aria-label="AI 报价" data-label="AI 报价" title="AI 报价">
             <i data-lucide="badge-dollar-sign" aria-hidden="true"></i><span>AI 报价</span>
           </button>
@@ -106,6 +109,7 @@
             <button class="workspace-tab" type="button" data-section="navigation">导航管理</button>
             <button class="workspace-tab" type="button" data-section="ai">AI 分身</button>
             <button class="workspace-tab" type="button" data-section="inquiries">客户咨询</button>
+            <button class="workspace-tab" type="button" data-section="consultation">咨询配置</button>
             <button class="workspace-tab" type="button" data-section="quotes">AI 报价</button>
             <button class="workspace-tab" type="button" data-section="finance">收支统计</button>
             <button class="workspace-tab" type="button" data-section="settings">站点信息</button>
@@ -280,6 +284,50 @@
             <div class="inquiry-list" id="inquiry-list"></div>
           </section>
 
+          <section class="admin-section" data-panel="consultation">
+            <div class="section-toolbar">
+              <div><p class="eyebrow">Consultation Page</p><h2>咨询内容配置</h2><p>管理咨询页的开场文案、表单选项、联系说明与服务流程。</p></div>
+              <a class="button button-secondary" href="https://lh1994530481-oss.github.io/Portfolio-web/consultation/" target="_blank" rel="noopener"><i data-lucide="external-link" aria-hidden="true"></i><span>查看咨询页</span></a>
+            </div>
+            <form class="settings-form surface" id="consultation-settings-form">
+              <div class="settings-group field-wide"><h3>页面开场</h3><p>控制咨询页顶部的英文标签、主标题和简介。</p></div>
+              <label class="field"><span>英文标签</span><input name="heroEyebrow" required /></label>
+              <label class="field"><span>页面标题</span><input name="heroTitle" required /></label>
+              <label class="field field-wide"><span>页面简介</span><textarea name="heroDescription" rows="3" required></textarea></label>
+
+              <div class="settings-group field-wide"><h3>需求表单</h3><p>配置表单标题、输入提示、项目类型、预算与提交按钮。</p></div>
+              <label class="field"><span>表单英文标签</span><input name="formEyebrow" required /></label>
+              <label class="field"><span>表单标题</span><input name="formTitle" required /></label>
+              <label class="field field-wide"><span>表单说明</span><textarea name="formDescription" rows="3" required></textarea></label>
+              <label class="field"><span>称呼字段名称</span><input name="nameLabel" required /></label>
+              <label class="field"><span>称呼输入提示</span><input name="namePlaceholder" required /></label>
+              <label class="field"><span>邮箱字段名称</span><input name="emailLabel" required /></label>
+              <label class="field"><span>邮箱输入提示</span><input name="emailPlaceholder" required /></label>
+              <label class="field"><span>项目类型字段名称</span><input name="projectTypesLabel" required /></label>
+              <label class="field"><span>预算字段名称</span><input name="budgetLabel" required /></label>
+              <label class="field field-wide"><span>项目类型</span><textarea name="projectTypes" rows="5" required placeholder="每行一个项目类型"></textarea><small>每行一个选项，前台会按顺序显示。</small></label>
+              <label class="field"><span>需求字段名称</span><input name="messageLabel" required /></label>
+              <label class="field"><span>需求输入提示</span><input name="messagePlaceholder" required /></label>
+              <label class="field field-wide"><span>需求填写说明</span><input name="messageHint" required /></label>
+              <label class="field field-wide"><span>预算选项</span><textarea name="budgetOptions" rows="6" required placeholder="每行一个预算范围"></textarea><small>第一项会作为默认选择。</small></label>
+              <label class="field"><span>报价按钮文案</span><input name="quoteButtonLabel" required /></label>
+              <label class="field"><span>提交按钮文案</span><input name="submitButtonLabel" required /></label>
+
+              <div class="settings-group field-wide"><h3>联系与服务流程</h3><p>联系账号继续由“站点信息”统一维护，这里只配置本页说明和流程文案。</p></div>
+              <label class="field"><span>联系英文标签</span><input name="contactEyebrow" required /></label>
+              <label class="field"><span>联系标题</span><input name="contactTitle" required /></label>
+              <label class="field field-wide"><span>联系介绍</span><textarea name="contactDescription" rows="3" required></textarea></label>
+              <label class="field"><span>流程英文标签</span><input name="processEyebrow" required /></label>
+              <label class="field"><span>流程标题</span><input name="processTitle" required /></label>
+              <label class="field field-wide"><span>服务流程</span><textarea name="processSteps" rows="8" required placeholder="每行一个流程步骤"></textarea><small>前台会自动生成 01、02、03… 序号。</small></label>
+
+              <div class="settings-group field-wide"><h3>页脚</h3></div>
+              <label class="field"><span>页脚品牌文案</span><input name="footerLabel" required /></label>
+              <label class="field"><span>返回按钮文案</span><input name="backLabel" required /></label>
+              <div class="form-actions field-wide"><button class="button button-primary" type="submit"><i data-lucide="save" aria-hidden="true"></i><span>保存咨询配置</span></button></div>
+            </form>
+          </section>
+
           <section class="admin-section" data-panel="quotes">
             <div class="section-toolbar"><div><p class="eyebrow">AI Quote</p><h2>AI 报价记录</h2><p>查看访客提交的报价需求，补充价格区间并跟进转化状态。</p></div></div>
             <div class="content-tools">
@@ -379,8 +427,8 @@
     <script src="../articles/articles-data.js"></script>
     <script src="./config.js?v=20260820-5"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.57.4"></script>
-    <script src="../shared/content-api.js?v=20260824-1"></script>
+    <script src="../shared/content-api.js?v=20260828-1"></script>
     <script src="https://unpkg.com/lucide@0.468.0/dist/umd/lucide.min.js"></script>
-    <script src="./admin.js?v=20260826-1" defer></script>
+    <script src="./admin.js?v=20260828-1" defer></script>
   </body>
 </html>

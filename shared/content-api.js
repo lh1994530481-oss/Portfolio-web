@@ -3,6 +3,36 @@
   const localPrefix = "lin-tong-xin-cms:";
   let client = null;
 
+  const defaultConsultationContent = {
+    heroEyebrow: "Project inquiry",
+    heroTitle: "咨询",
+    heroDescription: "用一份清晰的需求表单，开始一次高效的项目沟通。",
+    formEyebrow: "Tell me about your project",
+    formTitle: "项目需求表单",
+    formDescription: "带 * 的项目为必填项，提交后我会尽快与你联系。",
+    nameLabel: "称呼 *",
+    namePlaceholder: "怎么称呼你",
+    emailLabel: "邮箱 *",
+    emailPlaceholder: "name@example.com",
+    projectTypesLabel: "项目类型",
+    projectTypes: ["产品体验设计", "品牌与视觉设计", "数据可视化", "设计咨询"],
+    messageLabel: "项目需求 *",
+    messagePlaceholder: "简单介绍项目背景、目标和时间计划",
+    messageHint: "至少填写 10 个字，便于更准确地评估需求。",
+    budgetLabel: "预算范围",
+    budgetOptions: ["待沟通", "5,000 元以内", "5,000 - 20,000 元", "20,000 - 50,000 元", "50,000 元以上"],
+    quoteButtonLabel: "获取报价",
+    submitButtonLabel: "提交咨询",
+    contactEyebrow: "Contact",
+    contactTitle: "联系信息",
+    contactDescription: "如果你也在做品牌体验、数字产品或视觉叙事相关的项目，我们可以聊聊。",
+    processEyebrow: "Process",
+    processTitle: "服务流程",
+    processSteps: ["需求提交与初步沟通", "项目评估与报价", "确认范围与合作排期", "项目执行与阶段同步", "验收与最终交付", "售后服务与维护"],
+    footerLabel: "菻桐昕 Portfolio",
+    backLabel: "返回首页",
+  };
+
   const defaultSettings = {
     id: "main",
     aboutText: "拥有 5 年以上多端 UI/UX 体验设计经验，具备深厚的 B 端 SaaS 系统与 C 端移动产品设计实战积累。拥有极强的业务洞察力与产品思维，能独立完成从“需求分析-逻辑梳理-视觉表达-资产交付”的全流程工作。",
@@ -18,7 +48,17 @@
     contactItems: [],
     socialLinks: [],
     footerRegistration: "",
+    consultationContent: { ...defaultConsultationContent },
   };
+
+  const normalizeSettings = (settings) => ({
+    ...defaultSettings,
+    ...(settings || {}),
+    consultationContent: {
+      ...defaultConsultationContent,
+      ...((settings && settings.consultationContent) || {}),
+    },
+  });
 
   const defaultNavigation = [
     { id: "10000000-0000-4000-8000-000000000001", label: "首页", href: "#top", sortOrder: 0, published: true, openNewTab: false },
@@ -322,6 +362,10 @@
     contactItems: Array.isArray(row.contact_items) ? row.contact_items : [],
     socialLinks: Array.isArray(row.social_links) ? row.social_links : [],
     footerRegistration: row.footer_registration || "",
+    consultationContent: {
+      ...defaultConsultationContent,
+      ...((row.consultation_content && typeof row.consultation_content === "object") ? row.consultation_content : {}),
+    },
   });
 
   const settingsToRow = (settings) => ({
@@ -339,6 +383,7 @@
     contact_items: settings.contactItems || [],
     social_links: settings.socialLinks || [],
     footer_registration: settings.footerRegistration || "",
+    consultation_content: settings.consultationContent || defaultConsultationContent,
   });
 
   const sortContent = (items) => items.slice().sort((a, b) => Number(a.sortOrder || 0) - Number(b.sortOrder || 0));
@@ -419,7 +464,7 @@
   };
 
   const getSettings = async () => {
-    if (!isConfigured()) return { ...defaultSettings, ...readLocal("settings", {}) };
+    if (!isConfigured()) return normalizeSettings(readLocal("settings", {}));
     try {
       const rows = await publicRequest("site_settings?select=*&id=eq.main&limit=1");
       return rows[0] ? settingsFromRow(rows[0]) : defaultSettings;
@@ -840,7 +885,7 @@
   };
 
   const saveSettings = async (settings) => {
-    if (!isConfigured()) return writeLocal("settings", settings);
+    if (!isConfigured()) return writeLocal("settings", normalizeSettings(settings));
     const { data, error } = await getClient().from("site_settings").upsert(settingsToRow(settings)).select().single();
     if (error) throw error;
     return settingsFromRow(data);
@@ -914,6 +959,7 @@
   window.ContentAPI = {
     config,
     defaultSettings,
+    defaultConsultationContent,
     defaultNavigation,
     defaultQuickLinkCategories,
     defaultAiProfile,

@@ -79,6 +79,7 @@
     },
   };
   const settingsForm = document.getElementById("settings-form");
+  const consultationSettingsForm = document.getElementById("consultation-settings-form");
   const editorDialog = document.getElementById("editor-dialog");
   const editorForm = document.getElementById("editor-form");
   const editorBody = document.getElementById("editor-body");
@@ -119,6 +120,7 @@
     navigation: "导航管理",
     ai: "AI 分身",
     inquiries: "客户咨询",
+    consultation: "咨询配置",
     quotes: "AI 报价",
     finance: "收支统计",
     settings: "站点信息",
@@ -433,6 +435,29 @@
     settingsForm.elements.namedItem("showContact").checked = visibility.contact !== false;
   };
 
+  const renderConsultationSettings = () => {
+    const content = {
+      ...api.defaultConsultationContent,
+      ...(state.settings.consultationContent || {}),
+    };
+    [
+      "heroEyebrow", "heroTitle", "heroDescription",
+      "formEyebrow", "formTitle", "formDescription",
+      "nameLabel", "namePlaceholder", "emailLabel", "emailPlaceholder",
+      "projectTypesLabel", "messageLabel", "messagePlaceholder", "messageHint",
+      "budgetLabel", "quoteButtonLabel", "submitButtonLabel",
+      "contactEyebrow", "contactTitle", "contactDescription",
+      "processEyebrow", "processTitle", "footerLabel", "backLabel",
+    ].forEach((key) => {
+      const field = consultationSettingsForm.elements.namedItem(key);
+      if (field) field.value = content[key] || "";
+    });
+    ["projectTypes", "budgetOptions", "processSteps"].forEach((key) => {
+      const field = consultationSettingsForm.elements.namedItem(key);
+      if (field) field.value = (Array.isArray(content[key]) ? content[key] : []).join("\n");
+    });
+  };
+
   const renderSetup = () => {
     const configured = api.isConfigured();
     const config = api.config;
@@ -740,6 +765,7 @@
     renderQuotes();
     renderFinance();
     renderSettings();
+    renderConsultationSettings();
     renderSetup();
     refreshIcons();
   };
@@ -1468,9 +1494,29 @@
       delete values.showPortfolio;
       delete values.showArticles;
       delete values.showContact;
-      await api.saveSettings(values);
+      await api.saveSettings({ ...state.settings, ...values });
       await loadData();
       showToast("站点信息已保存");
+    } catch (error) {
+      setSync("保存失败", "error");
+      showToast(error.message, true);
+    }
+  });
+
+  consultationSettingsForm.addEventListener("submit", async (event) => {
+    event.preventDefault();
+    try {
+      setSync("保存中", "busy");
+      const values = serializeForm(consultationSettingsForm);
+      ["projectTypes", "budgetOptions", "processSteps"].forEach((key) => {
+        values[key] = String(values[key] || "").split(/\r?\n/).map((item) => item.trim()).filter(Boolean);
+      });
+      if (!values.projectTypes.length) throw new Error("请至少保留一个项目类型");
+      if (!values.budgetOptions.length) throw new Error("请至少保留一个预算选项");
+      if (!values.processSteps.length) throw new Error("请至少保留一个服务流程");
+      await api.saveSettings({ ...state.settings, consultationContent: values });
+      await loadData();
+      showToast("咨询配置已保存");
     } catch (error) {
       setSync("保存失败", "error");
       showToast(error.message, true);

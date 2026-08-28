@@ -21,33 +21,33 @@
 
     <main id="top" class="consultation-page">
       <section class="consultation-hero" aria-labelledby="consultation-title">
-        <p>Project inquiry</p>
-        <h1 id="consultation-title">咨询</h1>
-        <span>用一份清晰的需求表单，开始一次高效的项目沟通。</span>
+        <p data-consultation-text="heroEyebrow">Project inquiry</p>
+        <h1 id="consultation-title" data-consultation-text="heroTitle">咨询</h1>
+        <span data-consultation-text="heroDescription">用一份清晰的需求表单，开始一次高效的项目沟通。</span>
       </section>
 
       <section class="consultation-layout" aria-label="项目咨询">
         <article class="consultation-card consultation-form-card">
           <header class="consultation-card-heading">
-            <p>Tell me about your project</p>
-            <h2>项目需求表单</h2>
-            <span>带 * 的项目为必填项，提交后我会尽快与你联系。</span>
+            <p data-consultation-text="formEyebrow">Tell me about your project</p>
+            <h2 data-consultation-text="formTitle">项目需求表单</h2>
+            <span data-consultation-text="formDescription">带 * 的项目为必填项，提交后我会尽快与你联系。</span>
           </header>
 
           <form class="consultation-form" id="inquiry-form">
             <div class="consultation-form-row">
               <label>
-                <span>称呼 *</span>
-                <input name="name" type="text" maxlength="80" autocomplete="name" required placeholder="怎么称呼你" />
+                <span data-consultation-text="nameLabel">称呼 *</span>
+                <input name="name" type="text" maxlength="80" autocomplete="name" required placeholder="怎么称呼你" data-consultation-placeholder="namePlaceholder" />
               </label>
               <label>
-                <span>邮箱 *</span>
-                <input name="email" type="email" maxlength="160" autocomplete="email" required placeholder="name@example.com" />
+                <span data-consultation-text="emailLabel">邮箱 *</span>
+                <input name="email" type="email" maxlength="160" autocomplete="email" required placeholder="name@example.com" data-consultation-placeholder="emailPlaceholder" />
               </label>
             </div>
 
             <fieldset class="consultation-project-types">
-              <legend>项目类型</legend>
+              <legend data-consultation-text="projectTypesLabel">项目类型</legend>
               <label><input name="projectTypes" type="checkbox" value="产品体验设计" /><span>产品体验设计</span></label>
               <label><input name="projectTypes" type="checkbox" value="品牌与视觉设计" /><span>品牌与视觉设计</span></label>
               <label><input name="projectTypes" type="checkbox" value="数据可视化" /><span>数据可视化</span></label>
@@ -55,13 +55,13 @@
             </fieldset>
 
             <label class="consultation-message-field">
-              <span>项目需求 *</span>
-              <textarea name="message" rows="6" minlength="10" maxlength="2000" required placeholder="简单介绍项目背景、目标和时间计划"></textarea>
-              <small>至少填写 10 个字，便于更准确地评估需求。</small>
+              <span data-consultation-text="messageLabel">项目需求 *</span>
+              <textarea name="message" rows="6" minlength="10" maxlength="2000" required placeholder="简单介绍项目背景、目标和时间计划" data-consultation-placeholder="messagePlaceholder"></textarea>
+              <small data-consultation-text="messageHint">至少填写 10 个字，便于更准确地评估需求。</small>
             </label>
 
             <label>
-              <span>预算范围</span>
+              <span data-consultation-text="budgetLabel">预算范围</span>
               <select name="budget">
                 <option value="待沟通">待沟通</option>
                 <option value="5,000 元以内">5,000 元以内</option>
@@ -79,8 +79,8 @@
             <div class="consultation-form-actions">
               <p id="inquiry-form-status" role="status" aria-live="polite"></p>
               <div>
-                <button class="is-secondary" type="submit" data-inquiry-action="quote">获取报价</button>
-                <button type="submit" data-inquiry-action="inquiry">提交咨询</button>
+                <button class="is-secondary" type="submit" data-inquiry-action="quote" data-consultation-text="quoteButtonLabel">获取报价</button>
+                <button type="submit" data-inquiry-action="inquiry" data-consultation-text="submitButtonLabel">提交咨询</button>
               </div>
             </div>
           </form>
@@ -88,9 +88,9 @@
 
         <aside class="consultation-card consultation-info-card" aria-label="联系信息与服务流程">
           <section class="consultation-info-section">
-            <p class="consultation-card-kicker">Contact</p>
-            <h2>联系信息</h2>
-            <p class="consultation-info-intro" data-content="contactIntro">如果你也在做品牌体验、数字产品或视觉叙事相关的项目，我们可以聊聊。</p>
+            <p class="consultation-card-kicker" data-consultation-text="contactEyebrow">Contact</p>
+            <h2 data-consultation-text="contactTitle">联系信息</h2>
+            <p class="consultation-info-intro" data-consultation-text="contactDescription">如果你也在做品牌体验、数字产品或视觉叙事相关的项目，我们可以聊聊。</p>
             <dl class="consultation-contact-list">
               <div>
                 <dt>邮箱</dt>
@@ -112,8 +112,8 @@
           </section>
 
           <section class="consultation-process-section">
-            <p class="consultation-card-kicker">Process</p>
-            <h2>服务流程</h2>
+            <p class="consultation-card-kicker" data-consultation-text="processEyebrow">Process</p>
+            <h2 data-consultation-text="processTitle">服务流程</h2>
             <ol class="consultation-process-list">
               <li><span>01</span><strong>需求提交与初步沟通</strong></li>
               <li><span>02</span><strong>项目评估与报价</strong></li>
@@ -128,14 +128,14 @@
     </main>
 
     <footer class="consultation-footer">
-      <span>菻桐昕 Portfolio</span>
-      <a href="../index.html#top">返回首页</a>
+      <span data-consultation-text="footerLabel">菻桐昕 Portfolio</span>
+      <a href="../index.html#top" data-consultation-text="backLabel">返回首页</a>
     </footer>
 
     <script src="../admin/config.js"></script>
-    <script src="../shared/content-api.js?v=20260824-1"></script>
+    <script src="../shared/content-api.js?v=20260828-1"></script>
     <script src="../shared/site-operations.js?v=20260822-2" defer></script>
-    <script src="./consultation.js?v=20260824-2" defer></script>
+    <script src="./consultation.js?v=20260828-1" defer></script>
     <script src="../assets/page-transition.js" defer></script>
   </body>
 </html>

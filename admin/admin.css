@@ -592,6 +592,7 @@ input, textarea, select, .toggle-field { border-radius: 4px; }
 .finance-section-title strong { color: var(--muted); font-size: 10px; }
 .settings-group { padding-bottom: 18px; border-bottom: 1px solid var(--line); }
 .settings-group h3 { margin: 0 0 12px; font-size: 14px; }
+.settings-group p { margin: -4px 0 0; color: var(--muted); font-size: 10px; line-height: 1.6; }
 .toggle-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; }
 .field small { color: var(--muted); font-size: 10px; }
 .inquiry-message p small { display: block; margin-top: 4px; color: var(--muted); font-size: 9px; }

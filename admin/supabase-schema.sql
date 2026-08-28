@@ -51,6 +51,7 @@ create table if not exists public.site_settings (
   work_hours text not null default '',
   xiaohongshu_url text not null default '',
   wechat_qr_url text not null default '',
+  consultation_content jsonb not null default '{}'::jsonb,
   updated_at timestamptz not null default now()
 );
 
@@ -621,7 +622,8 @@ alter table public.site_settings
   add column if not exists about_details jsonb not null default '{}'::jsonb,
   add column if not exists contact_items jsonb not null default '[]'::jsonb,
   add column if not exists social_links jsonb not null default '[]'::jsonb,
-  add column if not exists footer_registration text not null default '';
+  add column if not exists footer_registration text not null default '',
+  add column if not exists consultation_content jsonb not null default '{}'::jsonb;
 
 create table if not exists public.quote_requests (
   id uuid primary key default gen_random_uuid(),

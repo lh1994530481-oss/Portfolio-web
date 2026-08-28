@@ -1,5 +1,11 @@
 (async function () {
   const api = window.ContentAPI;
+  const refreshIcons = () => {
+    if (window.lucide && typeof window.lucide.createIcons === "function") {
+      window.lucide.createIcons();
+    }
+  };
+  refreshIcons();
   if (!api) return;
 
   try {
@@ -75,6 +81,8 @@
       const value = settings[node.dataset.contentMail];
       if (value) node.href = "mailto:" + value;
     });
+
+    refreshIcons();
   } catch (error) {
     document.body.dataset.contentState = "fallback";
   }

@@ -9,7 +9,7 @@
     <link rel="stylesheet" href="../portfolio/portfolio.css?v=20260824-1" />
     <link rel="stylesheet" href="../shared/site-operations.css?v=20260822-1" />
     <link rel="stylesheet" href="../assets/page-transition.css" />
-    <link rel="stylesheet" href="./consultation.css?v=20260824-3" />
+    <link rel="stylesheet" href="./consultation.css?v=20260828-2" />
   </head>
   <body class="consultation-body">
     <header class="portfolio-page-header consultation-page-header" aria-label="Consultation navigation">
@@ -62,13 +62,16 @@
 
             <label>
               <span data-consultation-text="budgetLabel">预算范围</span>
-              <select name="budget">
-                <option value="待沟通">待沟通</option>
-                <option value="5,000 元以内">5,000 元以内</option>
-                <option value="5,000 - 20,000 元">5,000 - 20,000 元</option>
-                <option value="20,000 - 50,000 元">20,000 - 50,000 元</option>
-                <option value="50,000 元以上">50,000 元以上</option>
-              </select>
+              <span class="consultation-select-shell">
+                <select name="budget">
+                  <option value="待沟通">待沟通</option>
+                  <option value="5,000 元以内">5,000 元以内</option>
+                  <option value="5,000 - 20,000 元">5,000 - 20,000 元</option>
+                  <option value="20,000 - 50,000 元">20,000 - 50,000 元</option>
+                  <option value="50,000 元以上">50,000 元以上</option>
+                </select>
+                <i data-lucide="chevron-down" aria-hidden="true"></i>
+              </span>
             </label>
 
             <label class="contact-inquiry-trap" aria-hidden="true">
@@ -135,7 +138,8 @@
     <script src="../admin/config.js"></script>
     <script src="../shared/content-api.js?v=20260828-1"></script>
     <script src="../shared/site-operations.js?v=20260822-2" defer></script>
-    <script src="./consultation.js?v=20260828-1" defer></script>
+    <script src="https://unpkg.com/lucide@0.468.0/dist/umd/lucide.min.js"></script>
+    <script src="./consultation.js?v=20260828-2" defer></script>
     <script src="../assets/page-transition.js" defer></script>
   </body>
 </html>

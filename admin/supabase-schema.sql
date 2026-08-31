@@ -702,3 +702,427 @@ set blocks = (
 ),
 updated_at = now()
 where slug = 'codex-figma-frontend-workflow';
+
+-- Harden public lead submission and save protected projects atomically.
+alter table public.contact_inquiries
+  add column if not exists idempotency_key text;
+
+alter table public.quote_requests
+  add column if not exists idempotency_key text;
+
+alter table public.contact_inquiries
+  drop constraint if exists contact_inquiries_idempotency_key_key,
+  add constraint contact_inquiries_idempotency_key_key unique (idempotency_key),
+  drop constraint if exists contact_inquiries_email_length_check,
+  add constraint contact_inquiries_email_length_check check (char_length(email) <= 160) not valid,
+  drop constraint if exists contact_inquiries_budget_length_check,
+  add constraint contact_inquiries_budget_length_check check (char_length(budget) <= 80) not valid,
+  drop constraint if exists contact_inquiries_project_types_check,
+  add constraint contact_inquiries_project_types_check check (
+    cardinality(project_types) <= 8
+    and char_length(array_to_string(project_types, '')) <= 640
+  ) not valid;
+
+alter table public.quote_requests
+  drop constraint if exists quote_requests_idempotency_key_key,
+  add constraint quote_requests_idempotency_key_key unique (idempotency_key),
+  drop constraint if exists quote_requests_name_required_check,
+  add constraint quote_requests_name_required_check check (char_length(name) between 1 and 80) not valid,
+  drop constraint if exists quote_requests_contact_required_check,
+  add constraint quote_requests_contact_required_check check (char_length(contact) between 3 and 160) not valid,
+  drop constraint if exists quote_requests_details_required_check,
+  add constraint quote_requests_details_required_check check (char_length(details) between 10 and 3000) not valid,
+  drop constraint if exists quote_requests_budget_length_check,
+  add constraint quote_requests_budget_length_check check (char_length(budget) <= 80) not valid,
+  drop constraint if exists quote_requests_project_types_check,
+  add constraint quote_requests_project_types_check check (
+    cardinality(project_types) <= 8
+    and char_length(array_to_string(project_types, '')) <= 640
+  ) not valid;
+
+drop policy if exists "Public submits inquiries" on public.contact_inquiries;
+drop policy if exists "Public submits quote requests" on public.quote_requests;
+
+revoke insert on public.contact_inquiries from anon, authenticated;
+revoke insert on public.quote_requests from anon, authenticated;
+grant select, insert on public.contact_inquiries, public.quote_requests to service_role;
+
+create table if not exists public.lead_submission_attempts (
+  id bigint generated always as identity primary key,
+  fingerprint text not null check (char_length(fingerprint) = 64),
+  action text not null check (action in ('inquiry', 'quote')),
+  created_at timestamptz not null default now()
+);
+
+create index if not exists lead_submission_attempts_fingerprint_created_at_idx
+on public.lead_submission_attempts (fingerprint, created_at desc);
+
+create index if not exists lead_submission_attempts_created_at_idx
+on public.lead_submission_attempts (created_at);
+
+alter table public.lead_submission_attempts enable row level security;
+
+revoke all on table public.lead_submission_attempts from public, anon, authenticated;
+revoke all on sequence public.lead_submission_attempts_id_seq from public, anon, authenticated;
+grant select, insert, delete on table public.lead_submission_attempts to service_role;
+grant usage, select on sequence public.lead_submission_attempts_id_seq to service_role;
+
+create or replace function public.reserve_lead_submission(
+  p_fingerprint text,
+  p_action text
+)
+returns jsonb
+language plpgsql
+security definer
+set search_path = ''
+as $$
+declare
+  recent_count integer;
+  daily_count integer;
+begin
+  if char_length(coalesce(p_fingerprint, '')) <> 64
+    or p_action not in ('inquiry', 'quote') then
+    raise exception 'invalid lead submission reservation';
+  end if;
+
+  perform pg_catalog.pg_advisory_xact_lock(pg_catalog.hashtextextended(p_fingerprint, 0));
+
+  delete from public.lead_submission_attempts
+  where created_at < now() - interval '24 hours';
+
+  select count(*)::integer
+  into daily_count
+  from public.lead_submission_attempts
+  where fingerprint = p_fingerprint
+    and created_at >= now() - interval '24 hours';
+
+  select count(*)::integer
+  into recent_count
+  from public.lead_submission_attempts
+  where fingerprint = p_fingerprint
+    and created_at >= now() - interval '15 minutes';
+
+  if daily_count >= 20 or recent_count >= 5 then
+    return jsonb_build_object('allowed', false, 'retry_after', 900);
+  end if;
+
+  insert into public.lead_submission_attempts (fingerprint, action)
+  values (p_fingerprint, p_action);
+
+  return jsonb_build_object('allowed', true);
+end;
+$$;
+
+revoke all privileges on function public.reserve_lead_submission(text, text) from public, anon, authenticated;
+grant execute on function public.reserve_lead_submission(text, text) to service_role;
+
+create or replace function public.save_project_with_access(
+  p_slug text,
+  p_title text,
+  p_category text,
+  p_tags text[],
+  p_description_zh text,
+  p_cover_url text,
+  p_prototype_url text,
+  p_item_type text,
+  p_gallery jsonb,
+  p_content_blocks jsonb,
+  p_media_url text,
+  p_client_name text,
+  p_project_date date,
+  p_password_enabled boolean,
+  p_published boolean,
+  p_sort_order integer,
+  p_protected_target_url text,
+  p_access_password text
+)
+returns jsonb
+language plpgsql
+security definer
+set search_path = ''
+as $$
+declare
+  saved_project public.projects%rowtype;
+  resolved_target_url text;
+  has_existing_access boolean;
+begin
+  if not private.is_portfolio_admin() then
+    raise exception 'not authorized';
+  end if;
+
+  if coalesce(btrim(p_slug), '') = ''
+    or coalesce(btrim(p_title), '') = ''
+    or coalesce(btrim(p_category), '') = '' then
+    raise exception 'project slug, title, and category are required';
+  end if;
+
+  if p_item_type not in ('portfolio', 'demo') then
+    raise exception 'invalid project type';
+  end if;
+
+  resolved_target_url := coalesce(
+    nullif(btrim(p_protected_target_url), ''),
+    nullif(btrim(p_prototype_url), '')
+  );
+
+  if p_password_enabled then
+    if resolved_target_url is null then
+      raise exception 'protected target URL is required';
+    end if;
+
+    if coalesce(p_access_password, '') <> ''
+      and octet_length(p_access_password) not between 6 and 72 then
+      raise exception 'access password must be between 6 and 72 bytes';
+    end if;
+
+    select exists (
+      select 1
+      from public.project_access
+      where project_slug = p_slug
+    ) into has_existing_access;
+
+    if coalesce(p_access_password, '') = '' and not has_existing_access then
+      raise exception 'access password is required for a new protected project';
+    end if;
+  end if;
+
+  insert into public.projects (
+    slug,
+    title,
+    category,
+    tags,
+    description_zh,
+    cover_url,
+    prototype_url,
+    item_type,
+    gallery,
+    content_blocks,
+    media_url,
+    client_name,
+    project_date,
+    password_enabled,
+    published,
+    sort_order,
+    updated_at
+  )
+  values (
+    p_slug,
+    p_title,
+    p_category,
+    coalesce(p_tags, '{}'::text[]),
+    coalesce(p_description_zh, ''),
+    coalesce(p_cover_url, ''),
+    case when p_password_enabled then '' else coalesce(p_prototype_url, '') end,
+    p_item_type,
+    coalesce(p_gallery, '[]'::jsonb),
+    coalesce(p_content_blocks, '[]'::jsonb),
+    coalesce(p_media_url, ''),
+    coalesce(p_client_name, ''),
+    p_project_date,
+    p_password_enabled,
+    p_published,
+    coalesce(p_sort_order, 0),
+    now()
+  )
+  on conflict (slug) do update set
+    title = excluded.title,
+    category = excluded.category,
+    tags = excluded.tags,
+    description_zh = excluded.description_zh,
+    cover_url = excluded.cover_url,
+    prototype_url = excluded.prototype_url,
+    item_type = excluded.item_type,
+    gallery = excluded.gallery,
+    content_blocks = excluded.content_blocks,
+    media_url = excluded.media_url,
+    client_name = excluded.client_name,
+    project_date = excluded.project_date,
+    password_enabled = excluded.password_enabled,
+    published = excluded.published,
+    sort_order = excluded.sort_order,
+    updated_at = now()
+  returning * into saved_project;
+
+  if p_password_enabled then
+    if coalesce(p_access_password, '') <> '' then
+      insert into public.project_access (project_slug, target_url, password_hash, updated_at)
+      values (
+        p_slug,
+        resolved_target_url,
+        extensions.crypt(p_access_password, extensions.gen_salt('bf')),
+        now()
+      )
+      on conflict (project_slug) do update set
+        target_url = excluded.target_url,
+        password_hash = excluded.password_hash,
+        updated_at = excluded.updated_at;
+    else
+      update public.project_access
+      set target_url = resolved_target_url,
+          updated_at = now()
+      where project_slug = p_slug;
+    end if;
+  else
+    delete from public.project_access where project_slug = p_slug;
+  end if;
+
+  return to_jsonb(saved_project) || jsonb_build_object(
+    'protected_target_url',
+    case when p_password_enabled then resolved_target_url else '' end
+  );
+end;
+$$;
+
+revoke all privileges on function public.save_project_with_access(
+  text, text, text, text[], text, text, text, text, jsonb, jsonb, text, text,
+  date, boolean, boolean, integer, text, text
+) from public, anon;
+
+grant execute on function public.save_project_with_access(
+  text, text, text, text[], text, text, text, text, jsonb, jsonb, text, text,
+  date, boolean, boolean, integer, text, text
+) to authenticated;
+
+-- Keep privileged implementations outside the exposed Data API schema.
+-- Public RPC names remain stable and use SECURITY INVOKER wrappers.
+
+alter function public.verify_project_access(text, text) set schema private;
+alter function public.set_project_access(text, text, text) set schema private;
+alter function public.reserve_lead_submission(text, text) set schema private;
+alter function public.save_project_with_access(
+  text, text, text, text[], text, text, text, text, jsonb, jsonb, text, text,
+  date, boolean, boolean, integer, text, text
+) set schema private;
+
+revoke all on schema private from public;
+grant usage on schema private to anon, authenticated, service_role;
+
+revoke all privileges on function private.verify_project_access(text, text)
+from public, anon, authenticated, service_role;
+grant execute on function private.verify_project_access(text, text) to anon, authenticated;
+
+revoke all privileges on function private.set_project_access(text, text, text)
+from public, anon, authenticated, service_role;
+grant execute on function private.set_project_access(text, text, text) to authenticated;
+
+revoke all privileges on function private.reserve_lead_submission(text, text)
+from public, anon, authenticated, service_role;
+grant execute on function private.reserve_lead_submission(text, text) to service_role;
+
+revoke all privileges on function private.save_project_with_access(
+  text, text, text, text[], text, text, text, text, jsonb, jsonb, text, text,
+  date, boolean, boolean, integer, text, text
+) from public, anon, authenticated, service_role;
+grant execute on function private.save_project_with_access(
+  text, text, text, text[], text, text, text, text, jsonb, jsonb, text, text,
+  date, boolean, boolean, integer, text, text
+) to authenticated;
+
+create or replace function public.verify_project_access(
+  p_project_slug text,
+  p_password text
+)
+returns text
+language sql
+stable
+security invoker
+set search_path = ''
+as $$
+  select private.verify_project_access(p_project_slug, p_password);
+$$;
+
+create or replace function public.set_project_access(
+  p_project_slug text,
+  p_target_url text,
+  p_password text
+)
+returns void
+language sql
+volatile
+security invoker
+set search_path = ''
+as $$
+  select private.set_project_access(p_project_slug, p_target_url, p_password);
+$$;
+
+create or replace function public.reserve_lead_submission(
+  p_fingerprint text,
+  p_action text
+)
+returns jsonb
+language sql
+volatile
+security invoker
+set search_path = ''
+as $$
+  select private.reserve_lead_submission(p_fingerprint, p_action);
+$$;
+
+create or replace function public.save_project_with_access(
+  p_slug text,
+  p_title text,
+  p_category text,
+  p_tags text[],
+  p_description_zh text,
+  p_cover_url text,
+  p_prototype_url text,
+  p_item_type text,
+  p_gallery jsonb,
+  p_content_blocks jsonb,
+  p_media_url text,
+  p_client_name text,
+  p_project_date date,
+  p_password_enabled boolean,
+  p_published boolean,
+  p_sort_order integer,
+  p_protected_target_url text,
+  p_access_password text
+)
+returns jsonb
+language sql
+volatile
+security invoker
+set search_path = ''
+as $$
+  select private.save_project_with_access(
+    p_slug,
+    p_title,
+    p_category,
+    p_tags,
+    p_description_zh,
+    p_cover_url,
+    p_prototype_url,
+    p_item_type,
+    p_gallery,
+    p_content_blocks,
+    p_media_url,
+    p_client_name,
+    p_project_date,
+    p_password_enabled,
+    p_published,
+    p_sort_order,
+    p_protected_target_url,
+    p_access_password
+  );
+$$;
+
+revoke all privileges on function public.verify_project_access(text, text)
+from public, anon, authenticated, service_role;
+grant execute on function public.verify_project_access(text, text) to anon, authenticated;
+
+revoke all privileges on function public.set_project_access(text, text, text)
+from public, anon, authenticated, service_role;
+grant execute on function public.set_project_access(text, text, text) to authenticated;
+
+revoke all privileges on function public.reserve_lead_submission(text, text)
+from public, anon, authenticated, service_role;
+grant execute on function public.reserve_lead_submission(text, text) to service_role;
+
+revoke all privileges on function public.save_project_with_access(
+  text, text, text, text[], text, text, text, text, jsonb, jsonb, text, text,
+  date, boolean, boolean, integer, text, text
+) from public, anon, authenticated, service_role;
+grant execute on function public.save_project_with_access(
+  text, text, text, text[], text, text, text, text, jsonb, jsonb, text, text,
+  date, boolean, boolean, integer, text, text
+) to authenticated;

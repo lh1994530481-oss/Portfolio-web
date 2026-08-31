@@ -136,18 +136,27 @@
     return response.json();
   };
 
-  const publicInsert = async (table, value) => {
-    const response = await fetch(config.supabaseUrl.replace(/\/$/, "") + "/rest/v1/" + table, {
+  const createRequestId = () => window.crypto && typeof window.crypto.randomUUID === "function"
+    ? window.crypto.randomUUID()
+    : "lead-" + Date.now() + "-" + Math.random().toString(16).slice(2);
+
+  const submitLead = async (action, value) => {
+    const response = await fetch(config.supabaseUrl.replace(/\/$/, "") + "/functions/v1/submit-lead", {
       method: "POST",
       headers: {
         apikey: getKey(),
         Authorization: "Bearer " + getKey(),
         "Content-Type": "application/json",
-        Prefer: "return=minimal",
       },
-      body: JSON.stringify(value),
+      body: JSON.stringify({
+        action,
+        idempotencyKey: createRequestId(),
+        ...value,
+      }),
     });
-    if (!response.ok) throw new Error("内容服务暂时不可用");
+    if (response.status === 429) throw new Error("提交过于频繁，请稍后再试");
+    if (!response.ok) throw new Error("提交服务暂时不可用");
+    return response.json();
   };
 
   const publicRpc = async (functionName, params) => {
@@ -412,6 +421,7 @@
           getClient().from("project_access").select("project_slug,target_url"),
         ]);
         if (projectResult.error) throw projectResult.error;
+        if (accessResult.error) throw accessResult.error;
         const accessBySlug = new Map((accessResult.data || []).map((item) => [item.project_slug, item.target_url]));
         return projectResult.data.map((row) => projectFromRow({ ...row, protected_target_url: accessBySlug.get(row.slug) || "" }));
       }
@@ -419,6 +429,7 @@
       const rows = await publicRequest("projects?select=*&order=sort_order.asc" + filter);
       return rows.map(projectFromRow);
     } catch (error) {
+      if (includeDrafts) throw error;
       return defaults;
     }
   };
@@ -437,6 +448,7 @@
       const rows = await publicRequest("articles?select=*&order=sort_order.asc" + filter);
       return rows.map(articleFromRow);
     } catch (error) {
+      if (includeDrafts) throw error;
       return defaults;
     }
   };
@@ -459,6 +471,7 @@
       const rows = await publicRequest("navigation_items?select=*&published=eq.true&order=sort_order.asc");
       return ensureRequiredNavigation(rows.map(navigationFromRow));
     } catch (error) {
+      if (includeDrafts) throw error;
       return ensureRequiredNavigation(defaults.filter((item) => includeDrafts || item.published !== false));
     }
   };
@@ -484,6 +497,7 @@
       const rows = await publicRequest("ai_profile?select=*&id=eq.main&enabled=eq.true&limit=1");
       return rows[0] ? aiProfileFromRow(rows[0]) : { ...defaultAiProfile, enabled: false };
     } catch (error) {
+      if (includeDisabled) throw error;
       return { ...defaultAiProfile, enabled: false };
     }
   };
@@ -553,7 +567,13 @@
       inquiries.unshift(inquiryFromRow({ ...row, id: "local-" + Date.now(), created_at: new Date().toISOString() }));
       return writeLocal("inquiries", inquiries);
     }
-    await publicInsert("contact_inquiries", row);
+    await submitLead("inquiry", {
+      name: row.name,
+      email: row.email,
+      projectTypes: row.project_types,
+      budget: row.budget,
+      message: row.message,
+    });
   };
 
   const submitQuoteRequest = async (request) => {
@@ -573,13 +593,12 @@
       items.unshift({ ...value, id: "local-" + Date.now() });
       return writeLocal("quote-requests", items);
     }
-    await publicInsert("quote_requests", {
+    await submitLead("quote", {
       name: value.name,
-      contact: value.contact,
-      project_types: value.projectTypes,
+      email: value.contact,
+      projectTypes: value.projectTypes,
       budget: value.budget,
-      details: value.details,
-      status: "new",
+      message: value.details,
     });
   };
 
@@ -818,22 +837,28 @@
       else projects.push({ ...project, id: "local-" + Date.now() });
       return writeLocal("projects", projects);
     }
-    const { data, error } = await getClient().from("projects").upsert(projectToRow(project), { onConflict: "slug" }).select().single();
+    const { data, error } = await getClient().rpc("save_project_with_access", {
+      p_slug: project.slug,
+      p_title: project.title,
+      p_category: project.category,
+      p_tags: project.tags && project.tags.length ? project.tags : [project.category],
+      p_description_zh: project.descriptionZh || "",
+      p_cover_url: project.cover || "",
+      p_prototype_url: project.prototypeHref || "",
+      p_item_type: project.itemType || "portfolio",
+      p_gallery: Array.isArray(project.gallery) ? project.gallery : [],
+      p_content_blocks: Array.isArray(project.contentBlocks) ? project.contentBlocks : [],
+      p_media_url: project.mediaUrl || "",
+      p_client_name: project.clientName || "",
+      p_project_date: project.projectDate || null,
+      p_password_enabled: project.passwordEnabled === true,
+      p_published: project.published !== false,
+      p_sort_order: Number(project.sortOrder || 0),
+      p_protected_target_url: project.protectedTargetUrl || "",
+      p_access_password: project.accessPassword || "",
+    });
     if (error) throw error;
-    if (project.passwordEnabled) {
-      const targetUrl = project.protectedTargetUrl || project.prototypeHref || "";
-      if (project.accessPassword) {
-        const accessResult = await getClient().rpc("set_project_access", { p_project_slug: project.slug, p_target_url: targetUrl, p_password: project.accessPassword });
-        if (accessResult.error) throw accessResult.error;
-      } else if (targetUrl) {
-        const accessResult = await getClient().from("project_access").update({ target_url: targetUrl, updated_at: new Date().toISOString() }).eq("project_slug", project.slug);
-        if (accessResult.error) throw accessResult.error;
-      }
-    } else {
-      const accessResult = await getClient().from("project_access").delete().eq("project_slug", project.slug);
-      if (accessResult.error) throw accessResult.error;
-    }
-    return projectFromRow({ ...data, protected_target_url: project.protectedTargetUrl || "" });
+    return projectFromRow(data);
   };
 
   const deleteProject = async (slug, fallback) => {

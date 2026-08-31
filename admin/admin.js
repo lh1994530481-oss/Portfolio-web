@@ -168,38 +168,42 @@
 
   const loadData = async () => {
     setSync("读取内容", "busy");
-    const [projects, articles, navigation, settings, events, aiProfile, inquiries, finance, workbenchNotes, quickLinks, quickLinkCategories, moods, scheduleItems, quotes] = await Promise.all([
-      api.listProjects(defaultProjects, true),
-      api.listArticles(defaultArticles, true),
-      api.listNavigation(defaultNavigation, true),
-      api.getSettings(),
-      api.listEvents(500),
-      api.getAiProfile(true),
-      api.listInquiries(),
-      api.listFinanceEntries(),
-      api.listWorkbenchNotes(),
-      api.listQuickLinks(),
-      api.listQuickLinkCategories(),
-      api.listWorkbenchMoods(),
-      api.listWorkbenchScheduleItems(),
-      api.listQuoteRequests(),
-    ]);
-    state.projects = projects;
-    state.articles = articles;
-    state.navigation = navigation;
-    state.settings = settings;
-    state.events = events;
-    state.aiProfile = aiProfile;
-    state.inquiries = inquiries;
-    state.finance = finance;
-    state.workbenchNotes = workbenchNotes;
-    state.quickLinks = quickLinks;
-    state.quickLinkCategories = quickLinkCategories;
-    state.moods = moods;
-    state.scheduleItems = scheduleItems;
-    state.quotes = quotes;
+    const resources = [
+      ["projects", "项目", () => api.listProjects(defaultProjects, true), defaultProjects],
+      ["articles", "文章", () => api.listArticles(defaultArticles, true), defaultArticles],
+      ["navigation", "导航", () => api.listNavigation(defaultNavigation, true), defaultNavigation],
+      ["settings", "站点设置", () => api.getSettings(), api.defaultSettings],
+      ["events", "访问统计", () => api.listEvents(500), []],
+      ["aiProfile", "AI 分身", () => api.getAiProfile(true), api.defaultAiProfile],
+      ["inquiries", "客户咨询", () => api.listInquiries(), []],
+      ["finance", "收支统计", () => api.listFinanceEntries(), []],
+      ["workbenchNotes", "工作台便签", () => api.listWorkbenchNotes(), []],
+      ["quickLinks", "快捷入口", () => api.listQuickLinks(), []],
+      ["quickLinkCategories", "快捷分类", () => api.listQuickLinkCategories(), api.defaultQuickLinkCategories],
+      ["moods", "心情记录", () => api.listWorkbenchMoods(), []],
+      ["scheduleItems", "日程", () => api.listWorkbenchScheduleItems(), []],
+      ["quotes", "报价", () => api.listQuoteRequests(), []],
+    ];
+    const results = await Promise.allSettled(resources.map((resource) => resource[2]()));
+    const failures = [];
+    results.forEach((result, index) => {
+      const [key, label, , fallback] = resources[index];
+      if (result.status === "fulfilled") {
+        state[key] = result.value;
+        return;
+      }
+      if (!state[key] || (Array.isArray(state[key]) && !state[key].length)) state[key] = fallback;
+      failures.push({ label, error: result.reason });
+      console.error(label + "加载失败", result.reason);
+    });
     renderAll();
-    setSync(api.getMode() === "local" ? "本地已保存" : "已同步", "");
+    if (failures.length) {
+      setSync("部分数据未加载", "error");
+      showToast("加载失败：" + failures.map((item) => item.label).join("、") + "。可稍后刷新重试。", true);
+    } else {
+      setSync(api.getMode() === "local" ? "本地已保存" : "已同步", "");
+    }
+    return failures;
   };
 
   const publishedCount = (items) => items.filter((item) => item.published !== false).length;
@@ -1263,6 +1267,14 @@
       values.sortOrder = Number(values.sortOrder || 0);
       values.published = Boolean(editorForm.elements.namedItem("published").checked);
       values.passwordEnabled = Boolean(editorForm.elements.namedItem("passwordEnabled").checked);
+      const existingProject = state.projects.find((item) => item.slug === values.slug);
+      const protectedTarget = String(values.protectedTargetUrl || values.prototypeHref || "").trim();
+      const accessPassword = String(values.accessPassword || "");
+      const accessPasswordBytes = accessPassword ? new TextEncoder().encode(accessPassword).length : 0;
+      if (values.passwordEnabled && !protectedTarget) throw new Error("私密项目必须填写受保护跳转地址");
+      if (values.passwordEnabled && !existingProject?.passwordEnabled && !accessPassword) throw new Error("首次开启私密项目时必须填写访问密码");
+      if (accessPassword && accessPasswordBytes < 6) throw new Error("访问密码至少需要 6 个字节");
+      if (accessPasswordBytes > 72) throw new Error("访问密码不能超过 72 个字节");
       values.tags = String(values.tags || values.category).split(/[，,]/).map((item) => item.trim()).filter(Boolean);
       values.contentBlocks = syncProjectDocumentSources();
       values.gallery = values.contentBlocks.filter((block) => block.type === "image").map((block) => block.src).filter(Boolean);
@@ -1358,21 +1370,29 @@
     showToast("内容已删除");
   };
 
+  const reportAdminError = (error) => {
+    console.error("后台初始化失败", error);
+    setSync("初始化失败", "error");
+    showToast(error.message || "后台初始化失败，请刷新重试", true);
+  };
+
   const showApp = async () => {
     authScreen.hidden = true;
     adminApp.hidden = false;
     modeBadge.textContent = api.getMode() === "local" ? "本地预览" : "Supabase 在线";
     modeBadge.classList.toggle("is-live", api.getMode() === "supabase");
-    await loadData();
+    return loadData();
   };
 
   const showAppWithAuthRetry = async () => {
     try {
-      await showApp();
-    } catch (error) {
-      if (!/JWT issued at future/i.test(error.message || "")) throw error;
+      const failures = await showApp();
+      const clockSkewFailure = failures.find((item) => /JWT issued at future/i.test(item.error?.message || ""));
+      if (!clockSkewFailure) return;
       await new Promise((resolve) => window.setTimeout(resolve, 1200));
       await showApp();
+    } catch (error) {
+      reportAdminError(error);
     }
   };
 
@@ -2056,6 +2076,7 @@
   };
 
   start().catch((error) => {
-    authStatus.textContent = error.message || "后台初始化失败";
+    if (adminApp.hidden) authStatus.textContent = error.message || "后台初始化失败";
+    else reportAdminError(error);
   });
 })();

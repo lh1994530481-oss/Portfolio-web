@@ -53,14 +53,21 @@
   const inquiryForm = document.getElementById("inquiry-form");
   if (inquiryForm) {
     const status = document.getElementById("inquiry-form-status");
+    const submitButtons = Array.from(inquiryForm.querySelectorAll('button[type="submit"]'));
+    let inquirySubmitting = false;
     inquiryForm.addEventListener("submit", async (event) => {
       event.preventDefault();
+      if (inquirySubmitting) return;
+      inquirySubmitting = true;
       const action = event.submitter && event.submitter.dataset.inquiryAction === "quote" ? "quote" : "inquiry";
       const formData = new FormData(inquiryForm);
       const values = Object.fromEntries(formData.entries());
-      if (values.company) return;
-      const button = event.submitter || inquiryForm.querySelector('button[type="submit"]');
-      button.disabled = true;
+      if (values.company) {
+        inquirySubmitting = false;
+        return;
+      }
+      submitButtons.forEach((button) => { button.disabled = true; });
+      inquiryForm.setAttribute("aria-busy", "true");
       status.textContent = "正在提交...";
       status.classList.remove("is-error");
       try {
@@ -80,10 +87,14 @@
         status.textContent = action === "quote" ? "报价需求已提交，我会尽快完成评估。" : "已收到，我会尽快联系你。";
         track("contact_submit", { contentType: action, contentId: formData.getAll("projectTypes").join(",") || "其他" });
       } catch (error) {
-        status.textContent = "提交失败，请稍后重试或使用上方联系方式。";
+        status.textContent = error && error.message === "提交过于频繁，请稍后再试"
+          ? error.message
+          : "提交失败，请稍后重试或使用上方联系方式。";
         status.classList.add("is-error");
       } finally {
-        button.disabled = false;
+        inquirySubmitting = false;
+        submitButtons.forEach((button) => { button.disabled = false; });
+        inquiryForm.removeAttribute("aria-busy");
       }
     });
   }

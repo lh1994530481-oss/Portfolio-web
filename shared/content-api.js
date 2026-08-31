@@ -1,5 +1,8 @@
 (function () {
   const config = window.PORTFOLIO_CMS_CONFIG || {};
+  const analyticsApi = window.PortfolioAnalyticsApi;
+  const contentModels = window.PortfolioContentModels;
+  if (!contentModels) throw new Error("PortfolioContentModels 未加载");
   const localPrefix = "lin-tong-xin-cms:";
   let client = null;
 
@@ -174,19 +177,7 @@
     return response.json();
   };
 
-  const normalizeProjectClassification = (project) => {
-    if (!project || project.slug !== "homi-smart-home-prototype") return project;
-    const legacyCategory = project.category === "Exercises and Demos";
-    const legacyTags = !Array.isArray(project.tags)
-      || project.tags.length === 0
-      || (project.tags.length === 1 && project.tags[0] === "Exercises and Demos");
-    return {
-      ...project,
-      itemType: "demo",
-      category: legacyCategory || !project.category ? "原型" : project.category,
-      tags: legacyTags ? ["智能家居", "交互原型", "场景自动化", "安防告警", "能源管理"] : project.tags,
-    };
-  };
+  const normalizeProjectClassification = contentModels.normalizeProjectClassification;
 
   const projectFromRow = (row) => normalizeProjectClassification({
     id: row.id,
@@ -395,21 +386,8 @@
     consultation_content: settings.consultationContent || defaultConsultationContent,
   });
 
-  const sortContent = (items) => items.slice().sort((a, b) => Number(a.sortOrder || 0) - Number(b.sortOrder || 0));
-
-  const ensureRequiredNavigation = (items) => {
-    const navigation = items.slice();
-    const demoDefault = defaultNavigation.find((item) => item.href === "./demos/index.html");
-    const hasDemos = navigation.some((item) => item.id === demoDefault.id || item.href === demoDefault.href || item.label === demoDefault.label);
-    if (!hasDemos) {
-      const portfolioIndex = navigation.findIndex((item) => item.href === "./portfolio/index.html" || item.label === "作品集");
-      navigation.splice(portfolioIndex >= 0 ? portfolioIndex + 1 : navigation.length, 0, { ...demoDefault });
-    }
-    const consultationDefault = defaultNavigation.find((item) => item.href === "./consultation/index.html");
-    const hasConsultation = navigation.some((item) => item.id === consultationDefault.id || item.href === consultationDefault.href || item.label === consultationDefault.label);
-    if (!hasConsultation) navigation.push({ ...consultationDefault });
-    return navigation;
-  };
+  const sortContent = contentModels.sortContent;
+  const ensureRequiredNavigation = (items) => contentModels.ensureRequiredNavigation(items, defaultNavigation);
   const listProjects = async (fallback, includeDrafts) => {
     const defaults = (fallback || []).map((item, index) => normalizeProjectClassification({ ...item, published: item.published !== false, sortOrder: item.sortOrder ?? index }));
     if (!isConfigured()) return sortContent(readLocal("projects", defaults).map(normalizeProjectClassification)).filter((item) => includeDrafts || item.published !== false);
@@ -549,6 +527,17 @@
     const { data, error } = await getClient().from("site_events").select("*").order("created_at", { ascending: false }).limit(limit || 500);
     if (error) throw error;
     return data || [];
+  };
+
+  const getAnalyticsDashboard = async (days, recentLimit) => {
+    if (!analyticsApi) throw new Error("PortfolioAnalyticsApi 未加载");
+    if (!isConfigured()) return analyticsApi.buildLocalDashboard(readLocal("site-events", []), days, recentLimit);
+    const { data, error } = await getClient().rpc("get_analytics_dashboard", {
+      p_days: Number(days || 30),
+      p_recent_limit: Number(recentLimit || 100),
+    });
+    if (error) throw error;
+    return data || analyticsApi.emptyDashboard();
   };
 
   const submitInquiry = async (inquiry) => {
@@ -1002,6 +991,7 @@
     saveAiProfile,
     trackEvent,
     listEvents,
+    getAnalyticsDashboard,
     submitInquiry,
     submitQuoteRequest,
     listInquiries,

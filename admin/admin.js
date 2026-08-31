@@ -1,5 +1,11 @@
 (function () {
   const api = window.ContentAPI;
+  const adminAnalytics = window.PortfolioAdminAnalytics;
+  const authSession = window.PortfolioAdminAuth;
+  const contentDomain = window.PortfolioAdminContent;
+  const leadsDomain = window.PortfolioAdminLeads;
+  const financeDomain = window.PortfolioAdminFinance;
+  if (!api || !adminAnalytics || !authSession || !contentDomain || !leadsDomain || !financeDomain) throw new Error("后台依赖未加载");
   const siteBase = (api.config.publicSiteUrl || new URL("../", window.location.href).href).replace(/\/?$/, "/");
   const absoluteSiteUrl = (value) => {
     if (!value || /^(?:https?:|data:|blob:)/i.test(value)) return value || "";
@@ -20,7 +26,6 @@
     blocks: (item.blocks || []).map((block) => block.src ? { ...block, src: absoluteArticleUrl(block.src) } : block),
   }));
   const defaultNavigation = Array.isArray(api.defaultNavigation) ? api.defaultNavigation : [];
-  const fixedLoginKey = "lin-tong-xin-cms:authenticated";
 
   const authScreen = document.getElementById("auth-screen");
   const adminApp = document.getElementById("admin-app");
@@ -94,7 +99,7 @@
     articlePageSize: 10,
     navigation: [],
     settings: { ...api.defaultSettings },
-    events: [],
+    analyticsDashboard: window.PortfolioAnalyticsApi.emptyDashboard(),
     aiProfile: { ...api.defaultAiProfile },
     inquiries: [],
     finance: [],
@@ -128,12 +133,10 @@
     setup: "后台设置",
   };
 
-  const escapeHtml = (value) =>
-    String(value ?? "")
-      .replace(/&/g, "&amp;")
-      .replace(/</g, "&lt;")
-      .replace(/>/g, "&gt;")
-      .replace(/"/g, "&quot;");
+  const sanitizer = window.PortfolioSanitize;
+  if (!sanitizer) throw new Error("PortfolioSanitize 未加载");
+  const { escapeHtml, safeUrl, safeImageUrl } = sanitizer;
+  const safeMediaUrl = (value) => safeUrl(value, { allowHash: false, protocols: ["http:", "https:", "blob:"] });
 
   const refreshIcons = () => {
     if (window.lucide && typeof window.lucide.createIcons === "function") window.lucide.createIcons();
@@ -173,7 +176,7 @@
       ["articles", "文章", () => api.listArticles(defaultArticles, true), defaultArticles],
       ["navigation", "导航", () => api.listNavigation(defaultNavigation, true), defaultNavigation],
       ["settings", "站点设置", () => api.getSettings(), api.defaultSettings],
-      ["events", "访问统计", () => api.listEvents(500), []],
+      ["analyticsDashboard", "访问统计", () => api.getAnalyticsDashboard(30, 100), window.PortfolioAnalyticsApi.emptyDashboard()],
       ["aiProfile", "AI 分身", () => api.getAiProfile(true), api.defaultAiProfile],
       ["inquiries", "客户咨询", () => api.listInquiries(), []],
       ["finance", "收支统计", () => api.listFinanceEntries(), []],
@@ -217,11 +220,11 @@
     const entries = items.map((item) => {
       const icon = categoryIcons[item.category] || "link-2";
       const visual = item.imageUrl
-        ? '<img src="' + escapeHtml(item.imageUrl) + '" alt="" />'
+        ? '<img src="' + escapeHtml(safeImageUrl(item.imageUrl)) + '" alt="" />'
         : '<i data-lucide="' + icon + '" aria-hidden="true"></i>';
       return [
         '<article class="quick-entry-item">',
-        '  <a class="quick-entry-link" href="' + escapeHtml(item.url) + '" target="_blank" rel="noopener">',
+        '  <a class="quick-entry-link" href="' + escapeHtml(safeUrl(item.url)) + '" target="_blank" rel="noopener">',
         '    <span class="quick-entry-icon">' + visual + '</span><strong>' + escapeHtml(item.label) + '</strong>',
         '  </a>',
         '  <button class="quick-entry-delete" type="button" data-delete-link="' + escapeHtml(item.id) + '" aria-label="删除' + escapeHtml(item.label) + '" title="删除"><i data-lucide="x"></i></button>',
@@ -238,13 +241,14 @@
     const projectPublished = publishedCount(portfolioItems);
     const demoPublished = publishedCount(demos);
     const articlePublished = publishedCount(state.articles);
-    const pageViews = state.events.filter((event) => event.event_name === "page_view");
-    const todayViews = pageViews.filter((event) => localDateKey(event.created_at) === localDateKey()).length;
+    const analytics = adminAnalytics.normalizedDashboard(state.analyticsDashboard);
+    const todayRow = analytics.daily.find((item) => item.day === localDateKey());
+    const todayViews = Number(todayRow && todayRow.pageViews || 0);
     const metrics = [
       ["panels-top-left", "作品总数", portfolioItems.length, projectPublished + " 个已发布"],
       ["play-square", "演示总数", demos.length, demoPublished + " 个已发布"],
       ["notebook-pen", "笔记总数", state.workbenchNotes.length, "工作台便签"],
-      ["eye", "访客总数", pageViews.length, "今日 " + todayViews + " 次"],
+      ["eye", "页面浏览", Number(analytics.totals.pageViews || 0), "今日 " + todayViews + " 次"],
     ];
     document.getElementById("metric-grid").innerHTML = metrics
       .map((item) => [
@@ -286,19 +290,12 @@
     const featured = portfolioItems.find((item) => item.published !== false) || demos[0];
     document.getElementById("featured-project").innerHTML = featured ? [
       '<button class="featured-project" type="button" data-workbench-project="' + escapeHtml(featured.slug) + '">',
-      '  <img src="' + escapeHtml(featured.cover || "") + '" alt="" />',
+      '  <img src="' + escapeHtml(safeImageUrl(featured.cover || "")) + '" alt="" />',
       '  <span><small>' + escapeHtml(featured.category) + '</small><strong>' + escapeHtml(featured.title) + '</strong><i data-lucide="arrow-up-right"></i></span>',
       '</button>',
     ].join("") : '<div class="empty-state compact">还没有可展示的项目。</div>';
 
-    const visitDays = Array.from({ length: 5 }, (_, index) => {
-      const date = new Date();
-      date.setHours(0, 0, 0, 0);
-      date.setDate(date.getDate() - index);
-      const count = pageViews.filter((event) => localDateKey(event.created_at) === localDateKey(date)).length;
-      const label = index === 0 ? "今日" : index === 1 ? "昨日" : new Intl.DateTimeFormat("zh-CN", { month: "2-digit", day: "2-digit" }).format(date);
-      return { label, count };
-    });
+    const visitDays = adminAnalytics.visitDays(analytics, 5, localDateKey);
     const maxVisitCount = Math.max(1, ...visitDays.map((item) => item.count));
     document.getElementById("workbench-visit-stats").innerHTML = visitDays.map((item, index) => [
       '<div class="visit-stat-row">',
@@ -338,7 +335,7 @@
       const isProject = type === "project" || type === "demo";
       const subtitle = isProject ? item.slug : (item.date || item.slug);
       const image = isProject && item.cover
-        ? '<img class="content-thumb" src="' + escapeHtml(item.cover) + '" alt="" />'
+        ? '<img class="content-thumb" src="' + escapeHtml(safeImageUrl(item.cover)) + '" alt="" />'
         : '<span class="content-thumb content-placeholder"><i data-lucide="' + (isProject ? "image" : "file-text") + '"></i></span>';
       return [
         '<article class="content-row">',
@@ -581,96 +578,22 @@
   }).format(Number(amountCents || 0) / 100);
 
   const renderAnalytics = () => {
-    const pageViews = state.events.filter((event) => event.event_name === "page_view");
-    const clicks = state.events.filter((event) => event.event_name === "content_click");
-    const sessions = new Set(state.events.map((event) => event.session_id).filter(Boolean));
-    const todayKey = localDateKey();
-    const todayViews = pageViews.filter((event) => localDateKey(event.created_at) === todayKey).length;
-    const metrics = [
-      ["eye", "页面浏览", pageViews.length, "最近 500 条事件"],
-      ["users", "独立访客", sessions.size, "按浏览会话统计"],
-      ["mouse-pointer-click", "内容点击", clicks.length, "作品、文章与原型"],
-      ["calendar-days", "今日访问", todayViews, "北京时间自然日"],
-    ];
-    analyticsMetrics.innerHTML = metrics.map((item) => [
-      '<article class="metric"><div class="metric-top"><span>' + item[1] + '</span><span class="metric-icon"><i data-lucide="' + item[0] + '"></i></span></div>',
-      '<strong>' + item[2] + '</strong><small>' + item[3] + '</small></article>',
-    ].join("")).join("");
-
-    const dayBuckets = [];
-    for (let offset = 6; offset >= 0; offset -= 1) {
-      const date = new Date();
-      date.setHours(0, 0, 0, 0);
-      date.setDate(date.getDate() - offset);
-      const key = localDateKey(date);
-      dayBuckets.push({ key, label: (date.getMonth() + 1) + "/" + date.getDate(), count: pageViews.filter((event) => localDateKey(event.created_at) === key).length });
-    }
-    const maxViews = Math.max(1, ...dayBuckets.map((item) => item.count));
-    analyticsTrend.innerHTML = '<div class="trend-chart">' + dayBuckets.map((item) => [
-      '<div class="trend-column"><span class="trend-value">' + item.count + '</span>',
-      '<span class="trend-bar"><i style="height:' + Math.max(4, (item.count / maxViews) * 100) + '%"></i></span>',
-      '<small>' + item.label + '</small></div>',
-    ].join("")).join("") + '</div>';
-
-    const pathCounts = pageViews.reduce((result, event) => {
-      const path = event.path || "/";
-      result[path] = (result[path] || 0) + 1;
-      return result;
-    }, {});
-    const rankedPaths = Object.entries(pathCounts).sort((a, b) => b[1] - a[1]).slice(0, 6);
-    popularPages.innerHTML = rankedPaths.length ? rankedPaths.map(([path, count], index) => [
-      '<div class="ranking-row"><span class="ranking-index">' + String(index + 1).padStart(2, "0") + '</span>',
-      '<strong title="' + escapeHtml(path) + '">' + escapeHtml(path) + '</strong><span>' + count + ' 次</span></div>',
-    ].join("")).join("") : '<div class="empty-state">网站产生访问后会在这里显示。</div>';
-
-    const deviceNames = { desktop: "桌面端", tablet: "平板", mobile: "移动端" };
-    const deviceCounts = state.events.reduce((result, event) => {
-      const key = event.device_type || "desktop";
-      result[key] = (result[key] || 0) + 1;
-      return result;
-    }, {});
-    const deviceTotal = Math.max(1, state.events.length);
-    deviceBreakdown.innerHTML = Object.keys(deviceNames).map((key) => {
-      const count = deviceCounts[key] || 0;
-      return '<div class="device-row"><div><span>' + deviceNames[key] + '</span><strong>' + count + '</strong></div><span class="device-bar"><i style="width:' + (count / deviceTotal) * 100 + '%"></i></span></div>';
-    }).join("");
-
-    const eventNames = { page_view: "访问页面", content_click: "点击内容", contact_submit: "提交咨询", ai_open: "打开 AI 助手" };
-    analyticsEventList.innerHTML = state.events.length ? state.events.slice(0, 12).map((event) => [
-      '<div class="analytics-event"><span class="event-dot"></span><div><strong>' + escapeHtml(eventNames[event.event_name] || event.event_name) + '</strong>',
-      '<small>' + escapeHtml(event.path || "/") + '</small></div><span>' + formatDateTime(event.created_at) + '</span></div>',
-    ].join("")).join("") : '<div class="empty-state">暂无访问数据。</div>';
-
-    const sessionMap = state.events.reduce((result, event) => {
-      const key = event.session_id || "unknown";
-      if (!result[key]) result[key] = { id: key, events: [], first: event.created_at, last: event.created_at, entry: event.path || "/", source: event.referrer_host || "直接访问", device: event.device_type || "desktop", ipAddress: event.ip_address || "", countryCode: event.country_code || "", region: event.region || "", city: event.city || "" };
-      result[key].events.push(event);
-      if (new Date(event.created_at) < new Date(result[key].first)) {
-        result[key].first = event.created_at;
-        result[key].entry = event.path || "/";
-      }
-      if (new Date(event.created_at) > new Date(result[key].last)) {
-        result[key].last = event.created_at;
-        result[key].ipAddress = event.ip_address || result[key].ipAddress;
-        result[key].countryCode = event.country_code || result[key].countryCode;
-        result[key].region = event.region || result[key].region;
-        result[key].city = event.city || result[key].city;
-      }
-      return result;
-    }, {});
-    const visitorSessions = Object.values(sessionMap).sort((a, b) => new Date(b.last) - new Date(a.last));
-    const activeCount = visitorSessions.filter((item) => Date.now() - new Date(item.last).getTime() < 5 * 60 * 1000).length;
-    document.getElementById("active-visitors").textContent = activeCount + " 位活跃访客";
-    visitorSessionList.innerHTML = visitorSessions.length ? [
-      '<div class="visitor-head"><span>访客</span><span>网络地址</span><span>入口页面</span><span>来源</span><span>页面数</span><span>访问时间</span></div>',
-      ...visitorSessions.slice(0, 20).map((item) => {
-        const paths = new Set(item.events.map((event) => event.path));
-        const deviceLabel = { desktop: "桌面端", tablet: "平板", mobile: "移动端" }[item.device] || item.device;
-        const location = [item.countryCode, item.region, item.city].filter(Boolean).join(" · ") || "位置未知";
-        const address = String(item.ipAddress || "历史记录未采集").replace(/\/(?:32|128)$/, "");
-        return '<article class="visitor-row"><div><strong>' + escapeHtml(item.id.slice(0, 12)) + '</strong><small>' + escapeHtml(deviceLabel) + '</small></div><div><code>' + escapeHtml(address) + '</code><small>' + escapeHtml(location) + '</small></div><code>' + escapeHtml(item.entry) + '</code><span>' + escapeHtml(item.source) + '</span><strong>' + paths.size + '</strong><time>' + formatDateTime(item.last) + '</time></article>';
-      }),
-    ].join("") : '<div class="empty-state compact">暂无访客会话。</div>';
+    adminAnalytics.render({
+      dashboard: state.analyticsDashboard,
+      escapeHtml,
+      formatDateTime,
+      localDateKey,
+      elements: {
+        metrics: analyticsMetrics,
+        trend: analyticsTrend,
+        popularPages,
+        devices: deviceBreakdown,
+        eventList: analyticsEventList,
+        sessions: visitorSessionList,
+        active: document.getElementById("active-visitors"),
+      },
+    });
+    return;
   };
 
   const renderAiProfile = () => {
@@ -691,14 +614,11 @@
     aiForm.elements.namedItem("fallbackMessage").value = profile.fallbackMessage || "";
   };
 
-  const inquiryStatusNames = { new: "待处理", read: "已查看", replied: "已回复", closed: "已关闭" };
+  const inquiryStatusNames = leadsDomain.inquiryStatusNames;
   const renderInquiries = () => {
     const query = inquirySearch.value.trim().toLowerCase();
     const status = inquiryStatusFilter.value;
-    const items = state.inquiries.filter((item) => {
-      if (status !== "all" && item.status !== status) return false;
-      return !query || [item.name, item.contact, item.email, item.projectType, (item.projectTypes || []).join(" "), item.budget, item.message].some((value) => String(value || "").toLowerCase().includes(query));
-    });
+    const items = leadsDomain.filterInquiries(state.inquiries, query, status);
     inquiryCount.textContent = "显示 " + items.length + " / " + state.inquiries.length;
     inquiryList.innerHTML = items.length ? items.map((item) => [
       '<article class="inquiry-row is-clickable" data-open-inquiry="' + escapeHtml(item.id) + '" tabindex="0" role="button" aria-label="查看' + escapeHtml(item.name || "客户") + '的咨询详情">',
@@ -712,33 +632,24 @@
     refreshIcons();
   };
 
-  const quoteStatusNames = { new: "待评估", reviewed: "已评估", converted: "已成交", closed: "已关闭" };
+  const quoteStatusNames = leadsDomain.quoteStatusNames;
   const renderQuotes = () => {
     const query = quoteSearch.value.trim().toLowerCase();
     const status = quoteStatusFilter.value;
-    const items = state.quotes.filter((item) => {
-      if (status !== "all" && item.status !== status) return false;
-      return !query || [item.name, item.contact, item.budget, item.details, (item.projectTypes || []).join(" ")].some((value) => String(value || "").toLowerCase().includes(query));
-    });
+    const items = leadsDomain.filterQuotes(state.quotes, query, status);
     quoteCount.textContent = "显示 " + items.length + " / " + state.quotes.length;
     quoteList.innerHTML = items.length ? items.map((item) => {
       const estimate = item.estimateMinCents || item.estimateMaxCents ? formatMoney(item.estimateMinCents) + " - " + formatMoney(item.estimateMaxCents) : "待报价";
-      return '<article class="inquiry-row quote-row"><div class="inquiry-person"><strong>' + escapeHtml(item.name || "未署名") + '</strong><a href="mailto:' + escapeHtml(item.contact) + '">' + escapeHtml(item.contact) + '</a></div><div class="inquiry-message"><span>' + escapeHtml((item.projectTypes || []).join(" / ") || "其他") + '</span><p>' + escapeHtml(item.details) + '<small>预算：' + escapeHtml(item.budget || "未填写") + ' · ' + estimate + '</small></p></div><time>' + formatDateTime(item.createdAt) + '</time><select class="inquiry-status" data-quote-status="' + escapeHtml(item.id) + '">' + Object.entries(quoteStatusNames).map(([value, label]) => '<option value="' + value + '"' + (item.status === value ? " selected" : "") + '>' + label + '</option>').join("") + '</select><button class="icon-button" type="button" data-edit="quote" data-id="' + escapeHtml(item.id) + '" aria-label="编辑报价"><i data-lucide="pencil"></i></button></article>';
+      return '<article class="inquiry-row quote-row"><div class="inquiry-person"><strong>' + escapeHtml(item.name || "未署名") + '</strong><a href="' + escapeHtml(safeUrl("mailto:" + item.contact)) + '">' + escapeHtml(item.contact) + '</a></div><div class="inquiry-message"><span>' + escapeHtml((item.projectTypes || []).join(" / ") || "其他") + '</span><p>' + escapeHtml(item.details) + '<small>预算：' + escapeHtml(item.budget || "未填写") + ' · ' + estimate + '</small></p></div><time>' + formatDateTime(item.createdAt) + '</time><select class="inquiry-status" data-quote-status="' + escapeHtml(item.id) + '">' + Object.entries(quoteStatusNames).map(([value, label]) => '<option value="' + value + '"' + (item.status === value ? " selected" : "") + '>' + label + '</option>').join("") + '</select><button class="icon-button" type="button" data-edit="quote" data-id="' + escapeHtml(item.id) + '" aria-label="编辑报价"><i data-lucide="pencil"></i></button></article>';
     }).join("") : '<div class="empty-state">没有符合条件的报价记录。</div>';
     refreshIcons();
   };
 
   const renderFinance = () => {
     const monthKey = financeMonth.value;
-    const entries = monthKey ? state.finance.filter((item) => String(item.occurredOn || "").startsWith(monthKey)) : state.finance;
-    const incomeItems = entries.filter((item) => item.entryType === "income");
-    const expenseItems = entries.filter((item) => item.entryType === "expense");
-    const income = incomeItems.reduce((sum, item) => sum + Number(item.paidAmountCents || item.amountCents || 0), 0);
-    const contract = incomeItems.reduce((sum, item) => sum + Number(item.contractAmountCents || item.amountCents || 0), 0);
-    const expense = expenseItems.reduce((sum, item) => sum + Number(item.amountCents || 0), 0);
-    const outstanding = Math.max(0, contract - income);
+    const { incomeItems, expenseItems, income, contract, expense, outstanding, balance } = financeDomain.summarize(state.finance, monthKey);
     const metrics = [
-      ["badge-cent", "当前结余", formatMoney(income - expense), monthKey || "全部记录"],
+      ["badge-cent", "当前结余", formatMoney(balance), monthKey || "全部记录"],
       ["circle-dollar-sign", "已收款", formatMoney(income), incomeItems.length + " 笔收入"],
       ["receipt-text", "累计支出", formatMoney(expense), expenseItems.length + " 笔支出"],
       ["clock-3", "待收款", formatMoney(outstanding), "合同总额 " + formatMoney(contract)],
@@ -776,7 +687,7 @@
 
   const projectGalleryCard = (source, index) => [
     '<article class="project-gallery-card" data-gallery-card="' + index + '">',
-    '  <div class="project-gallery-image"><img src="' + escapeHtml(source) + '" alt="作品图片 ' + (index + 1) + '" loading="lazy" /><span class="project-gallery-index">' + String(index + 1).padStart(2, "0") + '</span></div>',
+    '  <div class="project-gallery-image"><img src="' + escapeHtml(safeImageUrl(source)) + '" alt="作品图片 ' + (index + 1) + '" loading="lazy" /><span class="project-gallery-index">' + String(index + 1).padStart(2, "0") + '</span></div>',
     '  <div class="project-gallery-card-footer">',
     '    <label><span class="visually-hidden">作品图片 ' + (index + 1) + ' 地址</span><input data-gallery-entry value="' + escapeHtml(source) + '" aria-label="作品图片 ' + (index + 1) + ' 地址" /></label>',
     '    <div class="project-gallery-card-actions">',
@@ -801,14 +712,14 @@
     if (block.type === "heading") return '<h2>' + escapeHtml(block.text || "") + '</h2>';
     if (block.type === "image" && block.src) return [
       '<figure class="project-document-media is-image" data-project-document-media="image">',
-      '  <img src="' + escapeHtml(block.src) + '" alt="' + escapeHtml(block.alt || block.caption || "") + '" />',
+      '  <img src="' + escapeHtml(safeImageUrl(block.src)) + '" alt="' + escapeHtml(block.alt || block.caption || "") + '" />',
       '  <figcaption>' + escapeHtml(block.caption || block.alt || "") + '</figcaption>',
       '  <button type="button" data-remove-project-document-media contenteditable="false" aria-label="移除图片"><i data-lucide="trash-2" aria-hidden="true"></i></button>',
       '</figure>',
     ].join("\n");
     if (block.type === "video" && block.src) return [
       '<figure class="project-document-media is-video" data-project-document-media="video">',
-      '  <video src="' + escapeHtml(block.src) + '" controls playsinline preload="metadata"></video>',
+      '  <video src="' + escapeHtml(safeMediaUrl(block.src)) + '" controls playsinline preload="metadata"></video>',
       '  <figcaption>' + escapeHtml(block.caption || "") + '</figcaption>',
       '  <button type="button" data-remove-project-document-media contenteditable="false" aria-label="移除视频"><i data-lucide="trash-2" aria-hidden="true"></i></button>',
       '</figure>',
@@ -861,7 +772,7 @@
       '  <aside class="project-editor-sidebar" aria-label="' + (isDemo ? "演示" : "项目") + '配置">',
       '    <section class="project-cover-panel">',
       '      <div class="project-sidebar-heading"><span>封面图片</span><small>必填</small></div>',
-      '      <div class="project-cover-preview" data-cover-preview>' + (cover ? '<img src="' + escapeHtml(cover) + '" alt="项目封面预览" />' : '<div><i data-lucide="image-plus" aria-hidden="true"></i><span>添加封面图片</span></div>') + '</div>',
+      '      <div class="project-cover-preview" data-cover-preview>' + (cover ? '<img src="' + escapeHtml(safeImageUrl(cover)) + '" alt="项目封面预览" />' : '<div><i data-lucide="image-plus" aria-hidden="true"></i><span>添加封面图片</span></div>') + '</div>',
       '      <div class="project-cover-actions"><label class="button button-secondary"><i data-lucide="upload" aria-hidden="true"></i><span>上传封面</span><input type="file" accept="image/jpeg,image/png,image/webp" data-cover-upload /></label><button class="button button-ghost" type="button" data-use-first-gallery>使用首图</button></div>',
       '      <label class="project-compact-field"><span>封面地址</span><input name="cover" value="' + escapeHtml(item.cover || "") + '" placeholder="图片 URL 或站内路径" data-cover-url /></label>',
       '    </section>',
@@ -903,14 +814,14 @@
     const preview = editorBody.querySelector("[data-cover-preview]");
     if (!preview) return;
     preview.innerHTML = url
-      ? '<img src="' + escapeHtml(url) + '" alt="项目封面预览" />'
+      ? '<img src="' + escapeHtml(safeImageUrl(url)) + '" alt="项目封面预览" />'
       : '<div><i data-lucide="image-plus" aria-hidden="true"></i><span>添加封面图片</span></div>';
     refreshIcons();
   };
 
   const articleBlocksToHtml = (blocks) => (blocks || []).map((block) => {
     if (block.type === "heading") return '<h2>' + escapeHtml(block.text) + '</h2>';
-    if (block.type === "image") return '<figure><img src="' + escapeHtml(block.src) + '" alt="' + escapeHtml(block.alt || "") + '"><figcaption>' + escapeHtml(block.alt || "") + '</figcaption></figure>';
+    if (block.type === "image") return '<figure><img src="' + escapeHtml(safeImageUrl(block.src)) + '" alt="' + escapeHtml(block.alt || "") + '"><figcaption>' + escapeHtml(block.alt || "") + '</figcaption></figure>';
     if (block.type === "quote") return '<blockquote>' + (block.html || escapeHtml(block.text)) + '</blockquote>';
     if (block.type === "code") return '<pre>' + escapeHtml(block.text) + '</pre>';
     if (block.type === "list") {
@@ -921,25 +832,7 @@
     return '<p>' + (block.html || escapeHtml(block.text || "")) + '</p>';
   }).join("");
 
-  const sanitizeInlineHtml = (node) => {
-    const clone = node.cloneNode(true);
-    const allowed = new Set(["B", "STRONG", "I", "EM", "U", "S", "A", "BR"]);
-    Array.from(clone.querySelectorAll("*")).reverse().forEach((element) => {
-      if (!allowed.has(element.tagName)) {
-        element.replaceWith(...element.childNodes);
-        return;
-      }
-      const href = element.tagName === "A" ? element.getAttribute("href") || "" : "";
-      Array.from(element.attributes).forEach((attribute) => element.removeAttribute(attribute.name));
-      if (element.tagName === "A") {
-        if (/^(https?:|mailto:|#)/i.test(href)) {
-          element.setAttribute("href", href);
-          element.setAttribute("rel", "noopener noreferrer");
-        } else element.replaceWith(...element.childNodes);
-      }
-    });
-    return clone.innerHTML;
-  };
+  const sanitizeInlineHtml = sanitizer.sanitizeInlineHtml;
 
   const articleHtmlToBlocks = (html) => {
     const documentValue = new DOMParser().parseFromString('<div id="root">' + html + '</div>', "text/html");
@@ -1140,7 +1033,7 @@
     '<label class="quick-entry-form-row"><span>网站名称</span><input name="label" required maxlength="80" value="' + escapeHtml(item.label || "") + '" placeholder="请输入网站名称" /></label>',
     '<label class="quick-entry-form-row"><span>网站 URL</span><input name="url" type="url" required value="' + escapeHtml(item.url || "") + '" placeholder="请输入网站 URL，如：https://example.com" /></label>',
     '<label class="quick-entry-form-row"><span>所属分类</span><select name="category">' + state.quickLinkCategories.map((category) => '<option value="' + escapeHtml(category.name) + '"' + (category.name === (item.category || state.activeQuickLinkCategory) ? ' selected' : '') + '>' + escapeHtml(category.name) + '</option>').join("") + '</select></label>',
-    '<label class="quick-entry-image-row"><span>入口图片</span><span class="quick-entry-image-control"><span class="quick-entry-image-preview" data-quick-entry-preview>' + (item.imageUrl ? '<img src="' + escapeHtml(item.imageUrl) + '" alt="当前入口图片" />' : '<i data-lucide="image-plus" aria-hidden="true"></i>') + '</span><span><strong>添加图片</strong><small>支持 JPG、PNG、WebP，建议使用方形图片</small></span><input name="quickEntryImage" type="file" accept="image/jpeg,image/png,image/webp" data-quick-entry-image /></span></label>',
+    '<label class="quick-entry-image-row"><span>入口图片</span><span class="quick-entry-image-control"><span class="quick-entry-image-preview" data-quick-entry-preview>' + (item.imageUrl ? '<img src="' + escapeHtml(safeImageUrl(item.imageUrl)) + '" alt="当前入口图片" />' : '<i data-lucide="image-plus" aria-hidden="true"></i>') + '</span><span><strong>添加图片</strong><small>支持 JPG、PNG、WebP，建议使用方形图片</small></span><input name="quickEntryImage" type="file" accept="image/jpeg,image/png,image/webp" data-quick-entry-image /></span></label>',
     '<input name="imageUrl" type="hidden" value="' + escapeHtml(item.imageUrl || "") + '" />',
     '<input name="sortOrder" type="hidden" value="' + Number(item.sortOrder ?? state.quickLinks.length) + '" />',
   ].join("\n");
@@ -1163,7 +1056,7 @@
     const projectTypes = (item.projectTypes || []).length ? item.projectTypes : [item.projectType || "其他"];
     const primaryContact = String(item.email || item.contact || "").trim();
     const contactMarkup = primaryContact.includes("@")
-      ? '<a href="mailto:' + escapeHtml(primaryContact) + '">' + escapeHtml(primaryContact) + '</a>'
+      ? '<a href="' + escapeHtml(safeUrl("mailto:" + primaryContact)) + '">' + escapeHtml(primaryContact) + '</a>'
       : '<strong>' + escapeHtml(primaryContact || "未提供") + '</strong>';
     return [
       '<div class="inquiry-detail-layout">',
@@ -1268,14 +1161,8 @@
       values.published = Boolean(editorForm.elements.namedItem("published").checked);
       values.passwordEnabled = Boolean(editorForm.elements.namedItem("passwordEnabled").checked);
       const existingProject = state.projects.find((item) => item.slug === values.slug);
-      const protectedTarget = String(values.protectedTargetUrl || values.prototypeHref || "").trim();
-      const accessPassword = String(values.accessPassword || "");
-      const accessPasswordBytes = accessPassword ? new TextEncoder().encode(accessPassword).length : 0;
-      if (values.passwordEnabled && !protectedTarget) throw new Error("私密项目必须填写受保护跳转地址");
-      if (values.passwordEnabled && !existingProject?.passwordEnabled && !accessPassword) throw new Error("首次开启私密项目时必须填写访问密码");
-      if (accessPassword && accessPasswordBytes < 6) throw new Error("访问密码至少需要 6 个字节");
-      if (accessPasswordBytes > 72) throw new Error("访问密码不能超过 72 个字节");
-      values.tags = String(values.tags || values.category).split(/[，,]/).map((item) => item.trim()).filter(Boolean);
+      contentDomain.validateProjectAccess(values, existingProject);
+      values.tags = contentDomain.normalizeTags(values.tags, values.category);
       values.contentBlocks = syncProjectDocumentSources();
       values.gallery = values.contentBlocks.filter((block) => block.type === "image").map((block) => block.src).filter(Boolean);
       values.mediaUrl = values.contentBlocks.find((block) => block.type === "video" && block.src)?.src || "";
@@ -1284,6 +1171,7 @@
       values.sortOrder = Number(values.sortOrder || 0);
       values.published = Boolean(editorForm.elements.namedItem("published").checked);
       values.blocks = articleHtmlToBlocks(document.getElementById("rich-article-editor").innerHTML);
+      contentDomain.validateArticle(values);
       await api.saveArticle(values, defaultArticles);
     } else if (type === "navigation") {
       values.sortOrder = Number(values.sortOrder || 0);
@@ -1293,19 +1181,7 @@
       await api.saveNavigationItem(values, defaultNavigation);
     } else if (type === "finance") {
       values.id = editorForm.dataset.itemId || undefined;
-      values.amountCents = Math.round(Number(values.amount) * 100);
-      if (!Number.isFinite(values.amountCents) || values.amountCents <= 0) throw new Error("请输入正确的金额");
-      values.contractAmountCents = Math.round(Number(values.contractAmount || 0) * 100);
-      values.paidAmountCents = Math.round(Number(values.paidAmount || 0) * 100);
-      if (values.entryType === "expense") {
-        values.contractAmountCents = 0;
-        values.paidAmountCents = 0;
-        values.paymentStatus = "paid";
-      }
-      delete values.amount;
-      delete values.contractAmount;
-      delete values.paidAmount;
-      await api.saveFinanceEntry(values);
+      await api.saveFinanceEntry(financeDomain.prepareEntry(values));
     } else if (type === "note") {
       values.id = editorForm.dataset.itemId || undefined;
       values.sortOrder = Number(values.sortOrder || 0);
@@ -1405,7 +1281,7 @@
       if (api.isConfigured()) {
         await api.signIn(api.config.supabaseAuthEmail, values.password);
       }
-      window.sessionStorage.setItem(fixedLoginKey, "true");
+      authSession.markAuthenticated();
       authStatus.textContent = "";
       await showAppWithAuthRetry();
     } catch (error) {
@@ -1427,7 +1303,7 @@
   document.getElementById("mobile-menu").addEventListener("click", () => sidebar.classList.toggle("is-open"));
   document.getElementById("logout-button").addEventListener("click", async () => {
     await api.signOut();
-    window.sessionStorage.removeItem(fixedLoginKey);
+    authSession.clear();
     adminApp.hidden = true;
     authScreen.hidden = false;
     loginForm.reset();
@@ -1941,7 +1817,7 @@
     if (editorForm.dataset.previewUrl) URL.revokeObjectURL(editorForm.dataset.previewUrl);
     const previewUrl = URL.createObjectURL(input.files[0]);
     editorForm.dataset.previewUrl = previewUrl;
-    preview.innerHTML = '<img src="' + previewUrl + '" alt="入口图片预览" />';
+    preview.innerHTML = '<img src="' + escapeHtml(safeImageUrl(previewUrl)) + '" alt="入口图片预览" />';
   });
 
   editorBody.addEventListener("mousedown", (event) => {
@@ -2027,7 +1903,7 @@
       const url = await api.uploadMedia(mediaFile.files[0]);
       document.getElementById("media-result").innerHTML = [
         '<div class="media-preview">',
-        '  <img src="' + escapeHtml(url) + '" alt="上传预览" />',
+        '  <img src="' + escapeHtml(safeImageUrl(url)) + '" alt="上传预览" />',
         '  <div class="copy-field"><input value="' + escapeHtml(url) + '" readonly /><button class="button button-secondary" type="button" data-copy-media>复制地址</button></div>',
         "</div>",
       ].join("\n");
@@ -2062,16 +1938,16 @@
     document.querySelectorAll('[href="../index.html"]').forEach((link) => { link.href = siteBase; });
     document.getElementById("auth-site-link").href = siteBase;
     if (!api.isConfigured()) {
-      if (window.sessionStorage.getItem(fixedLoginKey) !== "true") return;
+      if (!authSession.hasMarker()) return;
       await showAppWithAuthRetry();
       return;
     }
     const session = await api.getSession();
     if (session && session.user.email === api.config.supabaseAuthEmail) {
-      window.sessionStorage.setItem(fixedLoginKey, "true");
+      authSession.markAuthenticated();
       await showAppWithAuthRetry();
     } else {
-      window.sessionStorage.removeItem(fixedLoginKey);
+      authSession.clear();
     }
   };
 

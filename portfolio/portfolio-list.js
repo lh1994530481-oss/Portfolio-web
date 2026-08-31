@@ -114,15 +114,10 @@
     });
   };
 
-  const escapeHtml = (value) =>
-    String(value || "")
-      .replace(/&/g, "&amp;")
-      .replace(/</g, "&lt;")
-      .replace(/>/g, "&gt;")
-      .replace(/"/g, "&quot;")
-      .replace(/'/g, "&#39;");
-
-  const escapeAttr = escapeHtml;
+  const sanitizer = window.PortfolioSanitize;
+  if (!sanitizer) throw new Error("PortfolioSanitize 未加载");
+  const { escapeHtml, escapeAttr, safeUrl, safeImageUrl } = sanitizer;
+  const safeMediaUrl = (value) => safeUrl(value, { allowHash: false, protocols: ["http:", "https:", "blob:"] });
   const getDisplayLabel = (value) => displayLabels[value] || value || "项目";
 
   const refreshIcons = () => {
@@ -186,13 +181,13 @@
       if (block.type === "paragraph") return '<p class="portfolio-modal-content-copy">' + sanitizeInlineHtml(block.html || escapeHtml(block.text || "")) + '</p>';
       if (block.type === "video" && block.src) return [
         '<article class="portfolio-modal-media portfolio-modal-video">',
-        '  <video src="' + escapeAttr(block.src) + '" controls playsinline preload="metadata"' + (coverImage ? ' poster="' + escapeAttr(coverImage) + '"' : "") + '></video>',
+        '  <video src="' + escapeAttr(safeMediaUrl(block.src)) + '" controls playsinline preload="metadata"' + (coverImage ? ' poster="' + escapeAttr(safeImageUrl(coverImage)) + '"' : "") + '></video>',
         block.caption ? '  <p class="portfolio-modal-media-caption">' + escapeHtml(block.caption) + '</p>' : "",
         '</article>',
       ].join("\n");
       if (block.type === "image" && block.src) return [
         '<article class="portfolio-modal-media">',
-        '  <img src="' + escapeAttr(block.src) + '" alt="' + escapeAttr(block.alt || block.caption || title + ' 项目展示图 ' + (index + 1)) + '" loading="' + (index === 0 ? "eager" : "lazy") + '" decoding="async" />',
+        '  <img src="' + escapeAttr(safeImageUrl(block.src)) + '" alt="' + escapeAttr(block.alt || block.caption || title + ' 项目展示图 ' + (index + 1)) + '" loading="' + (index === 0 ? "eager" : "lazy") + '" decoding="async" />',
         block.caption ? '  <p class="portfolio-modal-media-caption">' + escapeHtml(block.caption) + '</p>' : "",
         '</article>',
       ].join("\n");
@@ -375,8 +370,8 @@
 
         return [
           '<article class="portfolio-project' + (isReversed ? " is-reversed" : "") + '" style="--item-delay: ' + index * 90 + 'ms">',
-          '  <a class="portfolio-project-image-dock" href="' + escapeAttr(projectHref) + '"' + protectedAttr + modalAttr + ' data-slug="' + escapeAttr(project.slug) + '" aria-label="查看' + escapeAttr(title) + '项目">',
-          '    <img class="portfolio-project-image" src="' + escapeAttr(imageSrc) + '" alt="' + escapeAttr(title) + ' 项目封面" loading="' + (index === 0 ? "eager" : "lazy") + '" decoding="async" />',
+          '  <a class="portfolio-project-image-dock" href="' + escapeAttr(safeUrl(projectHref)) + '"' + protectedAttr + modalAttr + ' data-slug="' + escapeAttr(project.slug) + '" aria-label="查看' + escapeAttr(title) + '项目">',
+          '    <img class="portfolio-project-image" src="' + escapeAttr(safeImageUrl(imageSrc)) + '" alt="' + escapeAttr(title) + ' 项目封面" loading="' + (index === 0 ? "eager" : "lazy") + '" decoding="async" />',
           "  </a>",
           '  <div class="portfolio-project-details">',
           '    <div class="portfolio-project-tags">',
@@ -389,11 +384,11 @@
           "    </div>",
           '    <div class="portfolio-project-title-row">',
           '      <h2 class="portfolio-project-title">' + escapeHtml(title) + "</h2>",
-          '      <a class="portfolio-project-open" href="' + escapeAttr(projectHref) + '"' + protectedAttr + modalAttr + ' data-slug="' + escapeAttr(project.slug) + '" aria-label="查看' + escapeAttr(title) + '项目"><i data-lucide="arrow-up-right" aria-hidden="true"></i></a>',
+          '      <a class="portfolio-project-open" href="' + escapeAttr(safeUrl(projectHref)) + '"' + protectedAttr + modalAttr + ' data-slug="' + escapeAttr(project.slug) + '" aria-label="查看' + escapeAttr(title) + '项目"><i data-lucide="arrow-up-right" aria-hidden="true"></i></a>',
           "    </div>",
           '    <p class="portfolio-project-copy">' + escapeHtml(description) + "</p>",
           '    <div class="portfolio-project-cta-wrap">',
-          '      <a class="portfolio-project-cta-dock" href="' + escapeAttr(projectHref) + '"' + protectedAttr + modalAttr + ' data-slug="' + escapeAttr(project.slug) + '">',
+          '      <a class="portfolio-project-cta-dock" href="' + escapeAttr(safeUrl(projectHref)) + '"' + protectedAttr + modalAttr + ' data-slug="' + escapeAttr(project.slug) + '">',
           "        <span>查看项目</span>",
           '        <i data-lucide="arrow-up-right" aria-hidden="true"></i>',
           "      </a>",

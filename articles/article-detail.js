@@ -14,12 +14,9 @@
     return item.slug === slug;
   }) || articles[0];
 
-  const escapeHtml = (value) =>
-    String(value || "")
-      .replace(/&/g, "&amp;")
-      .replace(/</g, "&lt;")
-      .replace(/>/g, "&gt;")
-      .replace(/"/g, "&quot;");
+  const sanitizer = window.PortfolioSanitize;
+  if (!sanitizer) throw new Error("PortfolioSanitize 未加载");
+  const { escapeHtml, safeUrl, safeImageUrl } = sanitizer;
 
   const resolveArticleImage = (value) => {
     const source = String(value || "").trim();
@@ -78,7 +75,7 @@
           if (block.type === "image") {
             return [
               '<figure class="article-detail-image">',
-              '  <img src="' + escapeHtml(resolveArticleImage(block.src)) + '" alt="' + escapeHtml(block.alt || article.title) + '" loading="lazy" decoding="async" />',
+              '  <img src="' + escapeHtml(safeImageUrl(resolveArticleImage(block.src))) + '" alt="' + escapeHtml(block.alt || article.title) + '" loading="lazy" decoding="async" />',
               "</figure>",
             ].join("\n");
           }
@@ -126,7 +123,7 @@
 
   const sourceAction = article.sourceUrl
     ? [
-        '<a class="article-detail-source" href="' + escapeHtml(article.sourceUrl) + '" target="_blank" rel="noopener noreferrer">',
+        '<a class="article-detail-source" href="' + escapeHtml(safeUrl(article.sourceUrl)) + '" target="_blank" rel="noopener noreferrer">',
         "  <span>阅读原文</span>",
         '  <span aria-hidden="true">↗</span>',
         "</a>",

@@ -983,6 +983,541 @@ grant execute on function public.save_project_with_access(
   date, boolean, boolean, integer, text, text
 ) to authenticated;
 
+-- 20260831140000_optimize_analytics_timestamps_and_policies.sql
+-- Aggregate analytics in Postgres, minimize retained visitor data, and keep
+-- timestamps and administrator policies consistent.
+
+create extension if not exists pg_cron with schema pg_catalog;
+
+alter table public.site_events
+  add column if not exists visitor_hash text;
+
+update public.site_events
+set visitor_hash = encode(
+  extensions.digest(coalesce(ip_address::text, session_id), 'sha256'),
+  'hex'
+)
+where visitor_hash is null;
+
+update public.site_events
+set session_id = encode(extensions.digest(session_id, 'sha256'), 'hex');
+
+alter table public.site_events
+  drop column if exists ip_address,
+  drop column if exists region,
+  drop column if exists city,
+  drop column if exists user_agent;
+
+do $$
+begin
+  if not exists (
+    select 1
+    from pg_constraint
+    where conname = 'site_events_visitor_hash_check'
+      and conrelid = 'public.site_events'::regclass
+  ) then
+    alter table public.site_events
+      add constraint site_events_visitor_hash_check
+      check (visitor_hash is null or char_length(visitor_hash) = 64);
+  end if;
+end;
+$$;
+
+create index if not exists site_events_visitor_created_at_idx
+on public.site_events (visitor_hash, created_at desc)
+where visitor_hash is not null;
+
+create index if not exists site_events_session_created_at_idx
+on public.site_events (session_id, created_at desc);
+
+create table if not exists public.site_daily_analytics (
+  day date primary key,
+  page_views bigint not null default 0 check (page_views >= 0),
+  content_clicks bigint not null default 0 check (content_clicks >= 0),
+  contact_submits bigint not null default 0 check (contact_submits >= 0),
+  ai_opens bigint not null default 0 check (ai_opens >= 0),
+  desktop_events bigint not null default 0 check (desktop_events >= 0),
+  tablet_events bigint not null default 0 check (tablet_events >= 0),
+  mobile_events bigint not null default 0 check (mobile_events >= 0),
+  updated_at timestamptz not null default now()
+);
+
+create table if not exists public.site_daily_paths (
+  day date not null,
+  path text not null check (char_length(path) between 1 and 500),
+  page_views bigint not null default 0 check (page_views >= 0),
+  updated_at timestamptz not null default now(),
+  primary key (day, path)
+);
+
+create table if not exists public.site_daily_sessions (
+  day date not null,
+  session_hash text not null check (char_length(session_hash) = 64),
+  visitor_hash text check (visitor_hash is null or char_length(visitor_hash) = 64),
+  first_seen timestamptz not null,
+  last_seen timestamptz not null,
+  entry_path text not null default '/' check (char_length(entry_path) between 1 and 500),
+  referrer_host text check (referrer_host is null or char_length(referrer_host) <= 255),
+  device_type text not null default 'desktop' check (device_type in ('desktop', 'tablet', 'mobile')),
+  country_code text check (country_code is null or country_code ~ '^[A-Z]{2}$'),
+  updated_at timestamptz not null default now(),
+  primary key (day, session_hash)
+);
+
+create index if not exists site_daily_sessions_last_seen_idx
+on public.site_daily_sessions (last_seen desc);
+
+alter table public.site_daily_analytics enable row level security;
+alter table public.site_daily_paths enable row level security;
+alter table public.site_daily_sessions enable row level security;
+
+revoke all on public.site_daily_analytics, public.site_daily_paths, public.site_daily_sessions
+from public, anon, authenticated;
+grant select on public.site_daily_analytics, public.site_daily_paths, public.site_daily_sessions
+to authenticated;
+
+drop policy if exists "Admins read daily analytics" on public.site_daily_analytics;
+create policy "Admins read daily analytics"
+on public.site_daily_analytics
+for select
+to authenticated
+using ((select private.is_portfolio_admin()));
+
+drop policy if exists "Admins read daily paths" on public.site_daily_paths;
+create policy "Admins read daily paths"
+on public.site_daily_paths
+for select
+to authenticated
+using ((select private.is_portfolio_admin()));
+
+drop policy if exists "Admins read daily sessions" on public.site_daily_sessions;
+create policy "Admins read daily sessions"
+on public.site_daily_sessions
+for select
+to authenticated
+using ((select private.is_portfolio_admin()));
+
+insert into public.site_daily_analytics (
+  day,
+  page_views,
+  content_clicks,
+  contact_submits,
+  ai_opens,
+  desktop_events,
+  tablet_events,
+  mobile_events,
+  updated_at
+)
+select
+  timezone('Asia/Shanghai', created_at)::date,
+  count(*) filter (where event_name = 'page_view'),
+  count(*) filter (where event_name = 'content_click'),
+  count(*) filter (where event_name = 'contact_submit'),
+  count(*) filter (where event_name = 'ai_open'),
+  count(*) filter (where device_type = 'desktop'),
+  count(*) filter (where device_type = 'tablet'),
+  count(*) filter (where device_type = 'mobile'),
+  now()
+from public.site_events
+group by timezone('Asia/Shanghai', created_at)::date
+on conflict (day) do update set
+  page_views = excluded.page_views,
+  content_clicks = excluded.content_clicks,
+  contact_submits = excluded.contact_submits,
+  ai_opens = excluded.ai_opens,
+  desktop_events = excluded.desktop_events,
+  tablet_events = excluded.tablet_events,
+  mobile_events = excluded.mobile_events,
+  updated_at = now();
+
+insert into public.site_daily_paths (day, path, page_views, updated_at)
+select
+  timezone('Asia/Shanghai', created_at)::date,
+  path,
+  count(*),
+  now()
+from public.site_events
+where event_name = 'page_view'
+group by timezone('Asia/Shanghai', created_at)::date, path
+on conflict (day, path) do update set
+  page_views = excluded.page_views,
+  updated_at = now();
+
+insert into public.site_daily_sessions (
+  day,
+  session_hash,
+  visitor_hash,
+  first_seen,
+  last_seen,
+  entry_path,
+  referrer_host,
+  device_type,
+  country_code,
+  updated_at
+)
+select
+  timezone('Asia/Shanghai', created_at)::date,
+  session_id,
+  (array_agg(visitor_hash order by created_at) filter (where visitor_hash is not null))[1],
+  min(created_at),
+  max(created_at),
+  (array_agg(path order by created_at))[1],
+  (array_agg(referrer_host order by created_at) filter (where referrer_host is not null))[1],
+  (array_agg(device_type order by created_at))[1],
+  (array_agg(country_code order by created_at) filter (where country_code is not null))[1],
+  now()
+from public.site_events
+group by timezone('Asia/Shanghai', created_at)::date, session_id
+on conflict (day, session_hash) do update set
+  visitor_hash = coalesce(excluded.visitor_hash, public.site_daily_sessions.visitor_hash),
+  first_seen = least(excluded.first_seen, public.site_daily_sessions.first_seen),
+  last_seen = greatest(excluded.last_seen, public.site_daily_sessions.last_seen),
+  updated_at = now();
+
+create or replace function private.aggregate_site_event()
+returns trigger
+language plpgsql
+security definer
+set search_path = ''
+as $$
+declare
+  event_day date := timezone('Asia/Shanghai', new.created_at)::date;
+begin
+  insert into public.site_daily_analytics (
+    day,
+    page_views,
+    content_clicks,
+    contact_submits,
+    ai_opens,
+    desktop_events,
+    tablet_events,
+    mobile_events
+  )
+  values (
+    event_day,
+    case when new.event_name = 'page_view' then 1 else 0 end,
+    case when new.event_name = 'content_click' then 1 else 0 end,
+    case when new.event_name = 'contact_submit' then 1 else 0 end,
+    case when new.event_name = 'ai_open' then 1 else 0 end,
+    case when new.device_type = 'desktop' then 1 else 0 end,
+    case when new.device_type = 'tablet' then 1 else 0 end,
+    case when new.device_type = 'mobile' then 1 else 0 end
+  )
+  on conflict (day) do update set
+    page_views = public.site_daily_analytics.page_views + excluded.page_views,
+    content_clicks = public.site_daily_analytics.content_clicks + excluded.content_clicks,
+    contact_submits = public.site_daily_analytics.contact_submits + excluded.contact_submits,
+    ai_opens = public.site_daily_analytics.ai_opens + excluded.ai_opens,
+    desktop_events = public.site_daily_analytics.desktop_events + excluded.desktop_events,
+    tablet_events = public.site_daily_analytics.tablet_events + excluded.tablet_events,
+    mobile_events = public.site_daily_analytics.mobile_events + excluded.mobile_events,
+    updated_at = now();
+
+  if new.event_name = 'page_view' then
+    insert into public.site_daily_paths (day, path, page_views)
+    values (event_day, new.path, 1)
+    on conflict (day, path) do update set
+      page_views = public.site_daily_paths.page_views + 1,
+      updated_at = now();
+  end if;
+
+  insert into public.site_daily_sessions (
+    day,
+    session_hash,
+    visitor_hash,
+    first_seen,
+    last_seen,
+    entry_path,
+    referrer_host,
+    device_type,
+    country_code
+  )
+  values (
+    event_day,
+    new.session_id,
+    new.visitor_hash,
+    new.created_at,
+    new.created_at,
+    new.path,
+    new.referrer_host,
+    new.device_type,
+    new.country_code
+  )
+  on conflict (day, session_hash) do update set
+    visitor_hash = coalesce(excluded.visitor_hash, public.site_daily_sessions.visitor_hash),
+    last_seen = greatest(excluded.last_seen, public.site_daily_sessions.last_seen),
+    country_code = coalesce(excluded.country_code, public.site_daily_sessions.country_code),
+    updated_at = now();
+
+  return new;
+end;
+$$;
+
+revoke all privileges on function private.aggregate_site_event()
+from public, anon, authenticated, service_role;
+
+drop trigger if exists aggregate_site_event_trigger on public.site_events;
+create trigger aggregate_site_event_trigger
+after insert on public.site_events
+for each row execute function private.aggregate_site_event();
+
+create or replace function public.get_analytics_dashboard(
+  p_days integer default 30,
+  p_recent_limit integer default 100
+)
+returns jsonb
+language plpgsql
+stable
+security invoker
+set search_path = ''
+as $$
+declare
+  range_days integer := greatest(7, least(coalesce(p_days, 30), 365));
+  recent_limit integer := greatest(20, least(coalesce(p_recent_limit, 100), 500));
+  start_day date;
+begin
+  if not private.is_portfolio_admin() then
+    raise exception 'not authorized';
+  end if;
+
+  start_day := timezone('Asia/Shanghai', now())::date - (range_days - 1);
+
+  return jsonb_build_object(
+    'totals', (
+      select jsonb_build_object(
+        'pageViews', coalesce(sum(page_views), 0),
+        'contentClicks', coalesce(sum(content_clicks), 0),
+        'contactSubmits', coalesce(sum(contact_submits), 0),
+        'aiOpens', coalesce(sum(ai_opens), 0),
+        'uniqueSessions', (select count(distinct session_hash) from public.site_daily_sessions)
+      )
+      from public.site_daily_analytics
+    ),
+    'period', (
+      select jsonb_build_object(
+        'days', range_days,
+        'pageViews', coalesce(sum(page_views), 0),
+        'contentClicks', coalesce(sum(content_clicks), 0),
+        'contactSubmits', coalesce(sum(contact_submits), 0),
+        'aiOpens', coalesce(sum(ai_opens), 0),
+        'uniqueSessions', (
+          select count(distinct session_hash)
+          from public.site_daily_sessions
+          where day >= start_day
+        )
+      )
+      from public.site_daily_analytics
+      where day >= start_day
+    ),
+    'daily', (
+      select coalesce(jsonb_agg(jsonb_build_object(
+        'day', daily.day,
+        'pageViews', daily.page_views,
+        'contentClicks', daily.content_clicks,
+        'uniqueSessions', (
+          select count(*)
+          from public.site_daily_sessions as sessions
+          where sessions.day = daily.day
+        )
+      ) order by daily.day), '[]'::jsonb)
+      from public.site_daily_analytics as daily
+      where daily.day >= start_day
+    ),
+    'paths', (
+      select coalesce(jsonb_agg(jsonb_build_object(
+        'path', ranked.path,
+        'pageViews', ranked.page_views
+      ) order by ranked.page_views desc, ranked.path), '[]'::jsonb)
+      from (
+        select path, sum(page_views) as page_views
+        from public.site_daily_paths
+        where day >= start_day
+        group by path
+        order by page_views desc, path
+        limit 10
+      ) as ranked
+    ),
+    'devices', (
+      select jsonb_build_object(
+        'desktop', coalesce(sum(desktop_events), 0),
+        'tablet', coalesce(sum(tablet_events), 0),
+        'mobile', coalesce(sum(mobile_events), 0)
+      )
+      from public.site_daily_analytics
+      where day >= start_day
+    ),
+    'activeSessions', (
+      select count(distinct session_id)
+      from public.site_events
+      where created_at >= now() - interval '5 minutes'
+    ),
+    'recentEvents', (
+      select coalesce(jsonb_agg(to_jsonb(recent) order by recent.created_at desc), '[]'::jsonb)
+      from (
+        select
+          id,
+          event_name,
+          path,
+          content_type,
+          content_id,
+          referrer_host,
+          session_id,
+          device_type,
+          country_code,
+          created_at
+        from public.site_events
+        order by created_at desc
+        limit recent_limit
+      ) as recent
+    )
+  );
+end;
+$$;
+
+revoke all privileges on function public.get_analytics_dashboard(integer, integer)
+from public, anon, authenticated, service_role;
+grant execute on function public.get_analytics_dashboard(integer, integer) to authenticated;
+
+create or replace function private.set_updated_at()
+returns trigger
+language plpgsql
+security invoker
+set search_path = ''
+as $$
+begin
+  new.updated_at := now();
+  return new;
+end;
+$$;
+
+revoke all privileges on function private.set_updated_at()
+from public, anon, authenticated, service_role;
+
+do $$
+declare
+  table_name text;
+begin
+  foreach table_name in array array[
+    'projects',
+    'articles',
+    'site_settings',
+    'navigation_items',
+    'ai_profile',
+    'contact_inquiries',
+    'finance_entries',
+    'project_access',
+    'workbench_notes',
+    'quick_links',
+    'quick_link_categories',
+    'workbench_moods',
+    'workbench_schedule_items',
+    'quote_requests',
+    'site_daily_analytics',
+    'site_daily_paths',
+    'site_daily_sessions'
+  ]
+  loop
+    execute format('drop trigger if exists set_updated_at_trigger on public.%I', table_name);
+    execute format(
+      'create trigger set_updated_at_trigger before update on public.%I for each row execute function private.set_updated_at()',
+      table_name
+    );
+  end loop;
+end;
+$$;
+
+create or replace function private.cleanup_site_analytics()
+returns void
+language plpgsql
+security definer
+set search_path = ''
+as $$
+begin
+  delete from public.site_events
+  where created_at < now() - interval '90 days';
+
+  delete from public.site_daily_sessions
+  where day < timezone('Asia/Shanghai', now())::date - 90;
+
+  delete from public.site_daily_paths
+  where day < timezone('Asia/Shanghai', now())::date - 365;
+
+  delete from public.site_daily_analytics
+  where day < timezone('Asia/Shanghai', now())::date - 365;
+
+  delete from public.lead_submission_attempts
+  where created_at < now() - interval '24 hours';
+end;
+$$;
+
+revoke all privileges on function private.cleanup_site_analytics()
+from public, anon, authenticated, service_role;
+
+select cron.unschedule(jobid)
+from cron.job
+where jobname = 'portfolio-site-analytics-retention';
+
+select cron.schedule(
+  'portfolio-site-analytics-retention',
+  '17 3 * * *',
+  'select private.cleanup_site_analytics();'
+);
+
+drop policy if exists "Admins manage projects" on public.projects;
+drop policy if exists "Admins insert projects" on public.projects;
+drop policy if exists "Admins update projects" on public.projects;
+drop policy if exists "Admins delete projects" on public.projects;
+create policy "Admins insert projects" on public.projects for insert to authenticated
+with check ((select private.is_portfolio_admin()));
+create policy "Admins update projects" on public.projects for update to authenticated
+using ((select private.is_portfolio_admin())) with check ((select private.is_portfolio_admin()));
+create policy "Admins delete projects" on public.projects for delete to authenticated
+using ((select private.is_portfolio_admin()));
+
+drop policy if exists "Admins manage articles" on public.articles;
+drop policy if exists "Admins insert articles" on public.articles;
+drop policy if exists "Admins update articles" on public.articles;
+drop policy if exists "Admins delete articles" on public.articles;
+create policy "Admins insert articles" on public.articles for insert to authenticated
+with check ((select private.is_portfolio_admin()));
+create policy "Admins update articles" on public.articles for update to authenticated
+using ((select private.is_portfolio_admin())) with check ((select private.is_portfolio_admin()));
+create policy "Admins delete articles" on public.articles for delete to authenticated
+using ((select private.is_portfolio_admin()));
+
+drop policy if exists "Admins manage site settings" on public.site_settings;
+drop policy if exists "Admins insert site settings" on public.site_settings;
+drop policy if exists "Admins update site settings" on public.site_settings;
+drop policy if exists "Admins delete site settings" on public.site_settings;
+create policy "Admins insert site settings" on public.site_settings for insert to authenticated
+with check ((select private.is_portfolio_admin()));
+create policy "Admins update site settings" on public.site_settings for update to authenticated
+using ((select private.is_portfolio_admin())) with check ((select private.is_portfolio_admin()));
+create policy "Admins delete site settings" on public.site_settings for delete to authenticated
+using ((select private.is_portfolio_admin()));
+
+drop policy if exists "Admins manage navigation" on public.navigation_items;
+drop policy if exists "Admins insert navigation" on public.navigation_items;
+drop policy if exists "Admins update navigation" on public.navigation_items;
+drop policy if exists "Admins delete navigation" on public.navigation_items;
+create policy "Admins insert navigation" on public.navigation_items for insert to authenticated
+with check ((select private.is_portfolio_admin()));
+create policy "Admins update navigation" on public.navigation_items for update to authenticated
+using ((select private.is_portfolio_admin())) with check ((select private.is_portfolio_admin()));
+create policy "Admins delete navigation" on public.navigation_items for delete to authenticated
+using ((select private.is_portfolio_admin()));
+
+drop policy if exists "Admins manage AI profile" on public.ai_profile;
+drop policy if exists "Admins insert AI profile" on public.ai_profile;
+drop policy if exists "Admins update AI profile" on public.ai_profile;
+drop policy if exists "Admins delete AI profile" on public.ai_profile;
+create policy "Admins insert AI profile" on public.ai_profile for insert to authenticated
+with check ((select private.is_portfolio_admin()));
+create policy "Admins update AI profile" on public.ai_profile for update to authenticated
+using ((select private.is_portfolio_admin())) with check ((select private.is_portfolio_admin()));
+create policy "Admins delete AI profile" on public.ai_profile for delete to authenticated
+using ((select private.is_portfolio_admin()));
+
 -- Keep privileged implementations outside the exposed Data API schema.
 -- Public RPC names remain stable and use SECURITY INVOKER wrappers.
 

@@ -27,13 +27,10 @@
 
   if (!root || !filterRoot || !modal || !modalDialog || !modalMedia || !modalTitle || !modalDescription || !modalCategory || !modalTags || !experienceLink) return;
 
-  const escapeHtml = (value) => String(value || "")
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;")
-    .replace(/'/g, "&#39;");
-  const escapeAttr = escapeHtml;
+  const sanitizer = window.PortfolioSanitize;
+  if (!sanitizer) throw new Error("PortfolioSanitize 未加载");
+  const { escapeHtml, escapeAttr, safeUrl, safeImageUrl } = sanitizer;
+  const safeMediaUrl = (value) => safeUrl(value, { allowHash: false, protocols: ["http:", "https:", "blob:"] });
 
   const refreshIcons = () => {
     if (window.lucide && typeof window.lucide.createIcons === "function") window.lucide.createIcons();
@@ -127,7 +124,7 @@
       return [
         '<article class="portfolio-project' + (reversed ? ' is-reversed' : '') + '" style="--item-delay: ' + index * 90 + 'ms">',
         '  <a class="portfolio-project-image-dock" href="#' + escapeAttr(project.slug) + '"' + modalAttr + ' data-slug="' + escapeAttr(project.slug) + '" aria-label="查看' + escapeAttr(title) + '演示">',
-        '    <img class="portfolio-project-image" src="' + escapeAttr(imageSrc) + '" alt="' + escapeAttr(title) + ' 封面" loading="' + (index === 0 ? 'eager' : 'lazy') + '" decoding="async" />',
+        '    <img class="portfolio-project-image" src="' + escapeAttr(safeImageUrl(imageSrc)) + '" alt="' + escapeAttr(title) + ' 封面" loading="' + (index === 0 ? 'eager' : 'lazy') + '" decoding="async" />',
         '  </a>',
         '  <div class="portfolio-project-details">',
         '    <div class="portfolio-project-tags"><i class="portfolio-project-tag-icon" data-lucide="orbit" aria-hidden="true"></i><span class="portfolio-project-tag">' + escapeHtml(getCategory(project)) + '</span></div>',
@@ -149,8 +146,8 @@
     const title = project.title || '演示详情';
     const cover = project.cover || '../assets/project-wall/7.webp';
     const media = project.mediaUrl
-      ? '<video src="' + escapeAttr(project.mediaUrl) + '" controls playsinline preload="metadata" poster="' + escapeAttr(cover) + '"></video>'
-      : '<img src="' + escapeAttr(cover) + '" alt="' + escapeAttr(title) + ' 预览" />';
+      ? '<video src="' + escapeAttr(safeMediaUrl(project.mediaUrl)) + '" controls playsinline preload="metadata" poster="' + escapeAttr(safeImageUrl(cover)) + '"></video>'
+      : '<img src="' + escapeAttr(safeImageUrl(cover)) + '" alt="' + escapeAttr(title) + ' 预览" />';
     modalMedia.innerHTML = media;
     modalTitle.textContent = title;
     modalDescription.textContent = project.descriptionZh || '';

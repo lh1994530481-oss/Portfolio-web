@@ -16,28 +16,11 @@
     "customer-management-system": "../assets/project-wall/6.webp",
   };
 
-  const escapeAttr = (value) => String(value || "").replace(/"/g, "&quot;");
-  const escapeHtml = (value) => String(value || "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
-  const sanitizeInlineHtml = (value) => {
-    const node = document.createElement("div");
-    node.innerHTML = String(value || "");
-    const allowed = new Set(["B", "STRONG", "I", "EM", "U", "S", "A", "BR"]);
-    Array.from(node.querySelectorAll("*")).reverse().forEach((element) => {
-      if (!allowed.has(element.tagName)) {
-        element.replaceWith(...element.childNodes);
-        return;
-      }
-      const href = element.tagName === "A" ? element.getAttribute("href") || "" : "";
-      Array.from(element.attributes).forEach((attribute) => element.removeAttribute(attribute.name));
-      if (element.tagName === "A") {
-        if (/^(https?:|mailto:|#|\.\.?\/)/i.test(href)) {
-          element.setAttribute("href", href);
-          element.setAttribute("rel", "noopener noreferrer");
-        } else element.replaceWith(...element.childNodes);
-      }
-    });
-    return node.innerHTML;
-  };
+  const sanitizer = window.PortfolioSanitize;
+  if (!sanitizer) throw new Error("PortfolioSanitize 未加载");
+  const { escapeHtml, escapeAttr, safeUrl, safeImageUrl } = sanitizer;
+  const safeMediaUrl = (value) => safeUrl(value, { allowHash: false, protocols: ["http:", "https:", "blob:"] });
+  const sanitizeInlineHtml = sanitizer.sanitizeInlineHtml;
 
   const getBackHref = () => {
     try {
@@ -63,7 +46,7 @@
       '  <div class="project-missing-card">',
       "    <h1>Project not found</h1>",
       "    <p>This project is not available locally yet. Go back to the project wall and keep browsing.</p>",
-      '    <a href="' + escapeAttr(getBackHref()) + '" data-transition-restore="true">Back</a>',
+      '    <a href="' + escapeAttr(safeUrl(getBackHref())) + '" data-transition-restore="true">Back</a>',
       "  </div>",
       "</div>",
     ].join("\n");
@@ -91,13 +74,13 @@
     if (block.type === "paragraph") return '<p class="project-content-copy">' + sanitizeInlineHtml(block.html || escapeHtml(block.text || "")) + '</p>';
     if (block.type === "video" && block.src) return [
       '<article class="project-media project-video">',
-      '  <video class="project-media-video" src="' + escapeAttr(block.src) + '" controls playsinline preload="metadata" poster="' + escapeAttr(coverImage) + '"></video>',
+      '  <video class="project-media-video" src="' + escapeAttr(safeMediaUrl(block.src)) + '" controls playsinline preload="metadata" poster="' + escapeAttr(safeImageUrl(coverImage)) + '"></video>',
       block.caption ? '  <p class="project-media-caption">' + escapeHtml(block.caption) + '</p>' : "",
       '</article>',
     ].join("\n");
     if (block.type === "image" && block.src) return [
       '<article class="project-media">',
-      '  <img class="project-media-image" src="' + escapeAttr(block.src) + '" alt="' + escapeAttr(block.alt || block.caption || project.title + ' - ' + (index + 1)) + '" loading="' + (index === 0 ? "eager" : "lazy") + '" decoding="async" />',
+      '  <img class="project-media-image" src="' + escapeAttr(safeImageUrl(block.src)) + '" alt="' + escapeAttr(block.alt || block.caption || project.title + ' - ' + (index + 1)) + '" loading="' + (index === 0 ? "eager" : "lazy") + '" decoding="async" />',
       block.caption ? '  <p class="project-media-caption">' + escapeHtml(block.caption) + '</p>' : "",
       '</article>',
     ].join("\n");
@@ -107,7 +90,7 @@
 
   root.innerHTML = [
     '<div class="project-shell">',
-    '  <a class="project-back" href="' + escapeAttr(backHref) + '" data-transition-restore="true" aria-label="Back to portfolio">Back</a>',
+    '  <a class="project-back" href="' + escapeAttr(safeUrl(backHref)) + '" data-transition-restore="true" aria-label="Back to portfolio">Back</a>',
     '  <section class="project-hero">',
     '    <div class="project-inner">',
     '      <h1 class="project-title">' + escapeHtml(project.title) + "</h1>",

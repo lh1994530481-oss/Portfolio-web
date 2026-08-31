@@ -13,14 +13,9 @@
 
   let activeFilter = "All";
 
-  const escapeHtml = (value) =>
-    String(value || "")
-      .replace(/&/g, "&amp;")
-      .replace(/</g, "&lt;")
-      .replace(/>/g, "&gt;")
-      .replace(/"/g, "&quot;");
-
-  const escapeAttr = escapeHtml;
+  const sanitizer = window.PortfolioSanitize;
+  if (!sanitizer) throw new Error("PortfolioSanitize 未加载");
+  const { escapeHtml, escapeAttr, safeUrl } = sanitizer;
 
   const getVisibleArticles = () => {
     if (activeFilter === "All") return articles;
@@ -97,7 +92,7 @@
           : "";
         const action = articleHref
           ? [
-              '    <a class="article-status article-link" href="' + escapeAttr(articleHref) + '">',
+              '    <a class="article-status article-link" href="' + escapeAttr(safeUrl(articleHref)) + '">',
               "      <span>阅读全文</span>",
               '      <span aria-hidden="true">↗</span>',
               "    </a>",

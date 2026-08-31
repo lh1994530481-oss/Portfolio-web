@@ -155,15 +155,44 @@ img {
   will-change: transform;
 }
 
+.scene-static-fallback,
+.scene-viewer-host {
+  position: absolute;
+  inset: 0;
+}
+
+.scene-static-fallback {
+  background:
+    radial-gradient(circle at 52% 42%, rgba(191, 91, 139, 0.22), transparent 17%),
+    radial-gradient(circle at 42% 58%, rgba(62, 101, 144, 0.16), transparent 24%),
+    radial-gradient(ellipse 62% 48% at 50% 50%, #171116 0%, #070707 48%, #000 82%);
+  opacity: 1;
+  transform: scale(1.03);
+  transition: opacity 0.8s ease;
+}
+
+.scene-viewer-host {
+  z-index: 1;
+}
+
 #scene-viewer {
   display: block;
   width: 100%;
   height: 100%;
   transform: translateZ(0);
   backface-visibility: hidden;
-  opacity: 1;
+  opacity: 0;
   pointer-events: none;
-  will-change: transform;
+  will-change: transform, opacity;
+  transition: opacity 0.8s ease;
+}
+
+.scene-shell.is-scene-ready #scene-viewer {
+  opacity: 1;
+}
+
+.scene-shell.is-scene-ready .scene-static-fallback {
+  opacity: 0;
 }
 
 .scene-gradient,
@@ -1061,6 +1090,10 @@ img {
 
   .about-word {
     opacity: 1 !important;
+    transform: none !important;
+  }
+
+  .scene-shell {
     transform: none !important;
   }
 }

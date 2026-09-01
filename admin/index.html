@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="robots" content="noindex, nofollow" />
     <title>Lin Tong Xin | Portfolio CMS</title>
-    <link rel="stylesheet" href="./admin.css?v=20260828-2" />
+    <link rel="stylesheet" href="./admin.css?v=20260901-1" />
   </head>
   <body>
     <main class="auth-screen" id="auth-screen">
@@ -180,7 +180,20 @@
               <section class="surface"><div class="surface-heading"><div><p class="eyebrow">Pages</p><h2>热门页面</h2></div></div><div class="ranking-list" id="popular-pages"></div></section>
               <section class="surface"><div class="surface-heading"><div><p class="eyebrow">Devices</p><h2>设备分布</h2></div></div><div class="device-breakdown" id="device-breakdown"></div></section>
             </div>
-            <section class="surface analytics-log"><div class="surface-heading"><div><p class="eyebrow">Visitors</p><h2>访客会话</h2></div><span class="content-count" id="active-visitors"></span></div><div class="visitor-session-list" id="visitor-session-list"></div></section>
+            <section class="surface analytics-log">
+              <div class="surface-heading analytics-sessions-heading">
+                <div><p class="eyebrow">Visitors</p><h2>访客会话</h2><p class="analytics-session-summary" id="portfolio-visitor-summary"></p></div>
+                <div class="visitor-session-tools">
+                  <span class="content-count" id="active-visitors"></span>
+                  <select id="visitor-session-filter" aria-label="筛选访客会话">
+                    <option value="all">全部访客</option>
+                    <option value="portfolio">看过作品</option>
+                    <option value="today">今日访客</option>
+                  </select>
+                </div>
+              </div>
+              <div class="visitor-session-list" id="visitor-session-list"></div>
+            </section>
             <section class="surface analytics-log"><div class="surface-heading"><div><p class="eyebrow">Recent</p><h2>最近事件</h2></div></div><div class="analytics-event-list" id="analytics-event-list"></div></section>
           </section>
 
@@ -429,14 +442,14 @@
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.57.4"></script>
     <script src="../shared/sanitize.js?v=20260831-2"></script>
     <script src="../shared/content-api-models.js?v=20260831-2"></script>
-    <script src="../shared/content-api-analytics.js?v=20260831-2"></script>
+    <script src="../shared/content-api-analytics.js?v=20260901-1"></script>
     <script src="../shared/content-api.js?v=20260831-2"></script>
     <script src="https://unpkg.com/lucide@0.468.0/dist/umd/lucide.min.js"></script>
     <script src="./modules/auth-session.js?v=20260831-2"></script>
     <script src="./modules/content.js?v=20260831-2"></script>
     <script src="./modules/leads.js?v=20260831-2"></script>
     <script src="./modules/finance.js?v=20260831-2"></script>
-    <script src="./modules/analytics.js?v=20260831-2"></script>
-    <script src="./admin.js?v=20260831-2" defer></script>
+    <script src="./modules/analytics.js?v=20260901-1"></script>
+    <script src="./admin.js?v=20260901-1" defer></script>
   </body>
 </html>

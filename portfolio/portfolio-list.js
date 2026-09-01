@@ -229,6 +229,9 @@
     window.requestAnimationFrame(function () {
       modal.classList.add("is-open");
     });
+    document.dispatchEvent(new CustomEvent("portfolio:project-view", {
+      detail: { slug: project.slug, title },
+    }));
     refreshIcons();
     window.setTimeout(function () {
       modalDialog.focus({ preventScroll: true });

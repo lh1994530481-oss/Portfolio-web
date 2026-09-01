@@ -39,3 +39,27 @@ test("URL sanitizer rejects executable protocols", async ({ page }) => {
   }));
   expect(result).toEqual({ script: "", html: "", https: "https://example.com" });
 });
+
+test("opening a portfolio project records one deduplicated project view", async ({ page }) => {
+  const tracked = [];
+  await page.route("**/functions/v1/track-visit", async (route) => {
+    const payload = route.request().postDataJSON();
+    tracked.push(payload);
+    await route.fulfill({ status: 200, contentType: "application/json", body: '{"ok":true}' });
+  });
+
+  await page.goto("/portfolio/", { waitUntil: "domcontentloaded" });
+  await expect(page.locator(".site-privacy-notice")).toContainText("IP 最多保留 30 天");
+  const trigger = page.locator("[data-project-modal]:not([data-protected-project])").first();
+  await expect(trigger).toBeVisible();
+  const slug = await trigger.getAttribute("data-project-modal");
+  await trigger.click();
+  await expect(page.locator("#portfolio-project-modal")).toHaveAttribute("aria-hidden", "false");
+  await expect.poll(() => tracked.filter((item) => item.eventName === "project_view" && item.contentId === slug).length).toBe(1);
+
+  await page.evaluate((projectSlug) => {
+    document.dispatchEvent(new CustomEvent("portfolio:project-view", { detail: { slug: projectSlug } }));
+  }, slug);
+  await page.waitForTimeout(100);
+  expect(tracked.filter((item) => item.eventName === "project_view" && item.contentId === slug)).toHaveLength(1);
+});

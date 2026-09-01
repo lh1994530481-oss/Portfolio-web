@@ -583,6 +583,7 @@
       escapeHtml,
       formatDateTime,
       localDateKey,
+      projects: state.projects,
       elements: {
         metrics: analyticsMetrics,
         trend: analyticsTrend,
@@ -591,6 +592,8 @@
         eventList: analyticsEventList,
         sessions: visitorSessionList,
         active: document.getElementById("active-visitors"),
+        summary: document.getElementById("portfolio-visitor-summary"),
+        filter: document.getElementById("visitor-session-filter"),
       },
     });
     return;

@@ -110,4 +110,8 @@
     "  </section>",
     "</div>",
   ].join("\n");
+
+  document.dispatchEvent(new CustomEvent("portfolio:project-view", {
+    detail: { slug: project.slug, title: project.title },
+  }));
 })();

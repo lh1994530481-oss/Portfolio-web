@@ -3,6 +3,8 @@
   if (!api) return;
 
   const sessionKey = "lin-portfolio:visitor-session";
+  const privacyNoticeKey = "lin-portfolio:privacy-notice-202609";
+  const projectViewKey = "lin-portfolio:viewed-projects";
   const getSessionId = () => {
     let value = window.sessionStorage.getItem(sessionKey);
     if (!value) {
@@ -37,6 +39,56 @@
     }).catch(() => {});
   };
 
+  const showPrivacyNotice = () => {
+    try {
+      if (window.localStorage.getItem(privacyNoticeKey) === "acknowledged") return;
+    } catch (error) {
+      // The notice remains visible when storage is unavailable.
+    }
+    const notice = document.createElement("aside");
+    notice.className = "site-privacy-notice";
+    notice.setAttribute("role", "status");
+    notice.setAttribute("aria-label", "访客数据说明");
+    notice.innerHTML = [
+      '<div><strong>访客数据说明</strong><p>为了解作品是否被查看并保障站点安全，本站会记录 IP 与作品浏览记录；IP 最多保留 30 天。</p></div>',
+      '<button type="button">知道了</button>',
+    ].join("");
+    notice.querySelector("button").addEventListener("click", () => {
+      try {
+        window.localStorage.setItem(privacyNoticeKey, "acknowledged");
+      } catch (error) {
+        // Dismiss the current notice even when storage is unavailable.
+      }
+      notice.remove();
+    });
+    document.body.appendChild(notice);
+  };
+
+  const recordProjectView = (slug) => {
+    const projectId = String(slug || "").trim().slice(0, 160);
+    if (!projectId) return;
+    let viewed = [];
+    try {
+      viewed = JSON.parse(window.sessionStorage.getItem(projectViewKey) || "[]");
+      if (!Array.isArray(viewed)) viewed = [];
+    } catch (error) {
+      viewed = [];
+    }
+    if (viewed.includes(projectId)) return;
+    viewed.push(projectId);
+    try {
+      window.sessionStorage.setItem(projectViewKey, JSON.stringify(viewed.slice(-100)));
+    } catch (error) {
+      // Tracking still proceeds when session storage is unavailable.
+    }
+    track("project_view", { contentType: "project", contentId: projectId });
+  };
+
+  document.addEventListener("portfolio:project-view", (event) => {
+    recordProjectView(event.detail && event.detail.slug);
+  });
+
+  showPrivacyNotice();
   track("page_view");
 
   document.addEventListener("click", (event) => {
@@ -141,6 +193,7 @@
       if (!target) throw new Error("访问密码不正确");
       accessStatus.textContent = "验证成功";
       track("content_click", { contentType: "protected_project", contentId: protectedSlug });
+      recordProjectView(protectedSlug);
 
       const trigger = protectedTrigger;
       const slug = protectedSlug;

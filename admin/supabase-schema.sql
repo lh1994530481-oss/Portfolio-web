@@ -983,6 +983,7 @@ grant execute on function public.save_project_with_access(
   date, boolean, boolean, integer, text, text
 ) to authenticated;
 
+
 -- 20260831140000_optimize_analytics_timestamps_and_policies.sql
 -- Aggregate analytics in Postgres, minimize retained visitor data, and keep
 -- timestamps and administrator policies consistent.
@@ -1661,3 +1662,332 @@ grant execute on function public.save_project_with_access(
   text, text, text, text[], text, text, text, text, jsonb, jsonb, text, text,
   date, boolean, boolean, integer, text, text
 ) to authenticated;
+
+-- Restore short-lived IP visibility for administrators and add an explicit
+-- portfolio-view signal. Raw IP values are removed after 30 days while the
+-- anonymous event/session retention remains 90 days.
+
+alter table public.site_events
+  add column if not exists ip_address inet;
+
+alter table public.site_events
+  drop constraint if exists site_events_event_name_check;
+
+alter table public.site_events
+  add constraint site_events_event_name_check
+  check (event_name in ('page_view', 'content_click', 'project_view', 'contact_submit', 'ai_open'));
+
+alter table public.site_daily_analytics
+  add column if not exists project_views bigint not null default 0 check (project_views >= 0);
+
+update public.site_daily_analytics as daily
+set project_views = source.project_views,
+    updated_at = now()
+from (
+  select
+    timezone('Asia/Shanghai', created_at)::date as day,
+    count(*) filter (where event_name = 'project_view') as project_views
+  from public.site_events
+  group by timezone('Asia/Shanghai', created_at)::date
+) as source
+where daily.day = source.day;
+
+create index if not exists site_events_project_session_created_at_idx
+on public.site_events (session_id, created_at desc)
+where event_name = 'project_view';
+
+create index if not exists site_events_ip_created_at_idx
+on public.site_events (created_at desc)
+where ip_address is not null;
+
+create or replace function private.aggregate_site_event()
+returns trigger
+language plpgsql
+security definer
+set search_path = ''
+as $$
+declare
+  event_day date := timezone('Asia/Shanghai', new.created_at)::date;
+begin
+  insert into public.site_daily_analytics (
+    day,
+    page_views,
+    content_clicks,
+    project_views,
+    contact_submits,
+    ai_opens,
+    desktop_events,
+    tablet_events,
+    mobile_events
+  )
+  values (
+    event_day,
+    case when new.event_name = 'page_view' then 1 else 0 end,
+    case when new.event_name = 'content_click' then 1 else 0 end,
+    case when new.event_name = 'project_view' then 1 else 0 end,
+    case when new.event_name = 'contact_submit' then 1 else 0 end,
+    case when new.event_name = 'ai_open' then 1 else 0 end,
+    case when new.device_type = 'desktop' then 1 else 0 end,
+    case when new.device_type = 'tablet' then 1 else 0 end,
+    case when new.device_type = 'mobile' then 1 else 0 end
+  )
+  on conflict (day) do update set
+    page_views = public.site_daily_analytics.page_views + excluded.page_views,
+    content_clicks = public.site_daily_analytics.content_clicks + excluded.content_clicks,
+    project_views = public.site_daily_analytics.project_views + excluded.project_views,
+    contact_submits = public.site_daily_analytics.contact_submits + excluded.contact_submits,
+    ai_opens = public.site_daily_analytics.ai_opens + excluded.ai_opens,
+    desktop_events = public.site_daily_analytics.desktop_events + excluded.desktop_events,
+    tablet_events = public.site_daily_analytics.tablet_events + excluded.tablet_events,
+    mobile_events = public.site_daily_analytics.mobile_events + excluded.mobile_events,
+    updated_at = now();
+
+  if new.event_name = 'page_view' then
+    insert into public.site_daily_paths (day, path, page_views)
+    values (event_day, new.path, 1)
+    on conflict (day, path) do update set
+      page_views = public.site_daily_paths.page_views + 1,
+      updated_at = now();
+  end if;
+
+  insert into public.site_daily_sessions (
+    day,
+    session_hash,
+    visitor_hash,
+    first_seen,
+    last_seen,
+    entry_path,
+    referrer_host,
+    device_type,
+    country_code
+  )
+  values (
+    event_day,
+    new.session_id,
+    new.visitor_hash,
+    new.created_at,
+    new.created_at,
+    new.path,
+    new.referrer_host,
+    new.device_type,
+    new.country_code
+  )
+  on conflict (day, session_hash) do update set
+    visitor_hash = coalesce(excluded.visitor_hash, public.site_daily_sessions.visitor_hash),
+    last_seen = greatest(excluded.last_seen, public.site_daily_sessions.last_seen),
+    country_code = coalesce(excluded.country_code, public.site_daily_sessions.country_code),
+    updated_at = now();
+
+  return new;
+end;
+$$;
+
+revoke all privileges on function private.aggregate_site_event()
+from public, anon, authenticated, service_role;
+
+create or replace function public.get_analytics_dashboard(
+  p_days integer default 30,
+  p_recent_limit integer default 100
+)
+returns jsonb
+language plpgsql
+stable
+security invoker
+set search_path = ''
+as $$
+declare
+  range_days integer := greatest(7, least(coalesce(p_days, 30), 365));
+  recent_limit integer := greatest(20, least(coalesce(p_recent_limit, 100), 500));
+  start_day date;
+  start_time timestamptz;
+begin
+  if not private.is_portfolio_admin() then
+    raise exception 'not authorized';
+  end if;
+
+  start_day := timezone('Asia/Shanghai', now())::date - (range_days - 1);
+  start_time := (start_day::timestamp at time zone 'Asia/Shanghai');
+
+  return jsonb_build_object(
+    'totals', (
+      select jsonb_build_object(
+        'pageViews', coalesce(sum(page_views), 0),
+        'contentClicks', coalesce(sum(content_clicks), 0),
+        'projectViews', coalesce(sum(project_views), 0),
+        'contactSubmits', coalesce(sum(contact_submits), 0),
+        'aiOpens', coalesce(sum(ai_opens), 0),
+        'uniqueSessions', (select count(distinct session_hash) from public.site_daily_sessions)
+      )
+      from public.site_daily_analytics
+    ),
+    'period', (
+      select jsonb_build_object(
+        'days', range_days,
+        'pageViews', coalesce(sum(page_views), 0),
+        'contentClicks', coalesce(sum(content_clicks), 0),
+        'projectViews', coalesce(sum(project_views), 0),
+        'projectVisitors', (
+          select count(distinct session_id)
+          from public.site_events
+          where event_name = 'project_view'
+            and created_at >= start_time
+        ),
+        'contactSubmits', coalesce(sum(contact_submits), 0),
+        'aiOpens', coalesce(sum(ai_opens), 0),
+        'uniqueSessions', (
+          select count(distinct session_hash)
+          from public.site_daily_sessions
+          where day >= start_day
+        )
+      )
+      from public.site_daily_analytics
+      where day >= start_day
+    ),
+    'todayProjectVisitors', (
+      select count(distinct session_id)
+      from public.site_events
+      where event_name = 'project_view'
+        and timezone('Asia/Shanghai', created_at)::date = timezone('Asia/Shanghai', now())::date
+    ),
+    'daily', (
+      select coalesce(jsonb_agg(jsonb_build_object(
+        'day', daily.day,
+        'pageViews', daily.page_views,
+        'contentClicks', daily.content_clicks,
+        'projectViews', daily.project_views,
+        'uniqueSessions', (
+          select count(*)
+          from public.site_daily_sessions as sessions
+          where sessions.day = daily.day
+        )
+      ) order by daily.day), '[]'::jsonb)
+      from public.site_daily_analytics as daily
+      where daily.day >= start_day
+    ),
+    'paths', (
+      select coalesce(jsonb_agg(jsonb_build_object(
+        'path', ranked.path,
+        'pageViews', ranked.page_views
+      ) order by ranked.page_views desc, ranked.path), '[]'::jsonb)
+      from (
+        select path, sum(page_views) as page_views
+        from public.site_daily_paths
+        where day >= start_day
+        group by path
+        order by page_views desc, path
+        limit 10
+      ) as ranked
+    ),
+    'devices', (
+      select jsonb_build_object(
+        'desktop', coalesce(sum(desktop_events), 0),
+        'tablet', coalesce(sum(tablet_events), 0),
+        'mobile', coalesce(sum(mobile_events), 0)
+      )
+      from public.site_daily_analytics
+      where day >= start_day
+    ),
+    'activeSessions', (
+      select count(distinct session_id)
+      from public.site_events
+      where created_at >= now() - interval '5 minutes'
+    ),
+    'recentSessions', (
+      select coalesce(jsonb_agg(jsonb_build_object(
+        'id', recent.session_id,
+        'firstSeen', recent.first_seen,
+        'lastSeen', recent.last_seen,
+        'entryPath', recent.entry_path,
+        'source', recent.referrer_host,
+        'deviceType', recent.device_type,
+        'countryCode', recent.country_code,
+        'ipAddress', recent.ip_address,
+        'pageCount', recent.page_count,
+        'eventCount', recent.event_count,
+        'projectIds', recent.project_ids
+      ) order by recent.last_seen desc), '[]'::jsonb)
+      from (
+        select
+          session_id,
+          min(created_at) as first_seen,
+          max(created_at) as last_seen,
+          (array_agg(path order by created_at))[1] as entry_path,
+          (array_agg(referrer_host order by created_at) filter (where referrer_host is not null))[1] as referrer_host,
+          (array_agg(device_type order by created_at))[1] as device_type,
+          (array_agg(country_code order by created_at) filter (where country_code is not null))[1] as country_code,
+          (array_agg(host(ip_address) order by created_at desc) filter (where ip_address is not null))[1] as ip_address,
+          count(distinct path) filter (where event_name = 'page_view') as page_count,
+          count(*) as event_count,
+          coalesce(
+            jsonb_agg(distinct content_id) filter (where event_name = 'project_view' and content_id is not null),
+            '[]'::jsonb
+          ) as project_ids
+        from public.site_events
+        group by session_id
+        order by max(created_at) desc
+        limit recent_limit
+      ) as recent
+    ),
+    'recentEvents', (
+      select coalesce(jsonb_agg(to_jsonb(recent) order by recent.created_at desc), '[]'::jsonb)
+      from (
+        select
+          id,
+          event_name,
+          path,
+          content_type,
+          content_id,
+          referrer_host,
+          session_id,
+          device_type,
+          country_code,
+          created_at
+        from public.site_events
+        order by created_at desc
+        limit recent_limit
+      ) as recent
+    )
+  );
+end;
+$$;
+
+revoke all privileges on function public.get_analytics_dashboard(integer, integer)
+from public, anon, authenticated, service_role;
+grant execute on function public.get_analytics_dashboard(integer, integer) to authenticated;
+
+create or replace function private.cleanup_site_analytics()
+returns void
+language plpgsql
+security definer
+set search_path = ''
+as $$
+begin
+  update public.site_events
+  set ip_address = null
+  where ip_address is not null
+    and created_at < now() - interval '30 days';
+
+  delete from public.site_events
+  where created_at < now() - interval '90 days';
+
+  delete from public.site_daily_sessions
+  where day < timezone('Asia/Shanghai', now())::date - 90;
+
+  delete from public.site_daily_paths
+  where day < timezone('Asia/Shanghai', now())::date - 365;
+
+  delete from public.site_daily_analytics
+  where day < timezone('Asia/Shanghai', now())::date - 365;
+
+  delete from public.lead_submission_attempts
+  where created_at < now() - interval '24 hours';
+end;
+$$;
+
+revoke all privileges on function private.cleanup_site_analytics()
+from public, anon, authenticated, service_role;
+
+update public.site_events
+set ip_address = null
+where ip_address is not null
+  and created_at < now() - interval '30 days';

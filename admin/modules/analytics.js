@@ -11,6 +11,7 @@
       devices: { ...empty.devices, ...(source.devices || {}) },
       daily: Array.isArray(source.daily) ? source.daily : [],
       paths: Array.isArray(source.paths) ? source.paths : [],
+      recentSessions: Array.isArray(source.recentSessions) ? source.recentSessions : [],
       recentEvents: Array.isArray(source.recentEvents) ? source.recentEvents : [],
     };
   };
@@ -28,14 +29,13 @@
     });
   };
 
-  const render = ({ dashboard, escapeHtml, formatDateTime, localDateKey, elements }) => {
+  const render = ({ dashboard, escapeHtml, formatDateTime, localDateKey, projects, elements }) => {
     const value = normalizedDashboard(dashboard);
-    const today = value.daily.find((item) => item.day === localDateKey());
     const metrics = [
       ["eye", "页面浏览", numberValue(value.totals.pageViews), "数据库累计聚合"],
-      ["users", "独立访客", numberValue(value.totals.uniqueSessions), "匿名会话哈希去重"],
-      ["mouse-pointer-click", "内容点击", numberValue(value.totals.contentClicks), "作品、文章与原型"],
-      ["calendar-days", "今日访问", numberValue(today && today.pageViews), "北京时间自然日"],
+      ["users", "近 30 天访客", numberValue(value.period.uniqueSessions), "匿名会话去重"],
+      ["folder-open", "近 30 天作品浏览", numberValue(value.period.projectViews), numberValue(value.period.projectVisitors) + " 位访客"],
+      ["calendar-days", "今日作品访客", numberValue(value.todayProjectVisitors), "已实际打开作品"],
     ];
     elements.metrics.innerHTML = metrics.map((item) => [
       '<article class="metric"><div class="metric-top"><span>' + item[1] + '</span><span class="metric-icon"><i data-lucide="' + item[0] + '"></i></span></div>',
@@ -69,32 +69,41 @@
       return '<div class="device-row"><div><span>' + deviceNames[key] + '</span><strong>' + count + '</strong></div><span class="device-bar"><i style="width:' + (count / deviceTotal) * 100 + '%"></i></span></div>';
     }).join("");
 
-    const eventNames = { page_view: "访问页面", content_click: "点击内容", contact_submit: "提交咨询", ai_open: "打开 AI 助手" };
+    const eventNames = { page_view: "访问页面", content_click: "点击内容", project_view: "查看作品", contact_submit: "提交咨询", ai_open: "打开 AI 助手" };
     elements.eventList.innerHTML = value.recentEvents.length ? value.recentEvents.slice(0, 12).map((event) => [
       '<div class="analytics-event"><span class="event-dot"></span><div><strong>' + escapeHtml(eventNames[event.event_name] || event.event_name) + '</strong>',
       '<small>' + escapeHtml(event.path || "/") + '</small></div><span>' + formatDateTime(event.created_at) + '</span></div>',
     ].join("")).join("") : '<div class="empty-state">暂无访问数据。</div>';
 
-    const sessions = Object.values(value.recentEvents.reduce((result, event) => {
-      const key = event.session_id || "unknown";
-      if (!result[key]) result[key] = { id: key, events: [], first: event.created_at, last: event.created_at, entry: event.path || "/", source: event.referrer_host || "直接访问", device: event.device_type || "desktop", country: event.country_code || "" };
-      result[key].events.push(event);
-      if (new Date(event.created_at) < new Date(result[key].first)) {
-        result[key].first = event.created_at;
-        result[key].entry = event.path || "/";
-      }
-      if (new Date(event.created_at) > new Date(result[key].last)) result[key].last = event.created_at;
-      return result;
-    }, {})).sort((a, b) => new Date(b.last) - new Date(a.last));
+    const sessions = value.recentSessions.slice().sort((a, b) => new Date(b.lastSeen) - new Date(a.lastSeen));
+    const projectNames = new Map((Array.isArray(projects) ? projects : []).map((item) => [item.slug, item.title || item.slug]));
+    const deviceNamesByKey = { desktop: "桌面端", tablet: "平板", mobile: "移动端" };
+    const renderSessions = () => {
+      const filter = elements.filter ? elements.filter.value : "all";
+      const todayKey = localDateKey();
+      const filtered = sessions.filter((item) => {
+        const hasProjects = Array.isArray(item.projectIds) && item.projectIds.length > 0;
+        if (filter === "portfolio") return hasProjects;
+        if (filter === "today") return localDateKey(item.lastSeen) === todayKey;
+        return true;
+      });
+      elements.sessions.innerHTML = filtered.length ? [
+        '<div class="visitor-head"><span>访客</span><span>IP 地址</span><span>看过的作品</span><span>入口与来源</span><span>页面</span><span>最后访问</span></div>',
+        ...filtered.slice(0, 50).map((item) => {
+          const projectIds = Array.isArray(item.projectIds) ? item.projectIds : [];
+          const projectTags = projectIds.length
+            ? projectIds.map((id) => '<span class="visitor-project-tag" title="' + escapeHtml(id) + '">' + escapeHtml(projectNames.get(id) || id) + '</span>').join("")
+            : '<small class="visitor-project-empty">未查看作品</small>';
+          const device = deviceNamesByKey[item.deviceType] || item.deviceType || "未知设备";
+          const ip = item.ipAddress || "未记录";
+          return '<article class="visitor-row' + (projectIds.length ? ' is-project-viewer' : '') + '"><div><strong>' + escapeHtml(String(item.id || "unknown").slice(0, 12)) + '</strong><small>' + escapeHtml(device) + '</small></div><div><code class="visitor-ip">' + escapeHtml(ip) + '</code><small>' + escapeHtml(item.countryCode || "IP 保留 30 天") + '</small></div><div class="visitor-projects">' + projectTags + '</div><div><code>' + escapeHtml(item.entryPath || "/") + '</code><small>' + escapeHtml(item.source || "直接访问") + '</small></div><strong>' + numberValue(item.pageCount) + '</strong><time>' + formatDateTime(item.lastSeen) + '</time></article>';
+        }),
+      ].join("") : '<div class="empty-state compact">当前筛选下暂无访客会话。</div>';
+    };
     elements.active.textContent = numberValue(value.activeSessions) + " 位活跃访客";
-    elements.sessions.innerHTML = sessions.length ? [
-      '<div class="visitor-head"><span>访客标识</span><span>隐私状态</span><span>入口页面</span><span>来源</span><span>页面数</span><span>访问时间</span></div>',
-      ...sessions.slice(0, 20).map((item) => {
-        const paths = new Set(item.events.map((event) => event.path));
-        const device = { desktop: "桌面端", tablet: "平板", mobile: "移动端" }[item.device] || item.device;
-        return '<article class="visitor-row"><div><strong>' + escapeHtml(item.id.slice(0, 12)) + '</strong><small>' + escapeHtml(device) + '</small></div><div><code>已匿名化</code><small>' + escapeHtml(item.country || "不采集详细位置") + '</small></div><code>' + escapeHtml(item.entry) + '</code><span>' + escapeHtml(item.source) + '</span><strong>' + paths.size + '</strong><time>' + formatDateTime(item.last) + '</time></article>';
-      }),
-    ].join("") : '<div class="empty-state compact">暂无访客会话。</div>';
+    if (elements.summary) elements.summary.textContent = "近 30 天 " + numberValue(value.period.projectVisitors) + " 位访客看过作品 · IP 最多保留 30 天";
+    if (elements.filter) elements.filter.onchange = renderSessions;
+    renderSessions();
   };
 
   window.PortfolioAdminAnalytics = { normalizedDashboard, visitDays, render };

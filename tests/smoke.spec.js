@@ -19,15 +19,14 @@ for (const [path, selector] of pages) {
   });
 }
 
-test("reduced motion keeps the static scene and skips Spline", async ({ page }) => {
-  const splineRequests = [];
-  page.on("request", (request) => {
-    if (/splinetool|scene\.splinecode/i.test(request.url())) splineRequests.push(request.url());
-  });
-  await page.emulateMedia({ reducedMotion: "reduce" });
-  await page.goto("/", { waitUntil: "load" });
-  await expect(page.locator("[data-spline-shell]")).toHaveAttribute("data-scene-mode", "reduced-motion");
-  expect(splineRequests).toEqual([]);
+test("home uses the original direct Spline viewer", async ({ page }) => {
+  await page.route("https://unpkg.com/@splinetool/viewer@1.12.98/build/spline-viewer.js", (route) =>
+    route.fulfill({ status: 200, contentType: "text/javascript", body: "" }),
+  );
+  await page.goto("/", { waitUntil: "domcontentloaded" });
+  await expect(page.locator('script[type="module"][src*="@splinetool/viewer@1.12.98"]')).toHaveCount(1);
+  await expect(page.locator("#scene-viewer")).toHaveAttribute("url", "./assets/scene.splinecode");
+  await expect(page.locator("#scene-viewer")).toHaveCSS("opacity", "1");
 });
 
 test("URL sanitizer rejects executable protocols", async ({ page }) => {

@@ -67,6 +67,9 @@
           <button class="nav-item" type="button" data-section="inquiries" aria-label="客户咨询" data-label="客户咨询" title="客户咨询">
             <i data-lucide="messages-square" aria-hidden="true"></i><span>客户咨询</span>
           </button>
+          <button class="nav-item" type="button" data-section="about" aria-label="关于配置" data-label="关于配置" title="关于配置">
+            <i data-lucide="user-round-cog" aria-hidden="true"></i><span>关于配置</span>
+          </button>
           <button class="nav-item" type="button" data-section="consultation" aria-label="咨询配置" data-label="咨询配置" title="咨询配置">
             <i data-lucide="file-cog" aria-hidden="true"></i><span>咨询配置</span>
           </button>
@@ -109,6 +112,7 @@
             <button class="workspace-tab" type="button" data-section="navigation">导航管理</button>
             <button class="workspace-tab" type="button" data-section="ai">AI 分身</button>
             <button class="workspace-tab" type="button" data-section="inquiries">客户咨询</button>
+            <button class="workspace-tab" type="button" data-section="about">关于配置</button>
             <button class="workspace-tab" type="button" data-section="consultation">咨询配置</button>
             <button class="workspace-tab" type="button" data-section="quotes">AI 报价</button>
             <button class="workspace-tab" type="button" data-section="finance">收支统计</button>
@@ -297,6 +301,55 @@
             <div class="inquiry-list" id="inquiry-list"></div>
           </section>
 
+          <section class="admin-section" data-panel="about">
+            <div class="section-toolbar">
+              <div><p class="eyebrow">About Page</p><h2>关于内容配置</h2><p>管理关于页的个人介绍、职业经历、教育背景与能力分类。</p></div>
+              <div class="toolbar-actions">
+                <button class="button button-primary" type="submit" form="about-settings-form"><i data-lucide="save" aria-hidden="true"></i><span>保存配置</span></button>
+                <a class="button button-secondary" href="https://lh1994530481-oss.github.io/Portfolio-web/about/" target="_blank" rel="noopener"><i data-lucide="external-link" aria-hidden="true"></i><span>查看关于页</span></a>
+              </div>
+            </div>
+            <form class="settings-form surface about-settings-form" id="about-settings-form">
+              <div class="settings-group field-wide"><h3>页面开场</h3><p>控制关于页顶部的英文标签、主标题和说明。</p></div>
+              <label class="field"><span>英文标签</span><input name="pageEyebrow" required /></label>
+              <label class="field"><span>页面标题</span><input name="pageTitle" required /></label>
+              <label class="field field-wide"><span>页面副标题</span><textarea name="pageSubtitle" rows="3" required></textarea></label>
+
+              <div class="settings-group field-wide"><h3>个人简介</h3><p>头像支持粘贴 URL 或直接上传；简介和能力标签均为每行一项。</p></div>
+              <div class="about-avatar-editor field-wide">
+                <div class="about-avatar-preview" id="about-avatar-preview"><i data-lucide="user-round" aria-hidden="true"></i></div>
+                <div class="about-avatar-fields">
+                  <label class="field"><span>头像地址</span><input name="avatarUrl" type="url" placeholder="https:// 或留空" data-about-avatar-url /></label>
+                  <label class="button button-secondary about-avatar-upload"><i data-lucide="upload" aria-hidden="true"></i><span>上传头像</span><input type="file" accept="image/*" data-about-avatar-upload /></label>
+                </div>
+              </div>
+              <label class="field"><span>简介标题</span><input name="profileTitle" required /></label>
+              <label class="field"><span>简介副标题</span><input name="profileSubtitle" required /></label>
+              <label class="field field-wide"><span>简介段落</span><textarea name="profileParagraphs" rows="6" required placeholder="每行一段"></textarea><small>每行会显示为一个独立段落。</small></label>
+              <label class="field field-wide"><span>能力列表</span><textarea name="profileSkills" rows="6" placeholder="每行一项"></textarea><small>用于简介区域的快速能力概览。</small></label>
+
+              <div class="about-collection field-wide">
+                <div class="about-collection-heading"><div><h3>工作经历</h3><p>前台按当前顺序展示，可随时新增或删除。</p></div><button class="button button-secondary" type="button" data-add-about="experience"><i data-lucide="plus" aria-hidden="true"></i><span>添加经历</span></button></div>
+                <div class="about-card-list" id="about-experience-list"></div>
+              </div>
+
+              <div class="about-collection field-wide">
+                <div class="about-collection-heading"><div><h3>教育背景</h3><p>填写时间、学历或方向、学校以及补充说明。</p></div><button class="button button-secondary" type="button" data-add-about="education"><i data-lucide="plus" aria-hidden="true"></i><span>添加教育</span></button></div>
+                <div class="about-card-list" id="about-education-list"></div>
+              </div>
+
+              <div class="about-collection field-wide">
+                <div class="about-collection-heading"><div><h3>技能分类</h3><p>每个分类下的技能使用“名称 | 熟练度”格式，每行一项。</p></div><button class="button button-secondary" type="button" data-add-about="skill"><i data-lucide="plus" aria-hidden="true"></i><span>添加分类</span></button></div>
+                <div class="about-card-list" id="about-skill-list"></div>
+              </div>
+
+              <div class="settings-group field-wide"><h3>页脚</h3></div>
+              <label class="field"><span>页脚品牌文案</span><input name="footerLabel" required /></label>
+              <label class="field"><span>返回按钮文案</span><input name="backLabel" required /></label>
+              <div class="form-actions field-wide"><button class="button button-primary" type="submit"><i data-lucide="save" aria-hidden="true"></i><span>保存关于配置</span></button></div>
+            </form>
+          </section>
+
           <section class="admin-section" data-panel="consultation">
             <div class="section-toolbar">
               <div><p class="eyebrow">Consultation Page</p><h2>咨询内容配置</h2><p>管理咨询页的开场文案、表单选项、联系说明与服务流程。</p></div>
@@ -366,7 +419,6 @@
             <form class="settings-form surface" id="settings-form">
               <div class="settings-group field-wide"><h3>页面显示</h3><div class="toggle-grid"><label class="toggle-field"><span>关于我</span><input name="showAbout" type="checkbox" /></label><label class="toggle-field"><span>作品集</span><input name="showPortfolio" type="checkbox" /></label><label class="toggle-field"><span>文章</span><input name="showArticles" type="checkbox" /></label><label class="toggle-field"><span>联系方式</span><input name="showContact" type="checkbox" /></label></div></div>
               <label class="field field-wide"><span>关于我</span><textarea name="aboutText" rows="6"></textarea></label>
-              <label class="field field-wide"><span>关于页详细配置 JSON</span><textarea name="aboutDetails" rows="8" spellcheck="false"></textarea><small>可配置标题、副标题、能力标签与工作经历。</small></label>
               <label class="field field-wide"><span>联系介绍</span><textarea name="contactIntro" rows="3"></textarea></label>
               <label class="field"><span>邮箱</span><input name="email" type="email" /></label>
               <label class="field"><span>位置</span><input name="location" type="text" /></label>
@@ -441,9 +493,9 @@
     <script src="./config.js?v=20260820-5"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.57.4"></script>
     <script src="../shared/sanitize.js?v=20260831-2"></script>
-    <script src="../shared/content-api-models.js?v=20260831-2"></script>
+    <script src="../shared/content-api-models.js?v=20260901-1"></script>
     <script src="../shared/content-api-analytics.js?v=20260901-1"></script>
-    <script src="../shared/content-api.js?v=20260831-2"></script>
+    <script src="../shared/content-api.js?v=20260901-1"></script>
     <script src="https://unpkg.com/lucide@0.468.0/dist/umd/lucide.min.js"></script>
     <script src="./modules/auth-session.js?v=20260831-2"></script>
     <script src="./modules/content.js?v=20260831-2"></script>

@@ -36,6 +36,37 @@
     backLabel: "返回首页",
   };
 
+  const defaultAboutDetails = {
+    pageEyebrow: "About",
+    pageTitle: "关于",
+    pageSubtitle: "关于我的工作方式、专业能力与成长经历。",
+    avatarUrl: "",
+    profileTitle: "个人简介",
+    profileSubtitle: "UI / UX Designer",
+    profileParagraphs: [],
+    profileSkills: ["UI/UX 设计", "B 端 SaaS", "C 端移动产品", "数据可视化"],
+    experience: [],
+    education: [],
+    skillCategories: [],
+    footerLabel: "菻桐昕 Portfolio",
+    backLabel: "返回首页",
+  };
+
+  const normalizeAboutDetails = (details, fallbackText) => {
+    const source = details && typeof details === "object" ? details : {};
+    return {
+      ...defaultAboutDetails,
+      ...source,
+      profileParagraphs: Array.isArray(source.profileParagraphs)
+        ? source.profileParagraphs
+        : [fallbackText || "专注于多端产品体验、复杂业务梳理与清晰的视觉表达。"],
+      profileSkills: Array.isArray(source.profileSkills) ? source.profileSkills : defaultAboutDetails.profileSkills,
+      experience: Array.isArray(source.experience) ? source.experience : [],
+      education: Array.isArray(source.education) ? source.education : [],
+      skillCategories: Array.isArray(source.skillCategories) ? source.skillCategories : [],
+    };
+  };
+
   const defaultSettings = {
     id: "main",
     aboutText: "拥有 5 年以上多端 UI/UX 体验设计经验，具备深厚的 B 端 SaaS 系统与 C 端移动产品设计实战积累。拥有极强的业务洞察力与产品思维，能独立完成从“需求分析-逻辑梳理-视觉表达-资产交付”的全流程工作。",
@@ -47,21 +78,24 @@
     xiaohongshuUrl: "https://www.xiaohongshu.com/user/profile/654ddf25000000000802faa7?xsec_token=AB8a8l2qx6DnMLG1aJjLFXPccDnBoKuproZpqZSO86rrE%3D&xsec_source=pc_search",
     wechatQrUrl: "./assets/contact/wechat-official-account-qr.jpg",
     sectionVisibility: { about: true, portfolio: true, articles: true, contact: true },
-    aboutDetails: {},
+    aboutDetails: normalizeAboutDetails({}, "拥有 5 年以上多端 UI/UX 体验设计经验，具备深厚的 B 端 SaaS 系统与 C 端移动产品设计实战积累。拥有极强的业务洞察力与产品思维，能独立完成从“需求分析-逻辑梳理-视觉表达-资产交付”的全流程工作。"),
     contactItems: [],
     socialLinks: [],
     footerRegistration: "",
     consultationContent: { ...defaultConsultationContent },
   };
 
-  const normalizeSettings = (settings) => ({
-    ...defaultSettings,
-    ...(settings || {}),
-    consultationContent: {
-      ...defaultConsultationContent,
-      ...((settings && settings.consultationContent) || {}),
-    },
-  });
+  const normalizeSettings = (settings) => {
+    const merged = { ...defaultSettings, ...(settings || {}) };
+    return {
+      ...merged,
+      aboutDetails: normalizeAboutDetails(merged.aboutDetails, merged.aboutText),
+      consultationContent: {
+        ...defaultConsultationContent,
+        ...((settings && settings.consultationContent) || {}),
+      },
+    };
+  };
 
   const defaultNavigation = [
     { id: "10000000-0000-4000-8000-000000000001", label: "首页", href: "#top", sortOrder: 0, published: true, openNewTab: false },
@@ -69,7 +103,8 @@
     { id: "10000000-0000-4000-8000-000000000005", label: "练习与演示", href: "./demos/index.html", sortOrder: 2, published: true, openNewTab: false },
     { id: "10000000-0000-4000-8000-000000000003", label: "文章", href: "./articles/index.html", sortOrder: 3, published: true, openNewTab: false },
     { id: "10000000-0000-4000-8000-000000000004", label: "联系", href: "#contact", sortOrder: 4, published: true, openNewTab: false },
-    { id: "10000000-0000-4000-8000-000000000006", label: "咨询", href: "./consultation/index.html", sortOrder: 5, published: true, openNewTab: false },
+    { id: "10000000-0000-4000-8000-000000000007", label: "关于", href: "./about/index.html", sortOrder: 5, published: true, openNewTab: false },
+    { id: "10000000-0000-4000-8000-000000000006", label: "咨询", href: "./consultation/index.html", sortOrder: 6, published: true, openNewTab: false },
   ];
 
   const defaultQuickLinkCategories = [
@@ -358,7 +393,7 @@
     xiaohongshuUrl: row.xiaohongshu_url || defaultSettings.xiaohongshuUrl,
     wechatQrUrl: row.wechat_qr_url || defaultSettings.wechatQrUrl,
     sectionVisibility: row.section_visibility || defaultSettings.sectionVisibility,
-    aboutDetails: row.about_details || {},
+    aboutDetails: normalizeAboutDetails(row.about_details, row.about_text || defaultSettings.aboutText),
     contactItems: Array.isArray(row.contact_items) ? row.contact_items : [],
     socialLinks: Array.isArray(row.social_links) ? row.social_links : [],
     footerRegistration: row.footer_registration || "",
@@ -973,6 +1008,7 @@
   window.ContentAPI = {
     config,
     defaultSettings,
+    defaultAboutDetails,
     defaultConsultationContent,
     defaultNavigation,
     defaultQuickLinkCategories,

@@ -17,5 +17,7 @@ Open `index.html` directly in a browser or serve the directory with a static HTT
 
 - `index.html` - page structure and content
 - `styles.css` - responsive layout and visual styling
+- `about/` - Supabase-backed profile, experience, education, and skills page
+- `admin/` - mirrored CMS used to manage About and the rest of the public site
 
 The page uses Figma MCP asset URLs for images and a local-first PingFang font stack for typography.

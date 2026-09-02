@@ -612,6 +612,23 @@ input, textarea, select, .toggle-field { border-radius: 4px; }
 .settings-group p { margin: -4px 0 0; color: var(--muted); font-size: 10px; line-height: 1.6; }
 .toggle-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; }
 .field small { color: var(--muted); font-size: 10px; }
+.about-avatar-editor { display: grid; grid-template-columns: 116px minmax(0, 1fr); align-items: center; gap: 20px; }
+.about-avatar-preview { display: grid; width: 116px; aspect-ratio: 1; place-items: center; overflow: hidden; border: 1px dashed var(--line-strong); border-radius: 8px; background: var(--surface-subtle); color: var(--muted); }
+.about-avatar-preview img { width: 100%; height: 100%; object-fit: cover; }
+.about-avatar-preview .lucide { width: 30px; height: 30px; }
+.about-avatar-fields { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: end; gap: 10px; }
+.about-avatar-upload { position: relative; min-height: 44px; overflow: hidden; cursor: pointer; }
+.about-avatar-upload input { position: absolute; width: 1px; height: 1px; opacity: 0; pointer-events: none; }
+.about-collection { display: grid; gap: 14px; padding-top: 4px; }
+.about-collection-heading { display: flex; align-items: center; justify-content: space-between; gap: 18px; padding-bottom: 14px; border-bottom: 1px solid var(--line); }
+.about-collection-heading h3 { margin: 0; font-size: 14px; }
+.about-collection-heading p { margin: 6px 0 0; color: var(--muted); font-size: 10px; }
+.about-card-list { display: grid; gap: 12px; }
+.about-edit-card { overflow: hidden; border: 1px solid var(--line); border-radius: 6px; background: var(--surface-subtle); }
+.about-edit-card > header { display: flex; min-height: 52px; align-items: center; justify-content: space-between; padding: 0 14px; border-bottom: 1px solid var(--line); background: #fff; }
+.about-edit-card > header strong { font-size: 12px; }
+.about-edit-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; padding: 16px; }
+.about-empty { display: grid; min-height: 92px; place-items: center; border: 1px dashed var(--line-strong); border-radius: 6px; color: var(--muted); background: var(--surface-subtle); font-size: 11px; }
 .inquiry-message p small { display: block; margin-top: 4px; color: var(--muted); font-size: 9px; }
 
 .editor-dialog { width: min(820px, calc(100vw - 32px)); }
@@ -652,6 +669,10 @@ input, textarea, select, .toggle-field { border-radius: 4px; }
 
 @media (max-width: 760px) {
   .workbench-notes, .toggle-grid { grid-template-columns: 1fr; }
+  .about-avatar-editor, .about-avatar-fields, .about-edit-grid { grid-template-columns: 1fr; }
+  .about-avatar-preview { width: 96px; }
+  .about-collection-heading { align-items: flex-start; flex-direction: column; }
+  .about-collection-heading .button { width: 100%; }
   .mood-options { grid-template-columns: repeat(3, minmax(0, 1fr)); }
   .toolbar-actions { width: 100%; flex-wrap: wrap; }
   .toolbar-actions .button { width: auto; flex: 1; }

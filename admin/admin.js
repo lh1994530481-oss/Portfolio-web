@@ -84,6 +84,10 @@
     },
   };
   const settingsForm = document.getElementById("settings-form");
+  const aboutSettingsForm = document.getElementById("about-settings-form");
+  const aboutExperienceList = document.getElementById("about-experience-list");
+  const aboutEducationList = document.getElementById("about-education-list");
+  const aboutSkillList = document.getElementById("about-skill-list");
   const consultationSettingsForm = document.getElementById("consultation-settings-form");
   const editorDialog = document.getElementById("editor-dialog");
   const editorForm = document.getElementById("editor-form");
@@ -125,6 +129,7 @@
     navigation: "导航管理",
     ai: "AI 分身",
     inquiries: "客户咨询",
+    about: "关于配置",
     consultation: "咨询配置",
     quotes: "AI 报价",
     finance: "收支统计",
@@ -426,7 +431,6 @@
       const field = settingsForm.elements.namedItem(key);
       if (field) field.value = state.settings[key] || "";
     });
-    settingsForm.elements.namedItem("aboutDetails").value = JSON.stringify(state.settings.aboutDetails || {}, null, 2);
     settingsForm.elements.namedItem("contactItems").value = JSON.stringify(state.settings.contactItems || [], null, 2);
     settingsForm.elements.namedItem("socialLinks").value = JSON.stringify(state.settings.socialLinks || [], null, 2);
     const visibility = state.settings.sectionVisibility || {};
@@ -434,6 +438,104 @@
     settingsForm.elements.namedItem("showPortfolio").checked = visibility.portfolio !== false;
     settingsForm.elements.namedItem("showArticles").checked = visibility.articles !== false;
     settingsForm.elements.namedItem("showContact").checked = visibility.contact !== false;
+  };
+
+  const aboutListForType = (type) => (
+    type === "experience" ? aboutExperienceList
+      : type === "education" ? aboutEducationList
+        : aboutSkillList
+  );
+
+  const renderAboutAvatar = (value) => {
+    const preview = document.getElementById("about-avatar-preview");
+    const source = safeImageUrl(value || "");
+    preview.innerHTML = source
+      ? '<img src="' + escapeHtml(source) + '" alt="头像预览" />'
+      : '<i data-lucide="user-round" aria-hidden="true"></i>';
+    refreshIcons();
+  };
+
+  const aboutCardMarkup = (type, item, index) => {
+    const removeButton = '<button class="icon-button is-danger" type="button" data-remove-about="' + type + '" data-about-index="' + index + '" aria-label="删除"><i data-lucide="trash-2" aria-hidden="true"></i></button>';
+    if (type === "experience") {
+      return [
+        '<article class="about-edit-card" data-about-card="experience">',
+        '  <header><strong>经历 ' + (index + 1) + '</strong>' + removeButton + '</header>',
+        '  <div class="about-edit-grid">',
+        '    <label class="field"><span>时间</span><input data-about-field="period" value="' + escapeHtml(item.period || "") + '" placeholder="2020 - 至今" /></label>',
+        '    <label class="field"><span>职位</span><input data-about-field="role" value="' + escapeHtml(item.role || "") + '" placeholder="UI/UX 设计师" /></label>',
+        '    <label class="field field-wide"><span>公司 / 组织</span><input data-about-field="company" value="' + escapeHtml(item.company || "") + '" /></label>',
+        '    <label class="field field-wide"><span>描述</span><textarea data-about-field="description" rows="4">' + escapeHtml(item.description || "") + '</textarea></label>',
+        '  </div>',
+        '</article>',
+      ].join("");
+    }
+    if (type === "education") {
+      return [
+        '<article class="about-edit-card" data-about-card="education">',
+        '  <header><strong>教育 ' + (index + 1) + '</strong>' + removeButton + '</header>',
+        '  <div class="about-edit-grid">',
+        '    <label class="field"><span>时间</span><input data-about-field="period" value="' + escapeHtml(item.period || "") + '" placeholder="2016 - 2020" /></label>',
+        '    <label class="field"><span>学历 / 专业方向</span><input data-about-field="degree" value="' + escapeHtml(item.degree || "") + '" /></label>',
+        '    <label class="field field-wide"><span>学校 / 机构</span><input data-about-field="school" value="' + escapeHtml(item.school || "") + '" /></label>',
+        '    <label class="field field-wide"><span>描述</span><textarea data-about-field="description" rows="4">' + escapeHtml(item.description || "") + '</textarea></label>',
+        '  </div>',
+        '</article>',
+      ].join("");
+    }
+    const skillLines = (Array.isArray(item.items) ? item.items : []).map((entry) => (
+      (entry.name || "") + " | " + Math.max(0, Math.min(100, Number(entry.percent || 0)))
+    )).join("\n");
+    return [
+      '<article class="about-edit-card" data-about-card="skill">',
+      '  <header><strong>技能分类 ' + (index + 1) + '</strong>' + removeButton + '</header>',
+      '  <div class="about-edit-grid">',
+      '    <label class="field field-wide"><span>分类名称</span><input data-about-field="name" value="' + escapeHtml(item.name || "") + '" placeholder="产品与体验设计" /></label>',
+      '    <label class="field field-wide"><span>技能与熟练度</span><textarea data-about-field="items" rows="6" placeholder="UI/UX 设计 | 90\n交互原型 | 85">' + escapeHtml(skillLines) + '</textarea><small>熟练度范围为 0–100。</small></label>',
+      '  </div>',
+      '</article>',
+    ].join("");
+  };
+
+  const renderAboutCards = (type, items) => {
+    const list = aboutListForType(type);
+    const values = Array.isArray(items) ? items : [];
+    list.innerHTML = values.length
+      ? values.map((item, index) => aboutCardMarkup(type, item, index)).join("")
+      : '<div class="about-empty">暂无内容，点击右上角按钮添加。</div>';
+    refreshIcons();
+  };
+
+  const collectAboutCards = (type) => Array.from(aboutListForType(type).querySelectorAll("[data-about-card]")).map((card) => {
+    const value = (name) => card.querySelector('[data-about-field="' + name + '"]')?.value.trim() || "";
+    if (type === "experience") {
+      return { period: value("period"), role: value("role"), company: value("company"), description: value("description") };
+    }
+    if (type === "education") {
+      return { period: value("period"), degree: value("degree"), school: value("school"), description: value("description") };
+    }
+    const items = value("items").split(/\r?\n/).map((line) => {
+      const [name, percent] = line.split("|").map((part) => part.trim());
+      return name ? { name, percent: Math.max(0, Math.min(100, Number(percent || 0))) } : null;
+    }).filter(Boolean);
+    return { name: value("name"), items };
+  }).filter((item) => Object.values(item).some((value) => Array.isArray(value) ? value.length : Boolean(value)));
+
+  const renderAboutSettings = () => {
+    const content = {
+      ...api.defaultAboutDetails,
+      ...(state.settings.aboutDetails || {}),
+    };
+    ["pageEyebrow", "pageTitle", "pageSubtitle", "avatarUrl", "profileTitle", "profileSubtitle", "footerLabel", "backLabel"].forEach((key) => {
+      const field = aboutSettingsForm.elements.namedItem(key);
+      if (field) field.value = content[key] || "";
+    });
+    aboutSettingsForm.elements.namedItem("profileParagraphs").value = (Array.isArray(content.profileParagraphs) ? content.profileParagraphs : []).join("\n");
+    aboutSettingsForm.elements.namedItem("profileSkills").value = (Array.isArray(content.profileSkills) ? content.profileSkills : []).join("\n");
+    renderAboutAvatar(content.avatarUrl);
+    renderAboutCards("experience", content.experience);
+    renderAboutCards("education", content.education);
+    renderAboutCards("skill", content.skillCategories);
   };
 
   const renderConsultationSettings = () => {
@@ -683,6 +785,7 @@
     renderQuotes();
     renderFinance();
     renderSettings();
+    renderAboutSettings();
     renderConsultationSettings();
     renderSetup();
     refreshIcons();
@@ -1377,7 +1480,6 @@
       setSync("保存中", "busy");
       const values = serializeForm(settingsForm);
       try {
-        values.aboutDetails = JSON.parse(values.aboutDetails || "{}");
         values.contactItems = JSON.parse(values.contactItems || "[]");
         values.socialLinks = JSON.parse(values.socialLinks || "[]");
       } catch (error) {
@@ -1396,6 +1498,69 @@
       await api.saveSettings({ ...state.settings, ...values });
       await loadData();
       showToast("站点信息已保存");
+    } catch (error) {
+      setSync("保存失败", "error");
+      showToast(error.message, true);
+    }
+  });
+
+  aboutSettingsForm.addEventListener("input", (event) => {
+    if (event.target.matches("[data-about-avatar-url]")) renderAboutAvatar(event.target.value.trim());
+  });
+
+  aboutSettingsForm.addEventListener("click", (event) => {
+    const addButton = event.target.closest("[data-add-about]");
+    const removeButton = event.target.closest("[data-remove-about]");
+    if (addButton) {
+      const type = addButton.dataset.addAbout;
+      const items = collectAboutCards(type);
+      items.push(type === "experience"
+        ? { period: "", role: "", company: "", description: "" }
+        : type === "education"
+          ? { period: "", degree: "", school: "", description: "" }
+          : { name: "", items: [] });
+      renderAboutCards(type, items);
+      aboutListForType(type).querySelector("[data-about-card]:last-child input")?.focus();
+      return;
+    }
+    if (removeButton) {
+      const type = removeButton.dataset.removeAbout;
+      const items = collectAboutCards(type);
+      items.splice(Number(removeButton.dataset.aboutIndex || 0), 1);
+      renderAboutCards(type, items);
+    }
+  });
+
+  aboutSettingsForm.addEventListener("change", async (event) => {
+    const upload = event.target.closest("[data-about-avatar-upload]");
+    if (!upload || !upload.files || !upload.files[0]) return;
+    try {
+      setSync("上传头像", "busy");
+      const url = await api.uploadMedia(upload.files[0]);
+      aboutSettingsForm.elements.namedItem("avatarUrl").value = url;
+      renderAboutAvatar(url);
+      upload.value = "";
+      setSync("头像已上传", "");
+    } catch (error) {
+      setSync("上传失败", "error");
+      showToast(error.message, true);
+    }
+  });
+
+  aboutSettingsForm.addEventListener("submit", async (event) => {
+    event.preventDefault();
+    try {
+      setSync("保存中", "busy");
+      const values = serializeForm(aboutSettingsForm);
+      values.profileParagraphs = String(values.profileParagraphs || "").split(/\r?\n/).map((item) => item.trim()).filter(Boolean);
+      values.profileSkills = String(values.profileSkills || "").split(/\r?\n/).map((item) => item.trim()).filter(Boolean);
+      values.experience = collectAboutCards("experience");
+      values.education = collectAboutCards("education");
+      values.skillCategories = collectAboutCards("skill");
+      if (!values.profileParagraphs.length) throw new Error("请至少填写一段个人简介");
+      await api.saveSettings({ ...state.settings, aboutDetails: values });
+      await loadData();
+      showToast("关于配置已保存");
     } catch (error) {
       setSync("保存失败", "error");
       showToast(error.message, true);

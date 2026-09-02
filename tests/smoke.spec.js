@@ -4,6 +4,7 @@ const pages = [
   ["/", "main.home-page"],
   ["/portfolio/", "#portfolio-list-grid"],
   ["/articles/", "#article-list-grid"],
+  ["/about/", ".about-profile"],
   ["/consultation/", "#inquiry-form"],
   ["/admin/", "#auth-screen"],
 ];
@@ -39,6 +40,34 @@ test("URL sanitizer rejects executable protocols", async ({ page }) => {
   expect(result).toEqual({ script: "", html: "", https: "https://example.com" });
 });
 
+test("About navigation precedes consultation and renders managed experience", async ({ page }) => {
+  await page.route("**/rest/v1/site_settings?*", (route) => route.fulfill({
+    status: 200,
+    contentType: "application/json",
+    body: JSON.stringify([{
+      id: "main",
+      about_text: "默认简介",
+      about_details: {
+        pageTitle: "关于我",
+        profileParagraphs: ["从后台同步的个人简介。"],
+        profileSkills: ["体验设计"],
+        experience: [{ period: "2024 - 至今", role: "体验负责人", company: "示例团队", description: "负责产品体验与设计系统。" }],
+        education: [],
+        skillCategories: [],
+      },
+    }]),
+  }));
+  await page.goto("/about/", { waitUntil: "domcontentloaded" });
+  await expect(page.locator("#about-title")).toHaveText("关于我");
+  await expect(page.locator("[data-about-experience]")).toContainText("体验负责人");
+  await expect(page.locator("[data-about-experience]")).toContainText("示例团队");
+
+  await page.goto("/", { waitUntil: "domcontentloaded" });
+  const labels = await page.evaluate(() => window.ContentAPI.defaultNavigation.map((item) => item.label));
+  expect(labels.indexOf("关于")).toBeGreaterThan(-1);
+  expect(labels.indexOf("关于")).toBeLessThan(labels.indexOf("咨询"));
+});
+
 test("opening a portfolio project records one deduplicated project view", async ({ page }) => {
   const tracked = [];
   await page.route("**/functions/v1/track-visit", async (route) => {
@@ -50,6 +79,7 @@ test("opening a portfolio project records one deduplicated project view", async 
   await page.goto("/portfolio/", { waitUntil: "domcontentloaded" });
   await expect(page.locator(".site-privacy-notice")).toContainText("IP 最多保留 30 天");
   const trigger = page.locator("[data-project-modal]:not([data-protected-project])").first();
+  await trigger.scrollIntoViewIfNeeded();
   await expect(trigger).toBeVisible();
   const slug = await trigger.getAttribute("data-project-modal");
   await trigger.click();

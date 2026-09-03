@@ -266,6 +266,53 @@ body { background: var(--bg); }
   padding-top: 18px;
   border-top: 1px solid var(--line);
 }
+
+.nav-group-label {
+  display: block;
+  margin: 14px 12px 5px;
+  color: var(--text-muted);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: .12em;
+  text-transform: uppercase;
+}
+
+.nav-group-label:first-child { margin-top: 2px; }
+
+.daily-management-grid {
+  display: grid;
+  grid-template-columns: minmax(280px, .75fr) minmax(620px, 1.8fr);
+  gap: 18px;
+  align-items: start;
+}
+
+.daily-management-grid .mood-surface { grid-column: auto; }
+
+.article-privacy-note {
+  display: flex;
+  gap: 9px;
+  align-items: flex-start;
+  padding: 12px;
+  border-radius: 12px;
+  background: var(--surface-subtle);
+  color: var(--text-muted);
+  font-size: 12px;
+  line-height: 1.6;
+}
+
+.article-privacy-note svg { width: 16px; flex: 0 0 auto; margin-top: 1px; }
+
+@media (max-width: 1100px) {
+  .daily-management-grid { grid-template-columns: 1fr; }
+}
+
+@media (min-width: 761px) {
+  .nav-group-label { width: 46px; height: 1px; margin: 10px 0 5px; overflow: hidden; background: var(--line); font-size: 0; }
+}
+
+@media (max-width: 760px) {
+  .nav-group-label { margin: 14px 12px 5px; font-size: 10px; }
+}
 .nav-item,
 .sidebar-footer a,
 .sidebar-footer button {

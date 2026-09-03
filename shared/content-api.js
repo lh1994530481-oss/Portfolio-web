@@ -711,6 +711,60 @@
     if (error) throw error;
   };
 
+  const personalNoteFromRow = (row) => ({
+    id: row.id,
+    title: row.title,
+    category: row.category || "个人",
+    tags: row.tags || [],
+    blocks: row.blocks || [],
+    status: row.status || "active",
+    pinned: row.pinned === true,
+    favorite: row.favorite === true,
+    createdAt: row.created_at,
+    updatedAt: row.updated_at,
+  });
+
+  const listPersonalNotes = async () => {
+    if (!isConfigured()) return readLocal("personal-notes", []);
+    const { data, error } = await getClient().from("personal_notes").select("*").order("pinned", { ascending: false }).order("updated_at", { ascending: false });
+    if (error) throw error;
+    return (data || []).map(personalNoteFromRow);
+  };
+
+  const savePersonalNote = async (note) => {
+    const value = {
+      ...note,
+      id: note.id || "local-" + Date.now(),
+      title: String(note.title || "").trim(),
+      category: String(note.category || "个人").trim() || "个人",
+      tags: Array.isArray(note.tags) ? note.tags : [],
+      blocks: Array.isArray(note.blocks) ? note.blocks : [],
+      status: ["draft", "active", "archived"].includes(note.status) ? note.status : "active",
+      pinned: note.pinned === true,
+      favorite: note.favorite === true,
+      updatedAt: new Date().toISOString(),
+    };
+    if (!value.title) throw new Error("笔记标题不能为空");
+    if (!isConfigured()) {
+      const items = readLocal("personal-notes", []);
+      const index = items.findIndex((item) => item.id === value.id);
+      if (index >= 0) items[index] = value; else items.unshift(value);
+      writeLocal("personal-notes", items);
+      return value;
+    }
+    const row = { title: value.title, category: value.category, tags: value.tags, blocks: value.blocks, status: value.status, pinned: value.pinned, favorite: value.favorite, updated_at: value.updatedAt };
+    const request = note.id ? getClient().from("personal_notes").update(row).eq("id", note.id).select().single() : getClient().from("personal_notes").insert(row).select().single();
+    const { data, error } = await request;
+    if (error) throw error;
+    return personalNoteFromRow(data);
+  };
+
+  const deletePersonalNote = async (id) => {
+    if (!isConfigured()) return writeLocal("personal-notes", readLocal("personal-notes", []).filter((item) => item.id !== id));
+    const { error } = await getClient().from("personal_notes").delete().eq("id", id);
+    if (error) throw error;
+  };
+
   const listQuickLinks = async () => {
     if (!isConfigured()) return readLocal("quick-links", []);
     const { data, error } = await getClient().from("quick_links").select("*").order("sort_order", { ascending: true });
@@ -1039,6 +1093,9 @@
     listWorkbenchNotes,
     saveWorkbenchNote,
     deleteWorkbenchNote,
+    listPersonalNotes,
+    savePersonalNote,
+    deletePersonalNote,
     listQuickLinks,
     saveQuickLink,
     deleteQuickLink,

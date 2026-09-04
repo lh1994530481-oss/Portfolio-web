@@ -41,12 +41,6 @@
   const articleCategoryList = document.getElementById("article-category-list");
   const articlePagination = document.getElementById("article-pagination");
   const articlePanel = document.querySelector('[data-panel="articles"]');
-  const personalNotePanel = document.querySelector('[data-panel="notes"]');
-  const personalNoteList = document.getElementById("personal-note-list");
-  const personalNoteCategoryList = document.getElementById("personal-note-category-list");
-  const personalNoteSearch = document.getElementById("personal-note-search");
-  const personalNoteStatusFilter = document.getElementById("personal-note-status-filter");
-  const personalNoteCount = document.getElementById("personal-note-count");
   const navigationList = document.getElementById("navigation-list");
   const analyticsMetrics = document.getElementById("analytics-metrics");
   const analyticsTrend = document.getElementById("analytics-trend");
@@ -107,8 +101,6 @@
     pendingArticleCategory: "",
     articlePage: 1,
     articlePageSize: 10,
-    personalNotes: [],
-    activePersonalNoteCategory: "all",
     navigation: [],
     settings: { ...api.defaultSettings },
     analyticsDashboard: window.PortfolioAnalyticsApi.emptyDashboard(),
@@ -134,14 +126,12 @@
     projects: "项目管理",
     demos: "练习与演示",
     articles: "文章管理",
-    notes: "笔记管理",
-    daily: "日常管理",
     navigation: "导航管理",
     ai: "AI 分身",
     inquiries: "客户咨询",
     about: "关于配置",
     consultation: "咨询配置",
-    quotes: "报价管理",
+    quotes: "AI 报价",
     finance: "收支统计",
     settings: "站点信息",
     media: "素材上传",
@@ -179,7 +169,7 @@
     sectionTitle.textContent = sectionNames[name] || "后台";
     const adminHeader = document.querySelector(".admin-header");
     adminHeader.classList.toggle("is-overview", name === "overview");
-    adminHeader.classList.toggle("is-article-section", name === "articles" || name === "notes");
+    adminHeader.classList.toggle("is-article-section", name === "articles");
     document.getElementById("metric-grid").hidden = name !== "overview";
     sidebar.classList.remove("is-open");
   };
@@ -189,7 +179,6 @@
     const resources = [
       ["projects", "项目", () => api.listProjects(defaultProjects, true), defaultProjects],
       ["articles", "文章", () => api.listArticles(defaultArticles, true), defaultArticles],
-      ["personalNotes", "笔记", () => api.listPersonalNotes(), []],
       ["navigation", "导航", () => api.listNavigation(defaultNavigation, true), defaultNavigation],
       ["settings", "站点设置", () => api.getSettings(), api.defaultSettings],
       ["analyticsDashboard", "访问统计", () => api.getAnalyticsDashboard(30, 100), window.PortfolioAnalyticsApi.emptyDashboard()],
@@ -421,25 +410,6 @@
       '<label class="article-page-jump"><span>前往</span><input data-article-page-input type="number" min="1" max="' + pageCount + '" value="' + state.articlePage + '" /><span>页</span></label>',
     ].join("");
   };
-  const personalNoteCategories = () => Array.from(new Set(state.personalNotes.map((item) => item.category).filter(Boolean))).sort((a, b) => a.localeCompare(b, "zh-CN"));
-  const personalNotePlainText = (item) => (item.blocks || []).map((block) => block.text || block.caption || "").join(" ");
-
-  const renderPersonalNotes = () => {
-    const query = personalNoteSearch.value.trim().toLowerCase();
-    const status = personalNoteStatusFilter.value;
-    const categories = personalNoteCategories();
-    if (state.activePersonalNoteCategory !== "all" && !categories.includes(state.activePersonalNoteCategory)) state.activePersonalNoteCategory = "all";
-    const items = state.personalNotes.filter((item) => {
-      if (state.activePersonalNoteCategory !== "all" && item.category !== state.activePersonalNoteCategory) return false;
-      if (status === "favorite" ? !item.favorite : status !== "all" && item.status !== status) return false;
-      return !query || [item.title, item.category, ...(item.tags || []), personalNotePlainText(item)].join(" ").toLowerCase().includes(query);
-    });
-    personalNoteCategoryList.innerHTML = [{ name: "all", label: "全部", count: state.personalNotes.length }].concat(categories.map((category) => ({ name: category, label: category, count: state.personalNotes.filter((item) => item.category === category).length }))).map((item) => '<button class="article-category-item' + (state.activePersonalNoteCategory === item.name ? ' is-active' : '') + '" type="button" data-personal-note-category="' + escapeHtml(item.name) + '"><span>' + escapeHtml(item.label) + '</span><strong>' + item.count + '</strong></button>').join("");
-    const statusNames = { active: "使用中", draft: "草稿", archived: "已归档" };
-    personalNoteList.innerHTML = items.length ? items.map((item) => '<article class="article-management-row"><div class="article-row-copy"><strong>' + (item.pinned ? '📌 ' : '') + escapeHtml(item.title) + '</strong><span class="article-publish-pill' + (item.status === "active" ? '' : ' is-draft') + '">' + escapeHtml(statusNames[item.status] || "使用中") + '</span></div><div class="article-row-meta"><span>' + escapeHtml(formatDateTime(item.updatedAt || item.createdAt)) + '</span><span>' + escapeHtml([item.category, ...(item.tags || [])].filter(Boolean).join(" · ")) + '</span></div><div class="article-row-actions">' + (item.favorite ? '<i data-lucide="star" aria-label="已收藏"></i>' : '') + '<button class="icon-button" type="button" data-edit="personalNote" data-id="' + escapeHtml(item.id) + '" aria-label="编辑"><i data-lucide="square-pen"></i></button><button class="icon-button is-danger" type="button" data-delete="personalNote" data-id="' + escapeHtml(item.id) + '" aria-label="删除"><i data-lucide="trash-2"></i></button></div></article>').join("") : '<div class="empty-state article-empty-state">没有符合条件的笔记。</div>';
-    personalNoteCount.textContent = "共 " + items.length + " / " + state.personalNotes.length + " 篇笔记";
-  };
-
   const renderNavigationList = (items) => {
     if (!items.length) return '<div class="empty-state">没有符合条件的导航。</div>';
     return items.map((item) => [
@@ -810,7 +780,6 @@
     renderOverview();
     renderAnalytics();
     renderContentLists();
-    renderPersonalNotes();
     renderAiProfile();
     renderInquiries();
     renderQuotes();
@@ -1128,30 +1097,6 @@
       '</div>',
     ].join("\n");
   };
-  const personalNoteFields = (item) => [
-    '<div class="article-editor-layout">',
-    '  <section class="article-editor-main" aria-label="笔记正文编辑区">',
-    '    <label class="article-title-field"><span class="visually-hidden">笔记标题</span><input name="title" maxlength="160" required value="' + escapeHtml(item.title || "") + '" placeholder="请输入笔记标题" autocomplete="off" /></label>',
-    '    <div class="article-rich-toolbar" role="toolbar" aria-label="笔记正文格式">',
-    '      <div class="article-toolbar-group"><button type="button" data-rich-command="bold" title="加粗"><strong>B</strong></button><button type="button" data-rich-command="italic" title="斜体"><i>I</i></button><button type="button" data-rich-command="underline" title="下划线"><u>U</u></button><button type="button" data-rich-command="strikeThrough" title="删除线"><s>S</s></button></div>',
-    '      <div class="article-toolbar-group"><button type="button" data-rich-format="blockquote" title="引用"><i data-lucide="quote"></i></button><button type="button" data-rich-format="pre" title="代码"><i data-lucide="code-2"></i></button></div>',
-    '      <label class="article-toolbar-select"><span class="visually-hidden">段落样式</span><select data-rich-format-select><option value="p">正文</option><option value="h2">标题 2</option><option value="h3">标题 3</option><option value="blockquote">引用</option><option value="pre">代码</option></select></label>',
-    '      <div class="article-toolbar-group"><button type="button" data-rich-command="insertUnorderedList" title="无序列表"><i data-lucide="list"></i></button><button type="button" data-rich-command="insertOrderedList" title="有序列表"><i data-lucide="list-ordered"></i></button><button type="button" data-rich-command="outdent" title="减少缩进"><i data-lucide="outdent"></i></button><button type="button" data-rich-command="indent" title="增加缩进"><i data-lucide="indent-increase"></i></button></div>',
-    '      <div class="article-toolbar-group article-toolbar-insert"><button type="button" data-rich-link title="插入链接"><i data-lucide="link"></i><span>链接</span></button><button type="button" data-rich-image title="使用图片地址"><i data-lucide="image-plus"></i><span>图片</span></button><label title="上传图片"><i data-lucide="upload"></i><span>上传</span><input data-rich-image-upload type="file" accept="image/*" /></label><button type="button" data-rich-command="removeFormat" title="清除格式"><i data-lucide="eraser"></i><span>清除</span></button></div>',
-    '    </div>',
-    '    <div class="rich-editor article-rich-editor" id="rich-article-editor" contenteditable="true" data-placeholder="从这里开始记录，排版方式与文章编辑器一致。">' + articleBlocksToHtml(item.blocks || []) + '</div>',
-    '    <textarea name="blocks" hidden>' + escapeHtml(JSON.stringify(item.blocks || [])) + '</textarea>',
-    '  </section>',
-    '  <aside class="article-editor-sidebar" aria-label="笔记设置">',
-    '    <label class="article-sidebar-field"><span>分类</span><input name="category" maxlength="40" required value="' + escapeHtml(item.category || "个人") + '" /></label>',
-    '    <label class="article-sidebar-field"><span>标签</span><input name="tags" value="' + escapeHtml((item.tags || []).join(", ")) + '" placeholder="使用逗号分隔" /></label>',
-    '    <label class="article-sidebar-field"><span>状态</span><select name="status"><option value="active"' + (item.status === "active" || !item.status ? " selected" : "") + '>使用中</option><option value="draft"' + (item.status === "draft" ? " selected" : "") + '>草稿</option><option value="archived"' + (item.status === "archived" ? " selected" : "") + '>已归档</option></select></label>',
-    '    <label class="article-publish-switch"><span><strong>置顶笔记</strong><small>优先显示在列表顶部</small></span><input name="pinned" type="checkbox"' + (item.pinned ? " checked" : "") + ' /></label>',
-    '    <label class="article-publish-switch"><span><strong>收藏笔记</strong><small>加入收藏筛选</small></span><input name="favorite" type="checkbox"' + (item.favorite ? " checked" : "") + ' /></label>',
-    '    <div class="article-privacy-note"><i data-lucide="lock-keyhole"></i><span>个人笔记仅后台管理员可见，不会同步到网站。</span></div>',
-    '  </aside>',
-    '</div>',
-  ].join("\n");
   const navigationFields = (item) => [
     '<label class="field"><span>导航名称</span><input name="label" required value="' + escapeHtml(item.label || "") + '" placeholder="例如：服务" /></label>',
     '<label class="field"><span>排序</span><input name="sortOrder" type="number" min="0" value="' + Number(item.sortOrder || 0) + '" /></label>',
@@ -1256,8 +1201,6 @@
       ? { itemType: type === "demo" ? "demo" : "portfolio", category: type === "demo" ? "原型" : "APP Design", sortOrder: state.projects.length, published: true, gallery: [], contentBlocks: [], tags: [] }
       : type === "article"
         ? { category: state.pendingArticleCategory || "AI", sortOrder: state.articles.length, published: true, blocks: [] }
-        : type === "personalNote"
-          ? { category: "个人", status: "active", pinned: false, favorite: false, tags: [], blocks: [] }
         : type === "navigation"
           ? { sortOrder: state.navigation.length, published: true, openNewTab: false }
           : type === "note"
@@ -1273,10 +1216,10 @@
     editorDialog.classList.toggle("is-quick-entry", type === "quickLink" || type === "quickLinkCategory");
     editorDialog.classList.toggle("is-project-editor", type === "project" || type === "demo" || type === "inquiry");
     editorDialog.classList.toggle("is-inquiry-editor", type === "inquiry");
-    editorDialog.classList.toggle("is-article-editor", type === "article" || type === "personalNote");
-    document.body.classList.toggle("project-editor-open", type === "project" || type === "demo" || type === "inquiry" || type === "article" || type === "personalNote");
+    editorDialog.classList.toggle("is-article-editor", type === "article");
+    document.body.classList.toggle("project-editor-open", type === "project" || type === "demo" || type === "inquiry" || type === "article");
     const labels = {
-      project: ["Portfolio", "项目"], demo: ["Practice & Demo", "练习与演示"], article: ["Article", "文章"], personalNote: ["Personal Notes", "笔记"], navigation: ["Navigation", "导航"], finance: ["Finance", "收支记录"], note: ["Thinking", "便签"], quickLink: ["Quick Entry", "网站"], quickLinkCategory: ["Quick Entry", "分类"], scheduleItem: ["Calendar", "事项"], quote: ["Quotes", "报价"], inquiry: ["Inquiry", "客户咨询"],
+      project: ["Portfolio", "项目"], demo: ["Practice & Demo", "练习与演示"], article: ["Article", "文章"], navigation: ["Navigation", "导航"], finance: ["Finance", "收支记录"], note: ["Thinking", "便签"], quickLink: ["Quick Entry", "网站"], quickLinkCategory: ["Quick Entry", "分类"], scheduleItem: ["Calendar", "事项"], quote: ["AI Quote", "报价"], inquiry: ["Inquiry", "客户咨询"],
     };
     document.getElementById("editor-eyebrow").textContent = labels[type][0];
     document.getElementById("editor-title").textContent = type === "inquiry"
@@ -1284,10 +1227,9 @@
       : (type === "quickLink" || type === "quickLinkCategory")
       ? (editing ? "编辑" : "添加") + labels[type][1]
       : (editing ? "编辑" : "新建") + labels[type][1];
-    document.getElementById("editor-save-label").textContent = type === "inquiry" ? "保存状态" : editing ? "保存修改" : type === "article" ? "创建文章" : type === "personalNote" ? "创建笔记" : type === "project" ? "创建项目" : type === "demo" ? "创建演示" : "创建内容";
+    document.getElementById("editor-save-label").textContent = type === "inquiry" ? "保存状态" : editing ? "保存修改" : type === "article" ? "创建文章" : type === "project" ? "创建项目" : type === "demo" ? "创建演示" : "创建内容";
     editorBody.innerHTML = type === "project" || type === "demo" ? projectFields(value, editing, type)
       : type === "article" ? articleFields(value, editing)
-        : type === "personalNote" ? personalNoteFields(value)
         : type === "inquiry" ? inquiryFields(value)
         : type === "navigation" ? navigationFields(value)
           : type === "finance" ? financeFields(value)
@@ -1296,7 +1238,7 @@
                 : type === "quickLinkCategory" ? quickLinkCategoryFields(value)
                   : type === "scheduleItem" ? scheduleItemFields(value)
                     : quoteFields(value);
-    if (["personalNote", "navigation", "finance", "note", "quickLink", "quickLinkCategory", "scheduleItem", "quote", "inquiry"].includes(type) && value.id) editorForm.dataset.itemId = value.id;
+    if (["navigation", "finance", "note", "quickLink", "quickLinkCategory", "scheduleItem", "quote", "inquiry"].includes(type) && value.id) editorForm.dataset.itemId = value.id;
     else delete editorForm.dataset.itemId;
     editorDialog.showModal();
     projectDocumentRange = null;
@@ -1337,13 +1279,6 @@
       values.blocks = articleHtmlToBlocks(document.getElementById("rich-article-editor").innerHTML);
       contentDomain.validateArticle(values);
       await api.saveArticle(values, defaultArticles);
-    } else if (type === "personalNote") {
-      values.id = editorForm.dataset.itemId || undefined;
-      values.blocks = articleHtmlToBlocks(document.getElementById("rich-article-editor").innerHTML);
-      values.tags = String(values.tags || "").split(/[,，]/).map((item) => item.trim()).filter(Boolean);
-      values.pinned = Boolean(editorForm.elements.namedItem("pinned").checked);
-      values.favorite = Boolean(editorForm.elements.namedItem("favorite").checked);
-      await api.savePersonalNote(values);
     } else if (type === "navigation") {
       values.sortOrder = Number(values.sortOrder || 0);
       values.published = Boolean(editorForm.elements.namedItem("published").checked);
@@ -1393,8 +1328,8 @@
     const edit = event.target.closest("[data-edit]");
     if (edit) {
       const type = edit.dataset.edit;
-      const items = (type === "project" || type === "demo") ? state.projects : type === "article" ? state.articles : type === "personalNote" ? state.personalNotes : type === "navigation" ? state.navigation : type === "quote" ? state.quotes : state.finance;
-      const item = type === "personalNote" || type === "navigation" || type === "finance" || type === "quote"
+      const items = (type === "project" || type === "demo") ? state.projects : type === "article" ? state.articles : type === "navigation" ? state.navigation : type === "quote" ? state.quotes : state.finance;
+      const item = type === "navigation" || type === "finance" || type === "quote"
         ? items.find((entry) => entry.id === edit.dataset.id)
         : items.find((entry) => entry.slug === edit.dataset.slug);
       openEditor(type, item);
@@ -1403,15 +1338,14 @@
     const remove = event.target.closest("[data-delete]");
     if (!remove) return;
     const type = remove.dataset.delete;
-    const items = (type === "project" || type === "demo") ? state.projects : type === "article" ? state.articles : type === "personalNote" ? state.personalNotes : type === "navigation" ? state.navigation : state.finance;
-    const item = type === "personalNote" || type === "navigation" || type === "finance"
+    const items = (type === "project" || type === "demo") ? state.projects : type === "article" ? state.articles : type === "navigation" ? state.navigation : state.finance;
+    const item = type === "navigation" || type === "finance"
       ? items.find((entry) => entry.id === remove.dataset.id)
       : items.find((entry) => entry.slug === remove.dataset.slug);
     if (!item || !window.confirm("确认删除“" + (item.title || item.label) + "”吗？此操作无法撤销。")) return;
     setSync("删除中", "busy");
     if (type === "project" || type === "demo") await api.deleteProject(item.slug, defaultProjects);
     else if (type === "article") await api.deleteArticle(item.slug, defaultArticles);
-    else if (type === "personalNote") await api.deletePersonalNote(item.id);
     else if (type === "navigation") await api.deleteNavigationItem(item.id, defaultNavigation);
     else await api.deleteFinanceEntry(item.id);
     await loadData();
@@ -1484,16 +1418,6 @@
   projectList.addEventListener("click", (event) => handleListAction(event).catch((error) => { setSync("保存失败", "error"); showToast(error.message, true); }));
   demoList.addEventListener("click", (event) => handleListAction(event).catch((error) => { setSync("保存失败", "error"); showToast(error.message, true); }));
   articleList.addEventListener("click", (event) => handleListAction(event).catch((error) => { setSync("保存失败", "error"); showToast(error.message, true); }));
-  personalNoteList.addEventListener("click", (event) => handleListAction(event).catch((error) => { setSync("保存失败", "error"); showToast(error.message, true); }));
-  personalNoteSearch.addEventListener("input", renderPersonalNotes);
-  personalNoteStatusFilter.addEventListener("change", renderPersonalNotes);
-  personalNotePanel.addEventListener("click", (event) => {
-    const category = event.target.closest("[data-personal-note-category]");
-    if (!category) return;
-    state.activePersonalNoteCategory = category.dataset.personalNoteCategory;
-    renderPersonalNotes();
-    refreshIcons();
-  });
   articlePanel.addEventListener("click", (event) => {
     const categoryButton = event.target.closest("[data-article-category]");
     const resetCategory = event.target.closest("[data-reset-article-category]");
@@ -1738,7 +1662,7 @@
     }
   });
 
-  document.querySelectorAll('[data-panel="overview"], [data-panel="daily"]').forEach((panel) => panel.addEventListener("click", async (event) => {
+  document.querySelector('[data-panel="overview"]').addEventListener("click", async (event) => {
     const openSection = event.target.closest("[data-open-section]");
     if (openSection) {
       setActiveSection(openSection.dataset.openSection);
@@ -1820,7 +1744,7 @@
     } catch (error) {
       showToast(error.message, true);
     }
-  }));
+  });
 
   editorBody.addEventListener("click", async (event) => {
     const deleteCurrentInquiry = event.target.closest("[data-delete-current-inquiry]");

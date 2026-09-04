@@ -1,10 +1,5 @@
 import { expect, test } from "@playwright/test";
 
-const stubAdminCdn = async (page) => {
-  await page.route("https://cdn.jsdelivr.net/npm/@supabase/**", (route) => route.fulfill({ status: 200, contentType: "text/javascript", body: "window.supabase = { createClient() { return { auth: { getSession: async () => ({ data: { session: null }, error: null }), onAuthStateChange: () => ({ data: { subscription: { unsubscribe() {} } } }) } }; } };" }));
-  await page.route("https://unpkg.com/lucide@*/**", (route) => route.fulfill({ status: 200, contentType: "text/javascript", body: "window.lucide = { createIcons() {} };" }));
-};
-
 const pages = [
   ["/", "main.home-page"],
   ["/portfolio/", "#portfolio-list-grid"],
@@ -16,8 +11,6 @@ const pages = [
 
 for (const [path, selector] of pages) {
   test(`loads ${path}`, async ({ page }) => {
-    if (path === "/admin/") await stubAdminCdn(page);
-    if (path === "/") await page.route("https://unpkg.com/@splinetool/viewer@1.12.98/build/spline-viewer.js", (route) => route.fulfill({ status: 200, contentType: "text/javascript", body: "" }));
     const pageErrors = [];
     page.on("pageerror", (error) => pageErrors.push(error.message));
     const response = await page.goto(path, { waitUntil: "domcontentloaded" });
@@ -69,42 +62,10 @@ test("About navigation precedes consultation and renders managed experience", as
   await expect(page.locator("[data-about-experience]")).toContainText("体验负责人");
   await expect(page.locator("[data-about-experience]")).toContainText("示例团队");
 
+  await page.goto("/", { waitUntil: "domcontentloaded" });
   const labels = await page.evaluate(() => window.ContentAPI.defaultNavigation.map((item) => item.label));
   expect(labels.indexOf("关于")).toBeGreaterThan(-1);
   expect(labels.indexOf("关于")).toBeLessThan(labels.indexOf("咨询"));
-});
-
-test("admin separates personal management and keeps quotes non-AI", async ({ page }) => {
-  await stubAdminCdn(page);
-  await page.goto("/admin/", { waitUntil: "domcontentloaded" });
-  await expect(page.locator('[data-section="notes"]').first()).toContainText("笔记管理");
-  await expect(page.locator('[data-section="daily"]').first()).toContainText("日常管理");
-  await expect(page.locator('[data-section="quotes"]').first()).toContainText("报价管理");
-  await expect(page.locator("body")).not.toContainText("AI 报价");
-  await expect(page.locator('[data-panel="notes"]')).toContainText("不会发布到个人网站");
-  await expect(page.locator('[data-panel="daily"] #workbench-notes')).toHaveCount(1);
-  await expect(page.locator('[data-panel="daily"] #workbench-calendar')).toHaveCount(1);
-});
-
-test("personal notes remain private and support rich content locally", async ({ page }) => {
-  await stubAdminCdn(page);
-  await page.route("**/admin/config.js?*", (route) => route.fulfill({
-    status: 200,
-    contentType: "text/javascript",
-    body: 'window.PORTFOLIO_CMS_CONFIG = { adminUsername: "admin", supabaseUrl: "", publishableKey: "", supabaseAuthEmail: "" };',
-  }));
-  await page.goto("/admin/", { waitUntil: "domcontentloaded" });
-  await page.locator('#login-form input[name="username"]').fill("admin");
-  await page.locator('#login-form input[name="password"]').fill("preview");
-  await page.locator('#login-form button[type="submit"]').click();
-  await expect(page.locator("#admin-app")).toBeVisible();
-  await page.evaluate(async () => {
-    await window.ContentAPI.savePersonalNote({ title: "本地测试笔记", category: "测试", tags: ["私有"], blocks: [{ type: "paragraph", text: "富文本正文" }], status: "active", pinned: true, favorite: true });
-  });
-  await page.reload({ waitUntil: "domcontentloaded" });
-  const items = await page.evaluate(() => window.ContentAPI.listPersonalNotes());
-  expect(items).toHaveLength(1);
-  expect(items[0]).toMatchObject({ title: "本地测试笔记", category: "测试", pinned: true, favorite: true });
 });
 
 test("opening a portfolio project records one deduplicated project view", async ({ page }) => {
@@ -117,7 +78,7 @@ test("opening a portfolio project records one deduplicated project view", async 
 
   await page.goto("/portfolio/", { waitUntil: "domcontentloaded" });
   await expect(page.locator(".site-privacy-notice")).toContainText("IP 最多保留 30 天");
-  const trigger = page.locator("[data-project-modal]:not([data-protected-project]):visible").first();
+  const trigger = page.locator("[data-project-modal]:not([data-protected-project])").first();
   await trigger.scrollIntoViewIfNeeded();
   await expect(trigger).toBeVisible();
   const slug = await trigger.getAttribute("data-project-modal");

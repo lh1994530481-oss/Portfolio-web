@@ -34,6 +34,8 @@
   const sidebar = document.querySelector(".admin-sidebar");
   const sidebarCollapse = document.getElementById("sidebar-collapse");
   const sidebarBrandToggle = document.getElementById("sidebar-brand-toggle");
+  const sidebarGroups = Array.from(sidebar.querySelectorAll(".sidebar-group"));
+  let sidebarGroupStates = [];
   const sectionTitle = document.getElementById("section-title");
   const modeBadge = document.getElementById("mode-badge");
   const syncStatus = document.getElementById("sync-status");
@@ -177,6 +179,13 @@
   };
 
   const setSidebarCollapsed = (collapsed) => {
+    const wasCollapsed = adminApp.classList.contains("is-sidebar-collapsed");
+    if (collapsed && !wasCollapsed) {
+      sidebarGroupStates = sidebarGroups.map((group) => group.open);
+      sidebarGroups.forEach((group) => { group.open = true; });
+    } else if (!collapsed && wasCollapsed && sidebarGroupStates.length === sidebarGroups.length) {
+      sidebarGroups.forEach((group, index) => { group.open = sidebarGroupStates[index]; });
+    }
     adminApp.classList.toggle("is-sidebar-collapsed", collapsed);
     const label = collapsed ? "展开侧边栏" : "收起侧边栏";
     sidebarCollapse.setAttribute("aria-label", label);

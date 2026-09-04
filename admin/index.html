@@ -86,6 +86,14 @@
             </div>
           </details>
           <details class="sidebar-group" open>
+            <summary><i data-lucide="user-round" aria-hidden="true"></i><span>个人管理</span><i data-lucide="chevron-down" aria-hidden="true"></i></summary>
+            <div class="sidebar-group-items">
+          <button class="nav-item" type="button" data-section="notes" aria-label="笔记管理" data-label="笔记管理" title="笔记管理">
+            <i data-lucide="notebook-pen" aria-hidden="true"></i><span>笔记管理</span>
+          </button>
+            </div>
+          </details>
+          <details class="sidebar-group" open>
             <summary><i data-lucide="sliders-horizontal" aria-hidden="true"></i><span>互动与设置</span><i data-lucide="chevron-down" aria-hidden="true"></i></summary>
             <div class="sidebar-group-items">
           <button class="nav-item" type="button" data-section="ai" aria-label="AI 分身" data-label="AI 分身" title="AI 分身">
@@ -130,6 +138,7 @@
             <button class="workspace-tab" type="button" data-section="demos">练习与演示</button>
             <button class="workspace-tab" type="button" data-section="articles">文章管理</button>
             <button class="workspace-tab" type="button" data-section="navigation">导航管理</button>
+            <button class="workspace-tab" type="button" data-section="notes">笔记管理</button>
             <button class="workspace-tab" type="button" data-section="ai">AI 分身</button>
             <button class="workspace-tab" type="button" data-section="inquiries">客户咨询</button>
             <button class="workspace-tab" type="button" data-section="about">关于配置</button>
@@ -288,6 +297,11 @@
               <span class="content-count" id="navigation-count"></span>
             </div>
             <div class="content-list" id="navigation-list"></div>
+          </section>
+
+          <section class="admin-section" data-panel="notes">
+            <div class="section-toolbar"><div><p class="eyebrow">Personal Notes</p><h2>笔记管理</h2><p>个人笔记将在这里集中整理，不影响网站内容与现有后台功能。</p></div></div>
+            <div class="surface empty-state">笔记管理入口已建立，后续可在这里继续完善分类、编辑与发布功能。</div>
           </section>
 
           <section class="admin-section" data-panel="ai">

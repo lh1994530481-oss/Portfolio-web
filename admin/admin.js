@@ -131,6 +131,7 @@
     demos: "练习与演示",
     articles: "文章管理",
     navigation: "导航管理",
+    notes: "笔记管理",
     ai: "AI 分身",
     inquiries: "客户咨询",
     about: "关于配置",

@@ -298,6 +298,10 @@ body { background: var(--bg); }
 .sidebar-footer button > span { position: static; width: auto; height: auto; overflow: visible; clip: auto; white-space: nowrap; }
 .nav-item { display: grid; grid-template-columns: 18px minmax(0, 1fr); column-gap: 13px; }
 .nav-item > svg { width: 17px; height: 17px; justify-self: center; }
+.sidebar-footer a,
+.sidebar-footer button { display: grid; grid-template-columns: 18px minmax(0, 1fr); column-gap: 13px; }
+.sidebar-footer a > svg,
+.sidebar-footer button > svg { width: 17px; height: 17px; justify-self: center; }
 .nav-item:hover,
 .sidebar-footer a:hover,
 .sidebar-footer button:hover { border-color: var(--line); background: var(--surface-subtle); color: var(--text); }
@@ -346,6 +350,8 @@ body { background: var(--bg); }
 .admin-app.is-sidebar-collapsed .sidebar-footer a,
 .admin-app.is-sidebar-collapsed .sidebar-footer button { justify-content: center; gap: 0; padding: 0; }
 .admin-app.is-sidebar-collapsed .nav-item { grid-template-columns: 1fr; justify-items: center; }
+.admin-app.is-sidebar-collapsed .sidebar-footer a,
+.admin-app.is-sidebar-collapsed .sidebar-footer button { grid-template-columns: 1fr; justify-items: center; }
 .workspace-bar {
   position: sticky;
   top: 0;

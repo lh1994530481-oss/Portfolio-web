@@ -183,7 +183,23 @@
   const { escapeHtml, safeUrl, safeImageUrl } = sanitizer;
   const safeMediaUrl = (value) => safeUrl(value, { allowHash: false, protocols: ["http:", "https:", "blob:"] });
 
+  const enhanceSelectControls = (root) => {
+    (root || document).querySelectorAll("select:not([data-select-enhanced])").forEach((select) => {
+      if (select.closest(".content-filter-select")) return;
+      const control = document.createElement("span");
+      control.className = "select-control";
+      select.before(control);
+      control.appendChild(select);
+      const icon = document.createElement("i");
+      icon.setAttribute("data-lucide", "chevron-down");
+      icon.setAttribute("aria-hidden", "true");
+      control.appendChild(icon);
+      select.dataset.selectEnhanced = "true";
+    });
+  };
+
   const refreshIcons = () => {
+    enhanceSelectControls(document);
     if (window.lucide && typeof window.lucide.createIcons === "function") window.lucide.createIcons();
   };
 

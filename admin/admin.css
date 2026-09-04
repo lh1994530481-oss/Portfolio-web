@@ -2151,3 +2151,52 @@ body.project-editor-open { overflow: hidden; }
   .article-sidebar-split { grid-template-columns: 1fr; }
   .article-category-control button { justify-content: center; }
 }
+
+/* Keep every select arrow comfortably inside the field instead of relying on the
+   browser-native indicator, whose inset varies across pages and platforms. */
+.select-control {
+  position: relative;
+  display: block;
+  width: 100%;
+  min-width: 0;
+}
+
+.select-control > select,
+.content-filter-select > select {
+  padding-right: 40px;
+  -webkit-appearance: none;
+  appearance: none;
+}
+
+.select-control > .lucide,
+.content-filter-select > .lucide {
+  position: absolute;
+  top: 50%;
+  right: 16px;
+  width: 14px;
+  height: 14px;
+  color: #111;
+  transform: translateY(-50%);
+  pointer-events: none;
+}
+
+:is(.visitor-session-tools, .inquiry-row, .quick-entry-form-row, .project-compact-field, .article-list-tools, .article-pagination, .article-sidebar-field) .select-control > select {
+  padding-right: 32px;
+}
+
+:is(.visitor-session-tools, .inquiry-row, .quick-entry-form-row, .project-compact-field, .article-list-tools, .article-pagination, .article-sidebar-field) .select-control > .lucide {
+  right: 12px;
+  width: 12px;
+  height: 12px;
+}
+
+.visitor-session-tools .select-control { width: 126px; flex: none; }
+.article-list-tools .select-control { width: 106px; flex: none; }
+.article-pagination .select-control { width: 90px; flex: none; }
+.article-toolbar-select .select-control { width: auto; flex: none; }
+.article-toolbar-select .select-control > select { padding-right: 23px; }
+.article-toolbar-select .select-control > .lucide { right: 7px; width: 10px; height: 10px; }
+
+@media (max-width: 760px) {
+  .visitor-session-tools .select-control { width: 140px; }
+}

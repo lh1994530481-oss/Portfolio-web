@@ -92,3 +92,54 @@ test("opening a portfolio project records one deduplicated project view", async 
   await page.waitForTimeout(100);
   expect(tracked.filter((item) => item.eventName === "project_view" && item.contentId === slug)).toHaveLength(1);
 });
+
+test("admin select indicators keep a consistent right inset", async ({ page }, testInfo) => {
+  test.setTimeout(60_000);
+  const pageErrors = [];
+  page.on("pageerror", (error) => pageErrors.push(error.message));
+  await page.route("**/admin/config.js*", (route) => route.fulfill({
+    status: 200,
+    contentType: "text/javascript",
+    body: "window.PORTFOLIO_CMS_CONFIG={adminUsername:'test',publicSiteUrl:'http://127.0.0.1:4173/'};",
+  }));
+
+  await page.goto("/admin/", { waitUntil: "domcontentloaded" });
+  await page.locator("#login-username").fill("test");
+  await page.locator("#login-password").fill("test");
+  await page.getByRole("button", { name: "登录后台" }).click();
+  await expect(page.locator("#admin-app")).toBeVisible();
+
+  const inset = (selector) => page.locator(selector).evaluate((select) => {
+    const control = select.closest(".select-control, .content-filter-select");
+    const icon = control?.querySelector(":scope > svg.lucide");
+    if (!control || !icon) return null;
+    const controlRect = control.getBoundingClientRect();
+    const iconRect = icon.getBoundingClientRect();
+    return {
+      appearance: getComputedStyle(select).appearance,
+      right: Math.round(controlRect.right - iconRect.right),
+    };
+  });
+
+  await page.locator('.admin-sidebar [data-section="notes"]').click();
+  await page.locator('[data-create="personalNote"]').click();
+  await expect(page.locator("#editor-dialog")).toBeVisible();
+  await expect.poll(() => inset('.article-sidebar-field select[name="status"]')).toEqual({ appearance: "none", right: 12 });
+  await expect.poll(() => inset('[data-rich-format-select]')).toEqual({ appearance: "none", right: 7 });
+  await page.screenshot({ path: testInfo.outputPath("note-editor-dropdowns.png"), fullPage: false });
+
+  await page.getByRole("button", { name: "返回列表" }).click();
+  await page.locator('.admin-sidebar [data-section="goals"]').click();
+  await page.locator('[data-create="personalTask"]').click();
+  await expect(page.locator("#editor-dialog")).toBeVisible();
+  await expect.poll(() => inset('select[name="goalId"]')).toEqual({ appearance: "none", right: 16 });
+  await expect.poll(() => inset('select[name="status"]')).toEqual({ appearance: "none", right: 16 });
+  await expect.poll(() => inset('select[name="priority"]')).toEqual({ appearance: "none", right: 16 });
+  await page.screenshot({ path: testInfo.outputPath("task-editor-dropdowns.png"), fullPage: false });
+
+  const unenhancedSelects = await page.locator("select").evaluateAll((selects) =>
+    selects.filter((select) => !select.closest(".content-filter-select") && !select.dataset.selectEnhanced).length,
+  );
+  expect(unenhancedSelects).toBe(0);
+  expect(pageErrors).toEqual([]);
+});

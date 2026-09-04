@@ -234,7 +234,7 @@ body { background: var(--bg); }
 .local-entry small { color: var(--muted); }
 
 .admin-sidebar {
-  width: 64px;
+  width: 220px;
   overflow-x: hidden;
   overflow-y: auto;
   overscroll-behavior: contain;
@@ -262,17 +262,25 @@ body { background: var(--bg); }
   font-size: 11px;
 }
 .sidebar-nav {
-  gap: 6px;
+  gap: 10px;
   padding-top: 18px;
   border-top: 1px solid var(--line);
 }
+.sidebar-group { border: 0; }
+.sidebar-group > summary { display: grid; min-height: 34px; cursor: pointer; list-style: none; grid-template-columns: 18px 1fr 16px; align-items: center; gap: 9px; padding: 0 10px; border-radius: 5px; color: #7b8589; font-size: 11px; font-weight: 700; letter-spacing: .04em; }
+.sidebar-group > summary::-webkit-details-marker { display: none; }
+.sidebar-group > summary:hover { background: var(--surface-subtle); color: var(--text); }
+.sidebar-group > summary > svg { width: 15px; height: 15px; }
+.sidebar-group > summary > svg:last-child { transition: transform .18s ease; }
+.sidebar-group:not([open]) > summary > svg:last-child { transform: rotate(-90deg); }
+.sidebar-group-items { display: grid; gap: 3px; padding: 3px 0 0 12px; }
 .nav-item,
 .sidebar-footer a,
 .sidebar-footer button {
   position: relative;
-  width: 46px;
+  width: 100%;
   height: 42px;
-  justify-content: center;
+  justify-content: flex-start;
   gap: 0;
   padding: 0;
   border: 1px solid transparent;
@@ -281,7 +289,7 @@ body { background: var(--bg); }
 }
 .nav-item > span,
 .sidebar-footer a > span,
-.sidebar-footer button > span { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+.sidebar-footer button > span { position: static; width: auto; height: auto; overflow: visible; clip: auto; white-space: nowrap; }
 .nav-item:hover,
 .sidebar-footer a:hover,
 .sidebar-footer button:hover { border-color: var(--line); background: var(--surface-subtle); color: var(--text); }
@@ -316,7 +324,7 @@ body { background: var(--bg); }
 .sidebar-footer button:hover::after { opacity: 1; transform: translate(0, -50%); visibility: visible; }
 .sidebar-footer { gap: 6px; padding-top: 12px; border-top-color: var(--line); }
 
-.admin-main { margin-left: 64px; }
+.admin-main { margin-left: 220px; }
 .workspace-bar {
   position: sticky;
   top: 0;

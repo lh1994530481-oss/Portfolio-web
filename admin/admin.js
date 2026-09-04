@@ -131,7 +131,7 @@
     inquiries: "客户咨询",
     about: "关于配置",
     consultation: "咨询配置",
-    quotes: "AI 报价",
+    quotes: "报价管理",
     finance: "收支统计",
     settings: "站点信息",
     media: "素材上传",
@@ -1219,7 +1219,7 @@
     editorDialog.classList.toggle("is-article-editor", type === "article");
     document.body.classList.toggle("project-editor-open", type === "project" || type === "demo" || type === "inquiry" || type === "article");
     const labels = {
-      project: ["Portfolio", "项目"], demo: ["Practice & Demo", "练习与演示"], article: ["Article", "文章"], navigation: ["Navigation", "导航"], finance: ["Finance", "收支记录"], note: ["Thinking", "便签"], quickLink: ["Quick Entry", "网站"], quickLinkCategory: ["Quick Entry", "分类"], scheduleItem: ["Calendar", "事项"], quote: ["AI Quote", "报价"], inquiry: ["Inquiry", "客户咨询"],
+      project: ["Portfolio", "项目"], demo: ["Practice & Demo", "练习与演示"], article: ["Article", "文章"], navigation: ["Navigation", "导航"], finance: ["Finance", "收支记录"], note: ["Thinking", "便签"], quickLink: ["Quick Entry", "网站"], quickLinkCategory: ["Quick Entry", "分类"], scheduleItem: ["Calendar", "事项"], quote: ["Quote", "报价"], inquiry: ["Inquiry", "客户咨询"],
     };
     document.getElementById("editor-eyebrow").textContent = labels[type][0];
     document.getElementById("editor-title").textContent = type === "inquiry"

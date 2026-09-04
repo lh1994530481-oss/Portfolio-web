@@ -772,6 +772,242 @@
     if (error) throw error;
   };
 
+  const normalizePersonalTags = (tags) => Array.from(new Set((Array.isArray(tags) ? tags : []).map((item) => String(item || "").trim()).filter(Boolean)));
+  const saveLocalPersonalItem = (key, item) => {
+    const items = readLocal(key, []);
+    const id = item.id || "local-" + Date.now();
+    const index = items.findIndex((entry) => entry.id === id);
+    const now = new Date().toISOString();
+    const value = { ...item, id, createdAt: index >= 0 ? (items[index].createdAt || now) : now, updatedAt: now };
+    if (index >= 0) items[index] = value; else items.unshift(value);
+    writeLocal(key, items);
+    return value;
+  };
+  const deleteLocalPersonalItem = (key, id) => writeLocal(key, readLocal(key, []).filter((item) => item.id !== id));
+
+  const personalGoalFromRow = (row) => ({
+    id: row.id,
+    title: row.title,
+    description: row.description || "",
+    status: row.status || "active",
+    priority: row.priority || "medium",
+    targetDate: row.target_date || row.targetDate || "",
+    progress: Number(row.progress || 0),
+    createdAt: row.created_at || row.createdAt,
+    updatedAt: row.updated_at || row.updatedAt,
+  });
+
+  const listPersonalGoals = async () => {
+    if (!isConfigured()) return readLocal("personal-goals", []).map(personalGoalFromRow);
+    const { data, error } = await getClient().from("personal_goals").select("*").order("updated_at", { ascending: false });
+    if (error) throw error;
+    return (data || []).map(personalGoalFromRow);
+  };
+
+  const savePersonalGoal = async (goal) => {
+    const value = {
+      ...goal,
+      title: String(goal.title || "").trim(),
+      description: String(goal.description || "").trim(),
+      status: ["planned", "active", "paused", "completed", "archived"].includes(goal.status) ? goal.status : "active",
+      priority: ["low", "medium", "high"].includes(goal.priority) ? goal.priority : "medium",
+      targetDate: String(goal.targetDate || "").trim(),
+      progress: Math.min(100, Math.max(0, Number(goal.progress || 0))),
+    };
+    if (!value.title) throw new Error("目标名称不能为空");
+    if (value.title.length > 160 || value.description.length > 3000) throw new Error("目标内容超过长度限制");
+    if (!isConfigured()) return saveLocalPersonalItem("personal-goals", value);
+    const row = { title: value.title, description: value.description, status: value.status, priority: value.priority, target_date: value.targetDate || null, progress: value.progress };
+    const request = goal.id ? getClient().from("personal_goals").update(row).eq("id", goal.id).select().single() : getClient().from("personal_goals").insert(row).select().single();
+    const { data, error } = await request;
+    if (error) throw error;
+    return personalGoalFromRow(data);
+  };
+
+  const deletePersonalGoal = async (id) => {
+    if (!isConfigured()) {
+      writeLocal("personal-tasks", readLocal("personal-tasks", []).map((item) => item.goalId === id ? { ...item, goalId: "" } : item));
+      return deleteLocalPersonalItem("personal-goals", id);
+    }
+    const { error } = await getClient().from("personal_goals").delete().eq("id", id);
+    if (error) throw error;
+  };
+
+  const personalTaskFromRow = (row) => ({
+    id: row.id,
+    goalId: row.goal_id || row.goalId || "",
+    title: row.title,
+    description: row.description || "",
+    status: row.status || "todo",
+    priority: row.priority || "medium",
+    dueDate: row.due_date || row.dueDate || "",
+    tags: Array.isArray(row.tags) ? row.tags : [],
+    createdAt: row.created_at || row.createdAt,
+    updatedAt: row.updated_at || row.updatedAt,
+  });
+
+  const listPersonalTasks = async () => {
+    if (!isConfigured()) return readLocal("personal-tasks", []).map(personalTaskFromRow);
+    const { data, error } = await getClient().from("personal_tasks").select("*").order("updated_at", { ascending: false });
+    if (error) throw error;
+    return (data || []).map(personalTaskFromRow);
+  };
+
+  const savePersonalTask = async (task) => {
+    const tags = normalizePersonalTags(task.tags);
+    const value = {
+      ...task,
+      goalId: String(task.goalId || "").trim(),
+      title: String(task.title || "").trim(),
+      description: String(task.description || "").trim(),
+      status: ["todo", "doing", "done", "archived"].includes(task.status) ? task.status : "todo",
+      priority: ["low", "medium", "high"].includes(task.priority) ? task.priority : "medium",
+      dueDate: String(task.dueDate || "").trim(),
+      tags,
+    };
+    if (!value.title) throw new Error("任务名称不能为空");
+    if (value.title.length > 160 || value.description.length > 3000) throw new Error("任务内容超过长度限制");
+    if (tags.length > 20 || tags.some((item) => item.length > 40)) throw new Error("标签最多 20 个，每个不超过 40 个字符");
+    if (!isConfigured()) return saveLocalPersonalItem("personal-tasks", value);
+    const row = { goal_id: value.goalId || null, title: value.title, description: value.description, status: value.status, priority: value.priority, due_date: value.dueDate || null, tags };
+    const request = task.id ? getClient().from("personal_tasks").update(row).eq("id", task.id).select().single() : getClient().from("personal_tasks").insert(row).select().single();
+    const { data, error } = await request;
+    if (error) throw error;
+    return personalTaskFromRow(data);
+  };
+
+  const deletePersonalTask = async (id) => {
+    if (!isConfigured()) return deleteLocalPersonalItem("personal-tasks", id);
+    const { error } = await getClient().from("personal_tasks").delete().eq("id", id);
+    if (error) throw error;
+  };
+
+  const personalResourceFromRow = (row) => ({
+    id: row.id,
+    title: row.title,
+    url: row.url || "",
+    resourceType: row.resource_type || row.resourceType || "bookmark",
+    category: row.category || "未分类",
+    tags: Array.isArray(row.tags) ? row.tags : [],
+    summary: row.summary || "",
+    status: row.status || "unread",
+    favorite: row.favorite === true,
+    createdAt: row.created_at || row.createdAt,
+    updatedAt: row.updated_at || row.updatedAt,
+  });
+
+  const listPersonalResources = async () => {
+    if (!isConfigured()) return readLocal("personal-resources", []).map(personalResourceFromRow);
+    const { data, error } = await getClient().from("personal_resources").select("*").order("favorite", { ascending: false }).order("updated_at", { ascending: false });
+    if (error) throw error;
+    return (data || []).map(personalResourceFromRow);
+  };
+
+  const savePersonalResource = async (resource) => {
+    const tags = normalizePersonalTags(resource.tags);
+    const value = {
+      ...resource,
+      title: String(resource.title || "").trim(),
+      url: String(resource.url || "").trim(),
+      resourceType: ["bookmark", "document", "tool", "course", "inspiration", "other"].includes(resource.resourceType) ? resource.resourceType : "bookmark",
+      category: String(resource.category || "未分类").trim() || "未分类",
+      tags,
+      summary: String(resource.summary || "").trim(),
+      status: ["unread", "reading", "finished", "archived"].includes(resource.status) ? resource.status : "unread",
+      favorite: resource.favorite === true,
+    };
+    if (!value.title) throw new Error("资料标题不能为空");
+    if (value.title.length > 160 || value.url.length > 2000 || value.category.length > 40 || value.summary.length > 3000) throw new Error("资料内容超过长度限制");
+    if (tags.length > 20 || tags.some((item) => item.length > 40)) throw new Error("标签最多 20 个，每个不超过 40 个字符");
+    if (!isConfigured()) return saveLocalPersonalItem("personal-resources", value);
+    const row = { title: value.title, url: value.url, resource_type: value.resourceType, category: value.category, tags, summary: value.summary, status: value.status, favorite: value.favorite };
+    const request = resource.id ? getClient().from("personal_resources").update(row).eq("id", resource.id).select().single() : getClient().from("personal_resources").insert(row).select().single();
+    const { data, error } = await request;
+    if (error) throw error;
+    return personalResourceFromRow(data);
+  };
+
+  const deletePersonalResource = async (id) => {
+    if (!isConfigured()) return deleteLocalPersonalItem("personal-resources", id);
+    const { error } = await getClient().from("personal_resources").delete().eq("id", id);
+    if (error) throw error;
+  };
+
+  const personalHabitFromRow = (row) => ({
+    id: row.id,
+    title: row.title,
+    description: row.description || "",
+    frequency: row.frequency || "daily",
+    targetPerPeriod: Number(row.target_per_period || row.targetPerPeriod || 1),
+    active: row.active !== false,
+    createdAt: row.created_at || row.createdAt,
+    updatedAt: row.updated_at || row.updatedAt,
+  });
+
+  const listPersonalHabits = async () => {
+    if (!isConfigured()) return readLocal("personal-habits", []).map(personalHabitFromRow);
+    const { data, error } = await getClient().from("personal_habits").select("*").order("active", { ascending: false }).order("updated_at", { ascending: false });
+    if (error) throw error;
+    return (data || []).map(personalHabitFromRow);
+  };
+
+  const savePersonalHabit = async (habit) => {
+    const value = {
+      ...habit,
+      title: String(habit.title || "").trim(),
+      description: String(habit.description || "").trim(),
+      frequency: ["daily", "weekly"].includes(habit.frequency) ? habit.frequency : "daily",
+      targetPerPeriod: Math.min(7, Math.max(1, Number(habit.targetPerPeriod || 1))),
+      active: habit.active !== false,
+    };
+    if (!value.title) throw new Error("习惯名称不能为空");
+    if (value.title.length > 120 || value.description.length > 1000) throw new Error("习惯内容超过长度限制");
+    if (!isConfigured()) return saveLocalPersonalItem("personal-habits", value);
+    const row = { title: value.title, description: value.description, frequency: value.frequency, target_per_period: value.targetPerPeriod, active: value.active };
+    const request = habit.id ? getClient().from("personal_habits").update(row).eq("id", habit.id).select().single() : getClient().from("personal_habits").insert(row).select().single();
+    const { data, error } = await request;
+    if (error) throw error;
+    return personalHabitFromRow(data);
+  };
+
+  const deletePersonalHabit = async (id) => {
+    if (!isConfigured()) {
+      writeLocal("personal-habit-checkins", readLocal("personal-habit-checkins", []).filter((item) => item.habitId !== id));
+      return deleteLocalPersonalItem("personal-habits", id);
+    }
+    const { error } = await getClient().from("personal_habits").delete().eq("id", id);
+    if (error) throw error;
+  };
+
+  const personalHabitCheckinFromRow = (row) => ({
+    id: row.id,
+    habitId: row.habit_id || row.habitId,
+    date: row.checkin_date || row.date,
+    createdAt: row.created_at || row.createdAt,
+  });
+
+  const listPersonalHabitCheckins = async () => {
+    if (!isConfigured()) return readLocal("personal-habit-checkins", []).map(personalHabitCheckinFromRow);
+    const { data, error } = await getClient().from("personal_habit_checkins").select("*").order("checkin_date", { ascending: false }).limit(730);
+    if (error) throw error;
+    return (data || []).map(personalHabitCheckinFromRow);
+  };
+
+  const setPersonalHabitCheckin = async (habitId, date, checked) => {
+    if (!isConfigured()) {
+      const items = readLocal("personal-habit-checkins", []).filter((item) => !(item.habitId === habitId && item.date === date));
+      if (checked) items.unshift({ id: "local-" + Date.now(), habitId, date, createdAt: new Date().toISOString() });
+      return writeLocal("personal-habit-checkins", items);
+    }
+    if (!checked) {
+      const { error } = await getClient().from("personal_habit_checkins").delete().eq("habit_id", habitId).eq("checkin_date", date);
+      if (error) throw error;
+      return;
+    }
+    const { error } = await getClient().from("personal_habit_checkins").upsert({ habit_id: habitId, checkin_date: date }, { onConflict: "habit_id,checkin_date" });
+    if (error) throw error;
+  };
+
   const listQuickLinks = async () => {
     if (!isConfigured()) return readLocal("quick-links", []);
     const { data, error } = await getClient().from("quick_links").select("*").order("sort_order", { ascending: true });
@@ -1103,6 +1339,20 @@
     listPersonalNotes,
     savePersonalNote,
     deletePersonalNote,
+    listPersonalGoals,
+    savePersonalGoal,
+    deletePersonalGoal,
+    listPersonalTasks,
+    savePersonalTask,
+    deletePersonalTask,
+    listPersonalResources,
+    savePersonalResource,
+    deletePersonalResource,
+    listPersonalHabits,
+    savePersonalHabit,
+    deletePersonalHabit,
+    listPersonalHabitCheckins,
+    setPersonalHabitCheckin,
     listQuickLinks,
     saveQuickLink,
     deleteQuickLink,

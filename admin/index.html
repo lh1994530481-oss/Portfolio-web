@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="robots" content="noindex, nofollow" />
     <title>Lin Tong Xin | Portfolio CMS</title>
-    <link rel="stylesheet" href="./admin.css?v=20260904-1" />
+    <link rel="stylesheet" href="./admin.css?v=20260904-2" />
   </head>
   <body>
     <main class="auth-screen" id="auth-screen">
@@ -91,6 +91,18 @@
           <button class="nav-item" type="button" data-section="notes" aria-label="笔记管理" data-label="笔记管理" title="笔记管理">
             <i data-lucide="notebook-pen" aria-hidden="true"></i><span>笔记管理</span>
           </button>
+          <button class="nav-item" type="button" data-section="goals" aria-label="任务与目标" data-label="任务与目标" title="任务与目标">
+            <i data-lucide="target" aria-hidden="true"></i><span>任务与目标</span>
+          </button>
+          <button class="nav-item" type="button" data-section="resources" aria-label="收藏与资料库" data-label="收藏与资料库" title="收藏与资料库">
+            <i data-lucide="bookmark" aria-hidden="true"></i><span>收藏与资料库</span>
+          </button>
+          <button class="nav-item" type="button" data-section="habits" aria-label="习惯追踪" data-label="习惯追踪" title="习惯追踪">
+            <i data-lucide="repeat-2" aria-hidden="true"></i><span>习惯追踪</span>
+          </button>
+          <button class="nav-item" type="button" data-section="globalSearch" aria-label="全局搜索" data-label="全局搜索" title="全局搜索">
+            <i data-lucide="search" aria-hidden="true"></i><span>全局搜索</span>
+          </button>
             </div>
           </details>
           <details class="sidebar-group" open>
@@ -139,6 +151,10 @@
             <button class="workspace-tab" type="button" data-section="articles">文章管理</button>
             <button class="workspace-tab" type="button" data-section="navigation">导航管理</button>
             <button class="workspace-tab" type="button" data-section="notes">笔记管理</button>
+            <button class="workspace-tab" type="button" data-section="goals">任务与目标</button>
+            <button class="workspace-tab" type="button" data-section="resources">收藏与资料库</button>
+            <button class="workspace-tab" type="button" data-section="habits">习惯追踪</button>
+            <button class="workspace-tab" type="button" data-section="globalSearch">全局搜索</button>
             <button class="workspace-tab" type="button" data-section="ai">AI 分身</button>
             <button class="workspace-tab" type="button" data-section="inquiries">客户咨询</button>
             <button class="workspace-tab" type="button" data-section="about">关于配置</button>
@@ -319,6 +335,56 @@
                 </div>
                 <div class="article-list" id="personal-note-list"></div>
               </section>
+            </div>
+          </section>
+
+          <section class="admin-section" data-panel="goals">
+            <div class="section-toolbar">
+              <div><p class="eyebrow">Goals & Tasks</p><h2>任务与目标</h2><p>拆解长期目标、安排执行任务，并持续查看进度。</p></div>
+              <div class="toolbar-actions"><button class="button button-secondary" type="button" data-create="personalGoal"><i data-lucide="target" aria-hidden="true"></i><span>新建目标</span></button><button class="button button-primary" type="button" data-create="personalTask"><i data-lucide="plus" aria-hidden="true"></i><span>新建任务</span></button></div>
+            </div>
+            <div class="personal-metric-grid" id="personal-goal-metrics"></div>
+            <div class="personal-management-grid">
+              <section class="surface personal-panel">
+                <div class="surface-heading"><div><p class="eyebrow">Goals</p><h2>目标</h2></div><span class="content-count" id="personal-goal-count"></span></div>
+                <div class="personal-card-list" id="personal-goal-list"></div>
+              </section>
+              <section class="surface personal-panel">
+                <div class="surface-heading personal-panel-heading"><div><p class="eyebrow">Tasks</p><h2>任务</h2></div><div class="personal-inline-filters"><label class="content-search"><i data-lucide="search" aria-hidden="true"></i><input id="personal-task-search" type="search" placeholder="搜索任务" /></label><span class="content-filter-select"><select id="personal-task-status-filter" aria-label="筛选任务状态"><option value="all">全部状态</option><option value="todo">待开始</option><option value="doing">进行中</option><option value="done">已完成</option><option value="archived">已归档</option></select><i data-lucide="chevron-down" aria-hidden="true"></i></span><span class="content-filter-select"><select id="personal-task-goal-filter" aria-label="筛选所属目标"><option value="all">全部目标</option></select><i data-lucide="chevron-down" aria-hidden="true"></i></span></div></div>
+                <div class="personal-task-list" id="personal-task-list"></div>
+              </section>
+            </div>
+          </section>
+
+          <section class="admin-section" data-panel="resources">
+            <div class="section-toolbar">
+              <div><p class="eyebrow">Library</p><h2>收藏与资料库</h2><p>集中保存网站、工具、课程、文档与灵感资料。</p></div>
+              <button class="button button-primary" type="button" data-create="personalResource"><i data-lucide="plus" aria-hidden="true"></i><span>新增资料</span></button>
+            </div>
+            <div class="content-tools personal-library-tools">
+              <label class="content-search"><i data-lucide="search" aria-hidden="true"></i><input id="personal-resource-search" type="search" placeholder="搜索标题、分类、标签或备注" /></label>
+              <span class="content-filter-select"><select id="personal-resource-category-filter" aria-label="筛选资料分类"><option value="all">全部分类</option></select><i data-lucide="chevron-down" aria-hidden="true"></i></span>
+              <span class="content-filter-select"><select id="personal-resource-status-filter" aria-label="筛选资料状态"><option value="all">全部状态</option><option value="unread">待读</option><option value="reading">阅读中</option><option value="finished">已完成</option><option value="archived">已归档</option><option value="favorite">已收藏</option></select><i data-lucide="chevron-down" aria-hidden="true"></i></span>
+              <span class="content-count" id="personal-resource-count"></span>
+            </div>
+            <div class="personal-resource-grid" id="personal-resource-list"></div>
+          </section>
+
+          <section class="admin-section" data-panel="habits">
+            <div class="section-toolbar">
+              <div><p class="eyebrow">Habit Tracker</p><h2>习惯追踪</h2><p>按天完成打卡，查看最近七天执行情况与连续天数。</p></div>
+              <button class="button button-primary" type="button" data-create="personalHabit"><i data-lucide="plus" aria-hidden="true"></i><span>新增习惯</span></button>
+            </div>
+            <div class="personal-metric-grid" id="personal-habit-metrics"></div>
+            <div class="personal-habit-list" id="personal-habit-list"></div>
+          </section>
+
+          <section class="admin-section" data-panel="globalSearch">
+            <div class="section-toolbar"><div><p class="eyebrow">Global Search</p><h2>全局搜索</h2><p>统一查找个人管理与现有网站内容，点击结果可前往对应模块。</p></div></div>
+            <div class="surface global-search-shell">
+              <div class="global-search-controls"><label class="content-search"><i data-lucide="search" aria-hidden="true"></i><input id="global-search-input" type="search" placeholder="输入标题、分类、标签、内容或客户信息" autocomplete="off" /></label><span class="content-filter-select"><select id="global-search-type" aria-label="筛选搜索类型"><option value="all">全部类型</option><option value="personal">个人管理</option><option value="website">网站内容</option><option value="operations">互动与经营</option></select><i data-lucide="chevron-down" aria-hidden="true"></i></span></div>
+              <div class="global-search-summary" id="global-search-summary">输入关键词开始搜索</div>
+              <div class="global-search-results" id="global-search-results"><div class="empty-state">可搜索笔记、目标、任务、资料、习惯、项目、文章、导航、日程、咨询、报价和收支记录。</div></div>
             </div>
           </section>
 
@@ -547,13 +613,13 @@
     <script src="../shared/sanitize.js?v=20260831-2"></script>
     <script src="../shared/content-api-models.js?v=20260901-1"></script>
     <script src="../shared/content-api-analytics.js?v=20260901-1"></script>
-    <script src="../shared/content-api.js?v=20260904-1"></script>
+    <script src="../shared/content-api.js?v=20260904-2"></script>
     <script src="https://unpkg.com/lucide@0.468.0/dist/umd/lucide.min.js"></script>
     <script src="./modules/auth-session.js?v=20260831-2"></script>
     <script src="./modules/content.js?v=20260831-2"></script>
     <script src="./modules/leads.js?v=20260831-2"></script>
     <script src="./modules/finance.js?v=20260831-2"></script>
     <script src="./modules/analytics.js?v=20260901-1"></script>
-    <script src="./admin.js?v=20260904-1" defer></script>
+    <script src="./admin.js?v=20260904-2" defer></script>
   </body>
 </html>

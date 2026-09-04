@@ -284,6 +284,124 @@ body { background: var(--bg); }
 .article-privacy-note svg { width: 16px; height: 16px; flex: 0 0 auto; margin-top: 1px; }
 .personal-note-badge { display: inline-flex; align-items: center; min-height: 20px; padding: 0 7px; border-radius: 999px; background: #edf7f8; color: #46757b; font-size: 10px; font-weight: 700; }
 .personal-note-favorite { width: 16px; height: 16px; color: #b78d35; fill: currentColor; }
+
+.personal-metric-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+  margin-bottom: 12px;
+}
+
+.personal-metric-card {
+  display: grid;
+  min-height: 92px;
+  align-content: center;
+  gap: 7px;
+  padding: 16px;
+  border: 1px solid var(--line);
+  border-radius: 7px;
+  background: rgba(255, 255, 255, .82);
+}
+
+.personal-metric-card span { color: var(--text-muted); font-size: 10px; }
+.personal-metric-card strong { font-size: 23px; line-height: 1; }
+.personal-management-grid { display: grid; grid-template-columns: minmax(280px, .78fr) minmax(520px, 1.45fr); gap: 12px; align-items: start; }
+.personal-panel { min-width: 0; overflow: hidden; }
+.personal-panel .surface-heading { min-height: 68px; }
+.personal-panel-heading { align-items: flex-start; }
+.personal-inline-filters { display: flex; max-width: 72%; flex-wrap: wrap; justify-content: flex-end; gap: 7px; }
+.personal-inline-filters .content-search { min-width: 180px; flex: 1; }
+.personal-inline-filters .content-filter-select select { min-width: 110px; }
+.personal-card-list, .personal-task-list { display: grid; align-content: start; }
+
+.personal-goal-card {
+  display: grid;
+  gap: 12px;
+  padding: 15px;
+  border-bottom: 1px solid var(--line);
+}
+
+.personal-goal-card:last-child, .personal-task-row:last-child { border-bottom: 0; }
+.personal-goal-heading, .personal-task-row, .personal-resource-heading, .personal-habit-heading { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.personal-goal-copy, .personal-task-copy, .personal-resource-copy, .personal-habit-copy { min-width: 0; }
+.personal-goal-copy strong, .personal-task-copy strong, .personal-resource-copy strong, .personal-habit-copy strong { display: block; overflow: hidden; font-size: 12px; text-overflow: ellipsis; white-space: nowrap; }
+.personal-goal-copy small, .personal-task-copy small, .personal-resource-copy small, .personal-habit-copy small { display: block; margin-top: 5px; overflow: hidden; color: var(--text-muted); font-size: 9px; line-height: 1.45; text-overflow: ellipsis; white-space: nowrap; }
+.personal-row-actions { display: flex; flex: 0 0 auto; align-items: center; gap: 4px; }
+.personal-progress { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 10px; color: var(--text-muted); font-size: 9px; }
+.personal-progress-track { height: 6px; overflow: hidden; border-radius: 999px; background: #e5edef; }
+.personal-progress-track i { display: block; height: 100%; border-radius: inherit; background: #64c9dc; }
+.personal-meta-row { display: flex; flex-wrap: wrap; align-items: center; gap: 7px; color: var(--text-muted); font-size: 9px; }
+
+.personal-status-pill, .personal-priority-pill, .personal-type-pill {
+  display: inline-flex;
+  min-height: 21px;
+  align-items: center;
+  padding: 0 7px;
+  border-radius: 999px;
+  background: #edf2f3;
+  color: #758185;
+  font-size: 9px;
+  font-weight: 700;
+}
+
+.personal-status-pill.is-active, .personal-status-pill.is-doing { background: #ddf5fa; color: #16829b; }
+.personal-status-pill.is-done, .personal-status-pill.is-completed { background: #e0f4ec; color: #317c65; }
+.personal-priority-pill.is-high { background: #fff0ee; color: #b65b51; }
+.personal-priority-pill.is-medium { background: #fff6dc; color: #9a751a; }
+.personal-task-row { min-height: 66px; padding: 10px 14px; border-bottom: 1px solid var(--line); }
+.personal-task-main { display: grid; min-width: 0; flex: 1; grid-template-columns: 30px minmax(0, 1fr); align-items: center; gap: 9px; }
+.personal-task-toggle { display: grid; width: 28px; height: 28px; place-items: center; padding: 0; border: 1px solid #ccd8db; border-radius: 50%; background: #fff; color: #9aa6aa; }
+.personal-task-toggle.is-done { border-color: #68c4aa; background: #68c4aa; color: #fff; }
+.personal-task-toggle svg { width: 14px; height: 14px; }
+.personal-task-row.is-done .personal-task-copy strong { color: #8a9598; text-decoration: line-through; }
+
+.personal-library-tools { align-items: center; }
+.personal-resource-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
+.personal-resource-card { display: grid; min-width: 0; min-height: 178px; grid-template-rows: auto 1fr auto; gap: 14px; padding: 16px; border: 1px solid var(--line); border-radius: 7px; background: rgba(255, 255, 255, .82); }
+.personal-resource-card p { display: -webkit-box; margin: 0; overflow: hidden; color: var(--text-muted); font-size: 10px; line-height: 1.65; -webkit-box-orient: vertical; -webkit-line-clamp: 3; }
+.personal-resource-link { display: inline-flex; min-width: 0; align-items: center; gap: 6px; color: #1887a0; font-size: 9px; text-decoration: none; }
+.personal-resource-link span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.personal-resource-link svg { width: 13px; height: 13px; flex: none; }
+.personal-resource-tags { display: flex; flex-wrap: wrap; gap: 5px; }
+.personal-resource-tags span { padding: 3px 6px; border-radius: 4px; background: #f0f4f5; color: #7b878b; font-size: 8px; }
+
+.personal-habit-list { display: grid; gap: 10px; }
+.personal-habit-card { display: grid; grid-template-columns: minmax(220px, .72fr) minmax(440px, 1.28fr); align-items: center; gap: 24px; padding: 16px 18px; border: 1px solid var(--line); border-radius: 7px; background: rgba(255, 255, 255, .82); }
+.personal-habit-days { display: grid; grid-template-columns: repeat(7, minmax(44px, 1fr)); gap: 7px; }
+.personal-habit-day { display: grid; min-height: 54px; place-items: center; align-content: center; gap: 4px; padding: 5px; border: 1px solid #dbe5e7; border-radius: 6px; background: #fff; color: #7b878b; }
+.personal-habit-day span { font-size: 8px; }
+.personal-habit-day strong { font-size: 10px; }
+.personal-habit-day.is-checked { border-color: #71ccdc; background: #def5fa; color: #187e94; }
+.personal-habit-day.is-today { box-shadow: inset 0 0 0 1px #69c7d8; }
+
+.global-search-shell { padding: 18px; }
+.global-search-controls { display: grid; grid-template-columns: minmax(240px, 1fr) auto; gap: 9px; }
+.global-search-controls .content-search { width: 100%; max-width: none; }
+.global-search-summary { padding: 16px 2px 9px; color: var(--text-muted); font-size: 10px; }
+.global-search-results { display: grid; border-top: 1px solid var(--line); }
+.global-search-result { display: grid; grid-template-columns: 34px minmax(0, 1fr) auto; align-items: center; gap: 11px; min-height: 68px; padding: 10px 5px; border: 0; border-bottom: 1px solid var(--line); background: transparent; color: var(--text); text-align: left; }
+.global-search-result:hover { background: var(--surface-subtle); }
+.global-search-result-icon { display: grid; width: 34px; height: 34px; place-items: center; border-radius: 7px; background: #e6f4f7; color: #2c91a8; }
+.global-search-result-icon svg { width: 16px; height: 16px; }
+.global-search-result-copy { min-width: 0; }
+.global-search-result-copy strong { display: block; overflow: hidden; font-size: 11px; text-overflow: ellipsis; white-space: nowrap; }
+.global-search-result-copy small { display: block; margin-top: 4px; overflow: hidden; color: var(--text-muted); font-size: 9px; text-overflow: ellipsis; white-space: nowrap; }
+
+@media (max-width: 1180px) {
+  .personal-management-grid { grid-template-columns: 1fr; }
+  .personal-resource-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .personal-habit-card { grid-template-columns: 1fr; }
+}
+
+@media (max-width: 760px) {
+  .personal-metric-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .personal-resource-grid { grid-template-columns: 1fr; }
+  .personal-panel-heading { align-items: stretch; flex-direction: column; }
+  .personal-inline-filters { width: 100%; max-width: none; justify-content: stretch; }
+  .personal-inline-filters > * { flex: 1; }
+  .personal-habit-days { grid-template-columns: repeat(7, minmax(34px, 1fr)); }
+  .global-search-controls { grid-template-columns: 1fr; }
+}
 .sidebar-group { border: 0; }
 .sidebar-collapse { display: grid; width: 38px; height: 38px; flex: none; place-items: center; margin: 0 0 0 auto; padding: 0; border: 1px solid var(--line); border-radius: 5px; background: #fff; color: #697579; }
 .sidebar-collapse:hover { border-color: #b9c6ca; color: var(--text); }

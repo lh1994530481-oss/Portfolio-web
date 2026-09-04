@@ -513,6 +513,70 @@ on public.personal_notes (pinned desc, updated_at desc);
 create index if not exists personal_notes_category_idx
 on public.personal_notes (category);
 
+create table if not exists public.personal_goals (
+  id uuid primary key default gen_random_uuid(),
+  title text not null check (char_length(title) between 1 and 160),
+  description text not null default '' check (char_length(description) <= 3000),
+  status text not null default 'active' check (status in ('planned', 'active', 'paused', 'completed', 'archived')),
+  priority text not null default 'medium' check (priority in ('low', 'medium', 'high')),
+  target_date date,
+  progress smallint not null default 0 check (progress between 0 and 100),
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+
+create table if not exists public.personal_tasks (
+  id uuid primary key default gen_random_uuid(),
+  goal_id uuid references public.personal_goals(id) on delete set null,
+  title text not null check (char_length(title) between 1 and 160),
+  description text not null default '' check (char_length(description) <= 3000),
+  status text not null default 'todo' check (status in ('todo', 'doing', 'done', 'archived')),
+  priority text not null default 'medium' check (priority in ('low', 'medium', 'high')),
+  due_date date,
+  tags text[] not null default '{}' check (cardinality(tags) <= 20),
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+
+create table if not exists public.personal_resources (
+  id uuid primary key default gen_random_uuid(),
+  title text not null check (char_length(title) between 1 and 160),
+  url text not null default '' check (char_length(url) <= 2000),
+  resource_type text not null default 'bookmark' check (resource_type in ('bookmark', 'document', 'tool', 'course', 'inspiration', 'other')),
+  category text not null default '未分类' check (char_length(category) between 1 and 40),
+  tags text[] not null default '{}' check (cardinality(tags) <= 20),
+  summary text not null default '' check (char_length(summary) <= 3000),
+  status text not null default 'unread' check (status in ('unread', 'reading', 'finished', 'archived')),
+  favorite boolean not null default false,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+
+create table if not exists public.personal_habits (
+  id uuid primary key default gen_random_uuid(),
+  title text not null check (char_length(title) between 1 and 120),
+  description text not null default '' check (char_length(description) <= 1000),
+  frequency text not null default 'daily' check (frequency in ('daily', 'weekly')),
+  target_per_period smallint not null default 1 check (target_per_period between 1 and 7),
+  active boolean not null default true,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+
+create table if not exists public.personal_habit_checkins (
+  id uuid primary key default gen_random_uuid(),
+  habit_id uuid not null references public.personal_habits(id) on delete cascade,
+  checkin_date date not null,
+  created_at timestamptz not null default now(),
+  unique (habit_id, checkin_date)
+);
+
+create index if not exists personal_goals_status_target_idx on public.personal_goals (status, target_date);
+create index if not exists personal_tasks_status_due_idx on public.personal_tasks (status, due_date);
+create index if not exists personal_tasks_goal_idx on public.personal_tasks (goal_id);
+create index if not exists personal_resources_category_status_idx on public.personal_resources (category, status);
+create index if not exists personal_habit_checkins_date_idx on public.personal_habit_checkins (checkin_date desc);
+
 create table if not exists public.workbench_notes (
   id uuid primary key default gen_random_uuid(),
   title text not null default '' check (char_length(title) <= 120),
@@ -571,6 +635,11 @@ create index if not exists workbench_schedule_items_date_time_idx
 on public.workbench_schedule_items (item_date, start_time);
 
 alter table public.personal_notes enable row level security;
+alter table public.personal_goals enable row level security;
+alter table public.personal_tasks enable row level security;
+alter table public.personal_resources enable row level security;
+alter table public.personal_habits enable row level security;
+alter table public.personal_habit_checkins enable row level security;
 alter table public.workbench_notes enable row level security;
 alter table public.quick_links enable row level security;
 alter table public.quick_link_categories enable row level security;
@@ -579,6 +648,26 @@ alter table public.workbench_schedule_items enable row level security;
 
 drop policy if exists "Admins manage personal notes" on public.personal_notes;
 create policy "Admins manage personal notes" on public.personal_notes for all to authenticated
+using ((select private.is_portfolio_admin())) with check ((select private.is_portfolio_admin()));
+
+drop policy if exists "Admins manage personal goals" on public.personal_goals;
+create policy "Admins manage personal goals" on public.personal_goals for all to authenticated
+using ((select private.is_portfolio_admin())) with check ((select private.is_portfolio_admin()));
+
+drop policy if exists "Admins manage personal tasks" on public.personal_tasks;
+create policy "Admins manage personal tasks" on public.personal_tasks for all to authenticated
+using ((select private.is_portfolio_admin())) with check ((select private.is_portfolio_admin()));
+
+drop policy if exists "Admins manage personal resources" on public.personal_resources;
+create policy "Admins manage personal resources" on public.personal_resources for all to authenticated
+using ((select private.is_portfolio_admin())) with check ((select private.is_portfolio_admin()));
+
+drop policy if exists "Admins manage personal habits" on public.personal_habits;
+create policy "Admins manage personal habits" on public.personal_habits for all to authenticated
+using ((select private.is_portfolio_admin())) with check ((select private.is_portfolio_admin()));
+
+drop policy if exists "Admins manage personal habit checkins" on public.personal_habit_checkins;
+create policy "Admins manage personal habit checkins" on public.personal_habit_checkins for all to authenticated
 using ((select private.is_portfolio_admin())) with check ((select private.is_portfolio_admin()));
 
 drop policy if exists "Admins manage workbench notes" on public.workbench_notes;
@@ -603,6 +692,8 @@ using ((select private.is_portfolio_admin())) with check ((select private.is_por
 
 revoke all on public.personal_notes from public, anon, authenticated;
 grant select, insert, update, delete on public.personal_notes to authenticated;
+revoke all on public.personal_goals, public.personal_tasks, public.personal_resources, public.personal_habits, public.personal_habit_checkins from public, anon, authenticated;
+grant select, insert, update, delete on public.personal_goals, public.personal_tasks, public.personal_resources, public.personal_habits, public.personal_habit_checkins to authenticated;
 grant select, insert, update, delete on public.workbench_notes, public.quick_links, public.quick_link_categories, public.workbench_moods, public.workbench_schedule_items to authenticated;
 
 insert into public.quick_link_categories (name, sort_order)
@@ -1436,6 +1527,10 @@ begin
     'finance_entries',
     'project_access',
     'personal_notes',
+    'personal_goals',
+    'personal_tasks',
+    'personal_resources',
+    'personal_habits',
     'workbench_notes',
     'quick_links',
     'quick_link_categories',

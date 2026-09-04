@@ -51,6 +51,24 @@
   const personalNoteSearch = document.getElementById("personal-note-search");
   const personalNoteStatusFilter = document.getElementById("personal-note-status-filter");
   const personalNoteCount = document.getElementById("personal-note-count");
+  const personalGoalMetrics = document.getElementById("personal-goal-metrics");
+  const personalGoalList = document.getElementById("personal-goal-list");
+  const personalGoalCount = document.getElementById("personal-goal-count");
+  const personalTaskList = document.getElementById("personal-task-list");
+  const personalTaskSearch = document.getElementById("personal-task-search");
+  const personalTaskStatusFilter = document.getElementById("personal-task-status-filter");
+  const personalTaskGoalFilter = document.getElementById("personal-task-goal-filter");
+  const personalResourceList = document.getElementById("personal-resource-list");
+  const personalResourceSearch = document.getElementById("personal-resource-search");
+  const personalResourceCategoryFilter = document.getElementById("personal-resource-category-filter");
+  const personalResourceStatusFilter = document.getElementById("personal-resource-status-filter");
+  const personalResourceCount = document.getElementById("personal-resource-count");
+  const personalHabitMetrics = document.getElementById("personal-habit-metrics");
+  const personalHabitList = document.getElementById("personal-habit-list");
+  const globalSearchInput = document.getElementById("global-search-input");
+  const globalSearchType = document.getElementById("global-search-type");
+  const globalSearchSummary = document.getElementById("global-search-summary");
+  const globalSearchResults = document.getElementById("global-search-results");
   const navigationList = document.getElementById("navigation-list");
   const analyticsMetrics = document.getElementById("analytics-metrics");
   const analyticsTrend = document.getElementById("analytics-trend");
@@ -113,6 +131,11 @@
     articlePageSize: 10,
     personalNotes: [],
     activePersonalNoteCategory: "all",
+    personalGoals: [],
+    personalTasks: [],
+    personalResources: [],
+    personalHabits: [],
+    personalHabitCheckins: [],
     navigation: [],
     settings: { ...api.defaultSettings },
     analyticsDashboard: window.PortfolioAnalyticsApi.emptyDashboard(),
@@ -140,6 +163,10 @@
     articles: "文章管理",
     navigation: "导航管理",
     notes: "笔记管理",
+    goals: "任务与目标",
+    resources: "收藏与资料库",
+    habits: "习惯追踪",
+    globalSearch: "全局搜索",
     ai: "AI 分身",
     inquiries: "客户咨询",
     about: "关于配置",
@@ -213,6 +240,11 @@
       ["projects", "项目", () => api.listProjects(defaultProjects, true), defaultProjects],
       ["articles", "文章", () => api.listArticles(defaultArticles, true), defaultArticles],
       ["personalNotes", "笔记", () => api.listPersonalNotes(), []],
+      ["personalGoals", "目标", () => api.listPersonalGoals(), []],
+      ["personalTasks", "任务", () => api.listPersonalTasks(), []],
+      ["personalResources", "资料库", () => api.listPersonalResources(), []],
+      ["personalHabits", "习惯", () => api.listPersonalHabits(), []],
+      ["personalHabitCheckins", "习惯打卡", () => api.listPersonalHabitCheckins(), []],
       ["navigation", "导航", () => api.listNavigation(defaultNavigation, true), defaultNavigation],
       ["settings", "站点设置", () => api.getSettings(), api.defaultSettings],
       ["analyticsDashboard", "访问统计", () => api.getAnalyticsDashboard(30, 100), window.PortfolioAnalyticsApi.emptyDashboard()],
@@ -480,6 +512,166 @@
       '</article>',
     ].join("\n")).join("") : '<div class="empty-state article-empty-state">没有符合条件的笔记。</div>';
     personalNoteCount.textContent = "共 " + items.length + " / " + state.personalNotes.length + " 篇笔记";
+  };
+
+  const goalStatusNames = { planned: "计划中", active: "进行中", paused: "已暂停", completed: "已完成", archived: "已归档" };
+  const taskStatusNames = { todo: "待开始", doing: "进行中", done: "已完成", archived: "已归档" };
+  const priorityNames = { low: "低优先级", medium: "中优先级", high: "高优先级" };
+  const dateWithinDays = (value, days) => {
+    if (!value) return false;
+    const target = new Date(value + "T23:59:59");
+    const now = new Date();
+    return !Number.isNaN(target.getTime()) && target >= now && target <= new Date(now.getTime() + days * 86400000);
+  };
+
+  const renderGoalsAndTasks = () => {
+    const activeGoals = state.personalGoals.filter((item) => item.status === "active");
+    const openTasks = state.personalTasks.filter((item) => item.status === "todo" || item.status === "doing");
+    const completedTasks = state.personalTasks.filter((item) => item.status === "done");
+    const completion = state.personalTasks.length ? Math.round(completedTasks.length / state.personalTasks.length * 100) : 0;
+    personalGoalMetrics.innerHTML = [
+      ["进行中目标", activeGoals.length],
+      ["待完成任务", openTasks.length],
+      ["7 天内到期", openTasks.filter((item) => dateWithinDays(item.dueDate, 7)).length],
+      ["任务完成率", completion + "%"],
+    ].map((item) => '<article class="personal-metric-card"><span>' + item[0] + '</span><strong>' + item[1] + '</strong></article>').join("");
+    personalGoalCount.textContent = state.personalGoals.length + " 个";
+    personalGoalList.innerHTML = state.personalGoals.length ? state.personalGoals.map((item) => [
+      '<article class="personal-goal-card">',
+      '  <div class="personal-goal-heading"><div class="personal-goal-copy"><strong>' + escapeHtml(item.title) + '</strong><small>' + escapeHtml(item.description || "暂无目标说明") + '</small></div><div class="personal-row-actions"><button class="icon-button" type="button" data-edit="personalGoal" data-id="' + escapeHtml(item.id) + '" aria-label="编辑目标"><i data-lucide="square-pen"></i></button><button class="icon-button is-danger" type="button" data-delete="personalGoal" data-id="' + escapeHtml(item.id) + '" aria-label="删除目标"><i data-lucide="trash-2"></i></button></div></div>',
+      '  <div class="personal-progress"><div class="personal-progress-track"><i style="width:' + Math.min(100, Math.max(0, Number(item.progress || 0))) + '%"></i></div><strong>' + Number(item.progress || 0) + '%</strong></div>',
+      '  <div class="personal-meta-row"><span class="personal-status-pill is-' + escapeHtml(item.status) + '">' + escapeHtml(goalStatusNames[item.status] || "进行中") + '</span><span class="personal-priority-pill is-' + escapeHtml(item.priority) + '">' + escapeHtml(priorityNames[item.priority] || "中优先级") + '</span><span>' + escapeHtml(item.targetDate ? "目标日期 " + item.targetDate : "未设目标日期") + '</span></div>',
+      '</article>',
+    ].join("\n")).join("") : '<div class="empty-state compact">还没有目标。</div>';
+
+    const selectedGoal = personalTaskGoalFilter.value || "all";
+    personalTaskGoalFilter.innerHTML = '<option value="all">全部目标</option><option value="none">未关联目标</option>' + state.personalGoals.map((item) => '<option value="' + escapeHtml(item.id) + '">' + escapeHtml(item.title) + '</option>').join("");
+    personalTaskGoalFilter.value = Array.from(personalTaskGoalFilter.options).some((option) => option.value === selectedGoal) ? selectedGoal : "all";
+    const query = personalTaskSearch.value.trim().toLowerCase();
+    const status = personalTaskStatusFilter.value;
+    const goalFilter = personalTaskGoalFilter.value;
+    const goalNames = new Map(state.personalGoals.map((item) => [item.id, item.title]));
+    const tasks = state.personalTasks.filter((item) => {
+      if (status !== "all" && item.status !== status) return false;
+      if (goalFilter === "none" ? item.goalId : goalFilter !== "all" && item.goalId !== goalFilter) return false;
+      return !query || [item.title, item.description, ...(item.tags || []), goalNames.get(item.goalId) || ""].join(" ").toLowerCase().includes(query);
+    }).sort((left, right) => Number(left.status === "done") - Number(right.status === "done") || String(left.dueDate || "9999").localeCompare(String(right.dueDate || "9999")));
+    personalTaskList.innerHTML = tasks.length ? tasks.map((item) => [
+      '<article class="personal-task-row' + (item.status === "done" ? " is-done" : "") + '">',
+      '  <div class="personal-task-main"><button class="personal-task-toggle' + (item.status === "done" ? " is-done" : "") + '" type="button" data-toggle-personal-task="' + escapeHtml(item.id) + '" aria-label="' + (item.status === "done" ? "恢复任务" : "完成任务") + '"><i data-lucide="' + (item.status === "done" ? "check" : "circle") + '"></i></button><div class="personal-task-copy"><strong>' + escapeHtml(item.title) + '</strong><small>' + escapeHtml([goalNames.get(item.goalId) || "未关联目标", item.dueDate ? "截止 " + item.dueDate : "无截止日期", ...(item.tags || [])].join(" · ")) + '</small></div></div>',
+      '  <div class="personal-meta-row"><span class="personal-status-pill is-' + escapeHtml(item.status) + '">' + escapeHtml(taskStatusNames[item.status] || "待开始") + '</span><span class="personal-priority-pill is-' + escapeHtml(item.priority) + '">' + escapeHtml(priorityNames[item.priority] || "中优先级") + '</span></div>',
+      '  <div class="personal-row-actions"><button class="icon-button" type="button" data-edit="personalTask" data-id="' + escapeHtml(item.id) + '" aria-label="编辑任务"><i data-lucide="square-pen"></i></button><button class="icon-button is-danger" type="button" data-delete="personalTask" data-id="' + escapeHtml(item.id) + '" aria-label="删除任务"><i data-lucide="trash-2"></i></button></div>',
+      '</article>',
+    ].join("\n")).join("") : '<div class="empty-state compact">没有符合条件的任务。</div>';
+  };
+
+  const resourceStatusNames = { unread: "待读", reading: "阅读中", finished: "已完成", archived: "已归档" };
+  const resourceTypeNames = { bookmark: "网站", document: "文档", tool: "工具", course: "课程", inspiration: "灵感", other: "其他" };
+  const renderPersonalResources = () => {
+    const categories = Array.from(new Set(state.personalResources.map((item) => item.category).filter(Boolean))).sort((a, b) => a.localeCompare(b, "zh-CN"));
+    const selectedCategory = personalResourceCategoryFilter.value || "all";
+    personalResourceCategoryFilter.innerHTML = '<option value="all">全部分类</option>' + categories.map((item) => '<option value="' + escapeHtml(item) + '">' + escapeHtml(item) + '</option>').join("");
+    personalResourceCategoryFilter.value = categories.includes(selectedCategory) ? selectedCategory : "all";
+    const query = personalResourceSearch.value.trim().toLowerCase();
+    const status = personalResourceStatusFilter.value;
+    const category = personalResourceCategoryFilter.value;
+    const items = state.personalResources.filter((item) => {
+      if (category !== "all" && item.category !== category) return false;
+      if (status === "favorite" ? !item.favorite : status !== "all" && item.status !== status) return false;
+      return !query || [item.title, item.category, item.summary, item.url, ...(item.tags || [])].join(" ").toLowerCase().includes(query);
+    });
+    personalResourceCount.textContent = "显示 " + items.length + " / " + state.personalResources.length;
+    personalResourceList.innerHTML = items.length ? items.map((item) => {
+      const url = item.url ? safeUrl(item.url, { allowHash: false, protocols: ["http:", "https:"] }) : "";
+      return [
+        '<article class="personal-resource-card">',
+        '  <div class="personal-resource-heading"><div class="personal-resource-copy"><strong>' + escapeHtml(item.title) + '</strong><small>' + escapeHtml(item.category + " · " + (resourceTypeNames[item.resourceType] || "其他")) + '</small></div><div class="personal-row-actions">' + (item.favorite ? '<i class="personal-note-favorite" data-lucide="star" aria-label="已收藏"></i>' : '') + '<button class="icon-button" type="button" data-edit="personalResource" data-id="' + escapeHtml(item.id) + '" aria-label="编辑资料"><i data-lucide="square-pen"></i></button><button class="icon-button is-danger" type="button" data-delete="personalResource" data-id="' + escapeHtml(item.id) + '" aria-label="删除资料"><i data-lucide="trash-2"></i></button></div></div>',
+        '  <p>' + escapeHtml(item.summary || "暂无资料备注。") + '</p>',
+        '  <div><div class="personal-meta-row"><span class="personal-status-pill is-' + escapeHtml(item.status) + '">' + escapeHtml(resourceStatusNames[item.status] || "待读") + '</span><span class="personal-type-pill">' + escapeHtml(resourceTypeNames[item.resourceType] || "其他") + '</span></div><div class="personal-resource-tags">' + (item.tags || []).map((tag) => '<span>' + escapeHtml(tag) + '</span>').join("") + '</div>' + (url && url !== "#" ? '<a class="personal-resource-link" href="' + escapeHtml(url) + '" target="_blank" rel="noopener"><i data-lucide="external-link"></i><span>' + escapeHtml(item.url) + '</span></a>' : '') + '</div>',
+        '</article>',
+      ].join("\n");
+    }).join("") : '<div class="empty-state">没有符合条件的资料。</div>';
+  };
+
+  const recentHabitDates = () => Array.from({ length: 7 }, (_, index) => {
+    const date = new Date();
+    date.setHours(12, 0, 0, 0);
+    date.setDate(date.getDate() - (6 - index));
+    return { key: localDateKey(date), weekday: ["日", "一", "二", "三", "四", "五", "六"][date.getDay()], day: date.getDate() };
+  });
+  const habitCheckinSet = (habitId) => new Set(state.personalHabitCheckins.filter((item) => item.habitId === habitId).map((item) => item.date));
+  const habitStreak = (habitId) => {
+    const checked = habitCheckinSet(habitId);
+    let count = 0;
+    const cursor = new Date();
+    cursor.setHours(12, 0, 0, 0);
+    while (checked.has(localDateKey(cursor))) {
+      count += 1;
+      cursor.setDate(cursor.getDate() - 1);
+    }
+    return count;
+  };
+
+  const renderPersonalHabits = () => {
+    const dates = recentHabitDates();
+    const today = localDateKey();
+    const activeHabits = state.personalHabits.filter((item) => item.active);
+    const todayDone = activeHabits.filter((item) => habitCheckinSet(item.id).has(today)).length;
+    const totalRecent = activeHabits.length * dates.length;
+    const recentDone = activeHabits.reduce((total, item) => total + dates.filter((date) => habitCheckinSet(item.id).has(date.key)).length, 0);
+    const bestStreak = state.personalHabits.reduce((best, item) => Math.max(best, habitStreak(item.id)), 0);
+    personalHabitMetrics.innerHTML = [
+      ["进行中习惯", activeHabits.length],
+      ["今日已完成", todayDone + " / " + activeHabits.length],
+      ["近 7 天完成率", (totalRecent ? Math.round(recentDone / totalRecent * 100) : 0) + "%"],
+      ["当前最长连续", bestStreak + " 天"],
+    ].map((item) => '<article class="personal-metric-card"><span>' + item[0] + '</span><strong>' + item[1] + '</strong></article>').join("");
+    personalHabitList.innerHTML = state.personalHabits.length ? state.personalHabits.map((item) => {
+      const checked = habitCheckinSet(item.id);
+      return [
+        '<article class="personal-habit-card">',
+        '  <div><div class="personal-habit-heading"><div class="personal-habit-copy"><strong>' + escapeHtml(item.title) + '</strong><small>' + escapeHtml(item.description || (item.frequency === "daily" ? "每天坚持" : "每周完成 " + item.targetPerPeriod + " 次")) + '</small></div><div class="personal-row-actions"><button class="icon-button" type="button" data-edit="personalHabit" data-id="' + escapeHtml(item.id) + '" aria-label="编辑习惯"><i data-lucide="square-pen"></i></button><button class="icon-button is-danger" type="button" data-delete="personalHabit" data-id="' + escapeHtml(item.id) + '" aria-label="删除习惯"><i data-lucide="trash-2"></i></button></div></div><div class="personal-meta-row"><span class="personal-status-pill' + (item.active ? " is-active" : "") + '">' + (item.active ? "追踪中" : "已停用") + '</span><span>连续 ' + habitStreak(item.id) + ' 天</span></div></div>',
+        '  <div class="personal-habit-days">' + dates.map((date) => '<button class="personal-habit-day' + (checked.has(date.key) ? " is-checked" : "") + (date.key === today ? " is-today" : "") + '" type="button" data-habit-checkin="' + escapeHtml(item.id) + '" data-date="' + date.key + '" aria-pressed="' + checked.has(date.key) + '" aria-label="' + escapeHtml(item.title + " " + date.key) + '"><span>周' + date.weekday + '</span><strong>' + date.day + '</strong></button>').join("") + '</div>',
+        '</article>',
+      ].join("\n");
+    }).join("") : '<div class="empty-state">还没有习惯，点击右上角新增。</div>';
+  };
+
+  const globalSearchEntries = () => {
+    const noteText = (item) => personalNotePlainText(item);
+    return [
+      ...state.personalNotes.map((item) => ({ group: "personal", kind: "personalNote", key: item.id, section: "notes", icon: "notebook-pen", type: "笔记", title: item.title, meta: [item.category, ...(item.tags || []), noteText(item)].join(" ") })),
+      ...state.personalGoals.map((item) => ({ group: "personal", kind: "personalGoal", key: item.id, section: "goals", icon: "target", type: "目标", title: item.title, meta: [item.description, goalStatusNames[item.status]].join(" ") })),
+      ...state.personalTasks.map((item) => ({ group: "personal", kind: "personalTask", key: item.id, section: "goals", icon: "check-square-2", type: "任务", title: item.title, meta: [item.description, ...(item.tags || []), taskStatusNames[item.status]].join(" ") })),
+      ...state.personalResources.map((item) => ({ group: "personal", kind: "personalResource", key: item.id, section: "resources", icon: "bookmark", type: "资料", title: item.title, meta: [item.category, item.summary, item.url, ...(item.tags || [])].join(" ") })),
+      ...state.personalHabits.map((item) => ({ group: "personal", kind: "personalHabit", key: item.id, section: "habits", icon: "repeat-2", type: "习惯", title: item.title, meta: item.description })),
+      ...state.projects.map((item) => ({ group: "website", kind: item.itemType === "demo" ? "demo" : "project", key: item.slug, section: item.itemType === "demo" ? "demos" : "projects", icon: item.itemType === "demo" ? "play-square" : "panels-top-left", type: item.itemType === "demo" ? "演示" : "项目", title: item.title, meta: [item.category, item.description, ...(item.tags || [])].join(" ") })),
+      ...state.articles.map((item) => ({ group: "website", kind: "article", key: item.slug, section: "articles", icon: "file-text", type: "文章", title: item.title, meta: [item.category, item.summary, personalNotePlainText(item)].join(" ") })),
+      ...state.navigation.map((item) => ({ group: "website", kind: "navigation", key: item.id, section: "navigation", icon: "menu", type: "导航", title: item.label, meta: item.href })),
+      ...state.scheduleItems.map((item) => ({ group: "operations", kind: "scheduleItem", key: item.id, section: "overview", icon: "calendar", type: "日程", title: item.title, meta: [item.date, item.notes].join(" ") })),
+      ...state.inquiries.map((item) => ({ group: "operations", kind: "inquiry", key: item.id, section: "inquiries", icon: "messages-square", type: "咨询", title: item.name || "未命名咨询", meta: [item.contact, item.email, item.message].join(" ") })),
+      ...state.quotes.map((item) => ({ group: "operations", kind: "quote", key: item.id, section: "quotes", icon: "badge-dollar-sign", type: "报价", title: item.name || "未命名报价", meta: [item.contact, item.details].join(" ") })),
+      ...state.finance.map((item) => ({ group: "operations", kind: "finance", key: item.id, section: "finance", icon: "wallet-cards", type: "收支", title: item.title, meta: [item.category, item.clientName, item.note].join(" ") })),
+    ];
+  };
+
+  const renderGlobalSearch = () => {
+    const query = globalSearchInput.value.trim().toLowerCase();
+    const group = globalSearchType.value;
+    if (!query) {
+      globalSearchSummary.textContent = "输入关键词开始搜索";
+      globalSearchResults.innerHTML = '<div class="empty-state">可搜索笔记、目标、任务、资料、习惯、项目、文章、导航、日程、咨询、报价和收支记录。</div>';
+      return;
+    }
+    const items = globalSearchEntries().filter((item) => (group === "all" || item.group === group) && [item.title, item.type, item.meta].join(" ").toLowerCase().includes(query)).slice(0, 100);
+    globalSearchSummary.textContent = "找到 " + items.length + " 条结果";
+    globalSearchResults.innerHTML = items.length ? items.map((item) => [
+      '<button class="global-search-result" type="button" data-global-kind="' + escapeHtml(item.kind) + '" data-global-key="' + escapeHtml(item.key) + '" data-global-section="' + escapeHtml(item.section) + '">',
+      '  <span class="global-search-result-icon"><i data-lucide="' + escapeHtml(item.icon) + '"></i></span>',
+      '  <span class="global-search-result-copy"><strong>' + escapeHtml(item.title) + '</strong><small>' + escapeHtml(item.meta || "暂无补充信息") + '</small></span>',
+      '  <span class="personal-type-pill">' + escapeHtml(item.type) + '</span>',
+      '</button>',
+    ].join("\n")).join("") : '<div class="empty-state">没有找到匹配内容。</div>';
   };
 
   const renderNavigationList = (items) => {
@@ -853,6 +1045,10 @@
     renderAnalytics();
     renderContentLists();
     renderPersonalNotes();
+    renderGoalsAndTasks();
+    renderPersonalResources();
+    renderPersonalHabits();
+    renderGlobalSearch();
     renderAiProfile();
     renderInquiries();
     renderQuotes();
@@ -1202,6 +1398,44 @@
     ].join("\n");
   };
 
+  const personalGoalFields = (item) => [
+    '<label class="field field-wide"><span>目标名称</span><input name="title" maxlength="160" required value="' + escapeHtml(item.title || "") + '" placeholder="例如：完成个人品牌升级" /></label>',
+    '<label class="field"><span>状态</span><select name="status"><option value="planned"' + (item.status === "planned" ? " selected" : "") + '>计划中</option><option value="active"' + (item.status === "active" || !item.status ? " selected" : "") + '>进行中</option><option value="paused"' + (item.status === "paused" ? " selected" : "") + '>已暂停</option><option value="completed"' + (item.status === "completed" ? " selected" : "") + '>已完成</option><option value="archived"' + (item.status === "archived" ? " selected" : "") + '>已归档</option></select></label>',
+    '<label class="field"><span>优先级</span><select name="priority"><option value="low"' + (item.priority === "low" ? " selected" : "") + '>低</option><option value="medium"' + (item.priority === "medium" || !item.priority ? " selected" : "") + '>中</option><option value="high"' + (item.priority === "high" ? " selected" : "") + '>高</option></select></label>',
+    '<label class="field"><span>目标日期</span><input name="targetDate" type="date" value="' + escapeHtml(item.targetDate || "") + '" /></label>',
+    '<label class="field"><span>完成进度（%）</span><input name="progress" type="number" min="0" max="100" value="' + Number(item.progress || 0) + '" /></label>',
+    '<label class="field field-wide"><span>目标说明</span><textarea name="description" maxlength="3000" rows="7" placeholder="说明目标结果、衡量方式和关键步骤">' + escapeHtml(item.description || "") + '</textarea></label>',
+  ].join("\n");
+
+  const personalTaskFields = (item) => [
+    '<label class="field field-wide"><span>任务名称</span><input name="title" maxlength="160" required value="' + escapeHtml(item.title || "") + '" placeholder="输入下一步行动" /></label>',
+    '<label class="field"><span>所属目标</span><select name="goalId"><option value="">不关联目标</option>' + state.personalGoals.map((goal) => '<option value="' + escapeHtml(goal.id) + '"' + (item.goalId === goal.id ? " selected" : "") + '>' + escapeHtml(goal.title) + '</option>').join("") + '</select></label>',
+    '<label class="field"><span>状态</span><select name="status"><option value="todo"' + (item.status === "todo" || !item.status ? " selected" : "") + '>待开始</option><option value="doing"' + (item.status === "doing" ? " selected" : "") + '>进行中</option><option value="done"' + (item.status === "done" ? " selected" : "") + '>已完成</option><option value="archived"' + (item.status === "archived" ? " selected" : "") + '>已归档</option></select></label>',
+    '<label class="field"><span>优先级</span><select name="priority"><option value="low"' + (item.priority === "low" ? " selected" : "") + '>低</option><option value="medium"' + (item.priority === "medium" || !item.priority ? " selected" : "") + '>中</option><option value="high"' + (item.priority === "high" ? " selected" : "") + '>高</option></select></label>',
+    '<label class="field"><span>截止日期</span><input name="dueDate" type="date" value="' + escapeHtml(item.dueDate || "") + '" /></label>',
+    '<label class="field field-wide"><span>标签</span><input name="tags" maxlength="820" value="' + escapeHtml((item.tags || []).join(", ")) + '" placeholder="多个标签使用逗号分隔" /></label>',
+    '<label class="field field-wide"><span>任务说明</span><textarea name="description" maxlength="3000" rows="6">' + escapeHtml(item.description || "") + '</textarea></label>',
+  ].join("\n");
+
+  const personalResourceFields = (item) => [
+    '<label class="field field-wide"><span>资料标题</span><input name="title" maxlength="160" required value="' + escapeHtml(item.title || "") + '" placeholder="输入网站、文档或资料名称" /></label>',
+    '<label class="field field-wide"><span>链接</span><input name="url" type="url" maxlength="2000" value="' + escapeHtml(item.url || "") + '" placeholder="https://（本地资料可留空）" /></label>',
+    '<label class="field"><span>资料类型</span><select name="resourceType"><option value="bookmark"' + (item.resourceType === "bookmark" || !item.resourceType ? " selected" : "") + '>网站</option><option value="document"' + (item.resourceType === "document" ? " selected" : "") + '>文档</option><option value="tool"' + (item.resourceType === "tool" ? " selected" : "") + '>工具</option><option value="course"' + (item.resourceType === "course" ? " selected" : "") + '>课程</option><option value="inspiration"' + (item.resourceType === "inspiration" ? " selected" : "") + '>灵感</option><option value="other"' + (item.resourceType === "other" ? " selected" : "") + '>其他</option></select></label>',
+    '<label class="field"><span>分类</span><input name="category" maxlength="40" required value="' + escapeHtml(item.category || "未分类") + '" /></label>',
+    '<label class="field"><span>状态</span><select name="status"><option value="unread"' + (item.status === "unread" || !item.status ? " selected" : "") + '>待读</option><option value="reading"' + (item.status === "reading" ? " selected" : "") + '>阅读中</option><option value="finished"' + (item.status === "finished" ? " selected" : "") + '>已完成</option><option value="archived"' + (item.status === "archived" ? " selected" : "") + '>已归档</option></select></label>',
+    '<label class="toggle-field"><span>加入收藏</span><input name="favorite" type="checkbox"' + (item.favorite ? " checked" : "") + ' /></label>',
+    '<label class="field field-wide"><span>标签</span><input name="tags" maxlength="820" value="' + escapeHtml((item.tags || []).join(", ")) + '" placeholder="多个标签使用逗号分隔" /></label>',
+    '<label class="field field-wide"><span>摘要与备注</span><textarea name="summary" maxlength="3000" rows="7" placeholder="记录核心内容、使用方式或阅读笔记">' + escapeHtml(item.summary || "") + '</textarea></label>',
+  ].join("\n");
+
+  const personalHabitFields = (item) => [
+    '<label class="field field-wide"><span>习惯名称</span><input name="title" maxlength="120" required value="' + escapeHtml(item.title || "") + '" placeholder="例如：阅读 30 分钟" /></label>',
+    '<label class="field"><span>频率</span><select name="frequency"><option value="daily"' + (item.frequency === "daily" || !item.frequency ? " selected" : "") + '>每天</option><option value="weekly"' + (item.frequency === "weekly" ? " selected" : "") + '>每周</option></select></label>',
+    '<label class="field"><span>每周目标次数</span><input name="targetPerPeriod" type="number" min="1" max="7" value="' + Number(item.targetPerPeriod || 1) + '" /></label>',
+    '<label class="toggle-field field-wide"><span>启用追踪</span><input name="active" type="checkbox"' + (item.active === false ? "" : " checked") + ' /></label>',
+    '<label class="field field-wide"><span>习惯说明</span><textarea name="description" maxlength="1000" rows="6" placeholder="记录执行标准或提醒">' + escapeHtml(item.description || "") + '</textarea></label>',
+  ].join("\n");
+
   const navigationFields = (item) => [
     '<label class="field"><span>导航名称</span><input name="label" required value="' + escapeHtml(item.label || "") + '" placeholder="例如：服务" /></label>',
     '<label class="field"><span>排序</span><input name="sortOrder" type="number" min="0" value="' + Number(item.sortOrder || 0) + '" /></label>',
@@ -1306,8 +1540,16 @@
       ? { itemType: type === "demo" ? "demo" : "portfolio", category: type === "demo" ? "原型" : "APP Design", sortOrder: state.projects.length, published: true, gallery: [], contentBlocks: [], tags: [] }
       : type === "article"
         ? { category: state.pendingArticleCategory || "AI", sortOrder: state.articles.length, published: true, blocks: [] }
-        : type === "personalNote"
+      : type === "personalNote"
           ? { category: "个人", status: "active", pinned: false, favorite: false, tags: [], blocks: [] }
+        : type === "personalGoal"
+          ? { status: "active", priority: "medium", progress: 0, targetDate: "" }
+        : type === "personalTask"
+          ? { goalId: "", status: "todo", priority: "medium", dueDate: "", tags: [] }
+        : type === "personalResource"
+          ? { resourceType: "bookmark", category: "未分类", status: "unread", favorite: false, tags: [] }
+        : type === "personalHabit"
+          ? { frequency: "daily", targetPerPeriod: 1, active: true }
         : type === "navigation"
           ? { sortOrder: state.navigation.length, published: true, openNewTab: false }
           : type === "note"
@@ -1326,7 +1568,7 @@
     editorDialog.classList.toggle("is-article-editor", type === "article" || type === "personalNote");
     document.body.classList.toggle("project-editor-open", type === "project" || type === "demo" || type === "inquiry" || type === "article" || type === "personalNote");
     const labels = {
-      project: ["Portfolio", "项目"], demo: ["Practice & Demo", "练习与演示"], article: ["Article", "文章"], personalNote: ["Personal Notes", "笔记"], navigation: ["Navigation", "导航"], finance: ["Finance", "收支记录"], note: ["Thinking", "便签"], quickLink: ["Quick Entry", "网站"], quickLinkCategory: ["Quick Entry", "分类"], scheduleItem: ["Calendar", "事项"], quote: ["Quote", "报价"], inquiry: ["Inquiry", "客户咨询"],
+      project: ["Portfolio", "项目"], demo: ["Practice & Demo", "练习与演示"], article: ["Article", "文章"], personalNote: ["Personal Notes", "笔记"], personalGoal: ["Goals", "目标"], personalTask: ["Tasks", "任务"], personalResource: ["Library", "资料"], personalHabit: ["Habits", "习惯"], navigation: ["Navigation", "导航"], finance: ["Finance", "收支记录"], note: ["Thinking", "便签"], quickLink: ["Quick Entry", "网站"], quickLinkCategory: ["Quick Entry", "分类"], scheduleItem: ["Calendar", "事项"], quote: ["Quote", "报价"], inquiry: ["Inquiry", "客户咨询"],
     };
     document.getElementById("editor-eyebrow").textContent = labels[type][0];
     document.getElementById("editor-title").textContent = type === "inquiry"
@@ -1334,10 +1576,14 @@
       : (type === "quickLink" || type === "quickLinkCategory")
       ? (editing ? "编辑" : "添加") + labels[type][1]
       : (editing ? "编辑" : "新建") + labels[type][1];
-    document.getElementById("editor-save-label").textContent = type === "inquiry" ? "保存状态" : editing ? "保存修改" : type === "article" ? "创建文章" : type === "personalNote" ? "创建笔记" : type === "project" ? "创建项目" : type === "demo" ? "创建演示" : "创建内容";
+    document.getElementById("editor-save-label").textContent = type === "inquiry" ? "保存状态" : editing ? "保存修改" : type === "article" ? "创建文章" : type === "personalNote" ? "创建笔记" : type === "personalGoal" ? "创建目标" : type === "personalTask" ? "创建任务" : type === "personalResource" ? "保存资料" : type === "personalHabit" ? "创建习惯" : type === "project" ? "创建项目" : type === "demo" ? "创建演示" : "创建内容";
     editorBody.innerHTML = type === "project" || type === "demo" ? projectFields(value, editing, type)
       : type === "article" ? articleFields(value, editing)
         : type === "personalNote" ? personalNoteFields(value)
+        : type === "personalGoal" ? personalGoalFields(value)
+        : type === "personalTask" ? personalTaskFields(value)
+        : type === "personalResource" ? personalResourceFields(value)
+        : type === "personalHabit" ? personalHabitFields(value)
         : type === "inquiry" ? inquiryFields(value)
         : type === "navigation" ? navigationFields(value)
           : type === "finance" ? financeFields(value)
@@ -1346,7 +1592,7 @@
                 : type === "quickLinkCategory" ? quickLinkCategoryFields(value)
                   : type === "scheduleItem" ? scheduleItemFields(value)
                     : quoteFields(value);
-    if (["personalNote", "navigation", "finance", "note", "quickLink", "quickLinkCategory", "scheduleItem", "quote", "inquiry"].includes(type) && value.id) editorForm.dataset.itemId = value.id;
+    if (["personalNote", "personalGoal", "personalTask", "personalResource", "personalHabit", "navigation", "finance", "note", "quickLink", "quickLinkCategory", "scheduleItem", "quote", "inquiry"].includes(type) && value.id) editorForm.dataset.itemId = value.id;
     else delete editorForm.dataset.itemId;
     editorDialog.showModal();
     projectDocumentRange = null;
@@ -1394,6 +1640,24 @@
       values.pinned = Boolean(editorForm.elements.namedItem("pinned").checked);
       values.favorite = Boolean(editorForm.elements.namedItem("favorite").checked);
       await api.savePersonalNote(values);
+    } else if (type === "personalGoal") {
+      values.id = editorForm.dataset.itemId || undefined;
+      values.progress = Number(values.progress || 0);
+      await api.savePersonalGoal(values);
+    } else if (type === "personalTask") {
+      values.id = editorForm.dataset.itemId || undefined;
+      values.tags = String(values.tags || "").split(/[,，]/).map((item) => item.trim()).filter(Boolean);
+      await api.savePersonalTask(values);
+    } else if (type === "personalResource") {
+      values.id = editorForm.dataset.itemId || undefined;
+      values.tags = String(values.tags || "").split(/[,，]/).map((item) => item.trim()).filter(Boolean);
+      values.favorite = Boolean(editorForm.elements.namedItem("favorite").checked);
+      await api.savePersonalResource(values);
+    } else if (type === "personalHabit") {
+      values.id = editorForm.dataset.itemId || undefined;
+      values.targetPerPeriod = Number(values.targetPerPeriod || 1);
+      values.active = Boolean(editorForm.elements.namedItem("active").checked);
+      await api.savePersonalHabit(values);
     } else if (type === "navigation") {
       values.sortOrder = Number(values.sortOrder || 0);
       values.published = Boolean(editorForm.elements.namedItem("published").checked);
@@ -1443,8 +1707,8 @@
     const edit = event.target.closest("[data-edit]");
     if (edit) {
       const type = edit.dataset.edit;
-      const items = (type === "project" || type === "demo") ? state.projects : type === "article" ? state.articles : type === "personalNote" ? state.personalNotes : type === "navigation" ? state.navigation : type === "quote" ? state.quotes : state.finance;
-      const item = type === "personalNote" || type === "navigation" || type === "finance" || type === "quote"
+      const items = (type === "project" || type === "demo") ? state.projects : type === "article" ? state.articles : type === "personalNote" ? state.personalNotes : type === "personalGoal" ? state.personalGoals : type === "personalTask" ? state.personalTasks : type === "personalResource" ? state.personalResources : type === "personalHabit" ? state.personalHabits : type === "navigation" ? state.navigation : type === "quote" ? state.quotes : state.finance;
+      const item = ["personalNote", "personalGoal", "personalTask", "personalResource", "personalHabit", "navigation", "finance", "quote"].includes(type)
         ? items.find((entry) => entry.id === edit.dataset.id)
         : items.find((entry) => entry.slug === edit.dataset.slug);
       openEditor(type, item);
@@ -1453,8 +1717,8 @@
     const remove = event.target.closest("[data-delete]");
     if (!remove) return;
     const type = remove.dataset.delete;
-    const items = (type === "project" || type === "demo") ? state.projects : type === "article" ? state.articles : type === "personalNote" ? state.personalNotes : type === "navigation" ? state.navigation : state.finance;
-    const item = type === "personalNote" || type === "navigation" || type === "finance"
+    const items = (type === "project" || type === "demo") ? state.projects : type === "article" ? state.articles : type === "personalNote" ? state.personalNotes : type === "personalGoal" ? state.personalGoals : type === "personalTask" ? state.personalTasks : type === "personalResource" ? state.personalResources : type === "personalHabit" ? state.personalHabits : type === "navigation" ? state.navigation : state.finance;
+    const item = ["personalNote", "personalGoal", "personalTask", "personalResource", "personalHabit", "navigation", "finance"].includes(type)
       ? items.find((entry) => entry.id === remove.dataset.id)
       : items.find((entry) => entry.slug === remove.dataset.slug);
     if (!item || !window.confirm("确认删除“" + (item.title || item.label) + "”吗？此操作无法撤销。")) return;
@@ -1462,6 +1726,10 @@
     if (type === "project" || type === "demo") await api.deleteProject(item.slug, defaultProjects);
     else if (type === "article") await api.deleteArticle(item.slug, defaultArticles);
     else if (type === "personalNote") await api.deletePersonalNote(item.id);
+    else if (type === "personalGoal") await api.deletePersonalGoal(item.id);
+    else if (type === "personalTask") await api.deletePersonalTask(item.id);
+    else if (type === "personalResource") await api.deletePersonalResource(item.id);
+    else if (type === "personalHabit") await api.deletePersonalHabit(item.id);
     else if (type === "navigation") await api.deleteNavigationItem(item.id, defaultNavigation);
     else await api.deleteFinanceEntry(item.id);
     await loadData();
@@ -1547,6 +1815,72 @@
     state.activePersonalNoteCategory = category.dataset.personalNoteCategory;
     renderPersonalNotes();
     refreshIcons();
+  });
+  personalGoalList.addEventListener("click", (event) => handleListAction(event).catch((error) => { setSync("保存失败", "error"); showToast(error.message, true); }));
+  personalTaskList.addEventListener("click", (event) => handleListAction(event).catch((error) => { setSync("保存失败", "error"); showToast(error.message, true); }));
+  personalTaskSearch.addEventListener("input", () => { renderGoalsAndTasks(); refreshIcons(); });
+  personalTaskStatusFilter.addEventListener("change", () => { renderGoalsAndTasks(); refreshIcons(); });
+  personalTaskGoalFilter.addEventListener("change", () => { renderGoalsAndTasks(); refreshIcons(); });
+  personalTaskList.addEventListener("click", async (event) => {
+    const toggle = event.target.closest("[data-toggle-personal-task]");
+    if (!toggle) return;
+    const item = state.personalTasks.find((entry) => entry.id === toggle.dataset.togglePersonalTask);
+    if (!item) return;
+    try {
+      setSync("更新任务", "busy");
+      await api.savePersonalTask({ ...item, status: item.status === "done" ? "todo" : "done" });
+      await loadData();
+      showToast(item.status === "done" ? "任务已恢复" : "任务已完成");
+    } catch (error) {
+      setSync("更新失败", "error");
+      showToast(error.message, true);
+    }
+  });
+  personalResourceList.addEventListener("click", (event) => handleListAction(event).catch((error) => { setSync("保存失败", "error"); showToast(error.message, true); }));
+  personalResourceSearch.addEventListener("input", () => { renderPersonalResources(); refreshIcons(); });
+  personalResourceCategoryFilter.addEventListener("change", () => { renderPersonalResources(); refreshIcons(); });
+  personalResourceStatusFilter.addEventListener("change", () => { renderPersonalResources(); refreshIcons(); });
+  personalHabitList.addEventListener("click", (event) => handleListAction(event).catch((error) => { setSync("保存失败", "error"); showToast(error.message, true); }));
+  personalHabitList.addEventListener("click", async (event) => {
+    const button = event.target.closest("[data-habit-checkin]");
+    if (!button) return;
+    try {
+      const checked = button.getAttribute("aria-pressed") === "true";
+      setSync(checked ? "取消打卡" : "记录打卡", "busy");
+      await api.setPersonalHabitCheckin(button.dataset.habitCheckin, button.dataset.date, !checked);
+      await loadData();
+      showToast(checked ? "已取消打卡" : "打卡完成");
+    } catch (error) {
+      setSync("打卡失败", "error");
+      showToast(error.message, true);
+    }
+  });
+  globalSearchInput.addEventListener("input", () => { renderGlobalSearch(); refreshIcons(); });
+  globalSearchType.addEventListener("change", () => { renderGlobalSearch(); refreshIcons(); });
+  globalSearchResults.addEventListener("click", (event) => {
+    const result = event.target.closest("[data-global-kind]");
+    if (!result) return;
+    const kind = result.dataset.globalKind;
+    const key = result.dataset.globalKey;
+    const collections = {
+      personalNote: state.personalNotes,
+      personalGoal: state.personalGoals,
+      personalTask: state.personalTasks,
+      personalResource: state.personalResources,
+      personalHabit: state.personalHabits,
+      project: state.projects,
+      demo: state.projects,
+      article: state.articles,
+      navigation: state.navigation,
+      scheduleItem: state.scheduleItems,
+      inquiry: state.inquiries,
+      quote: state.quotes,
+      finance: state.finance,
+    };
+    const item = (collections[kind] || []).find((entry) => (entry.id || entry.slug) === key);
+    if (!item) return;
+    setActiveSection(result.dataset.globalSection);
+    openEditor(kind, item);
   });
   articlePanel.addEventListener("click", (event) => {
     const categoryButton = event.target.closest("[data-article-category]");

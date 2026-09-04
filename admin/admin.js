@@ -32,6 +32,7 @@
   const loginForm = document.getElementById("login-form");
   const authStatus = document.getElementById("auth-status");
   const sidebar = document.querySelector(".admin-sidebar");
+  const sidebarCollapse = document.getElementById("sidebar-collapse");
   const sectionTitle = document.getElementById("section-title");
   const modeBadge = document.getElementById("mode-badge");
   const syncStatus = document.getElementById("sync-status");
@@ -173,6 +174,19 @@
     document.getElementById("metric-grid").hidden = name !== "overview";
     sidebar.classList.remove("is-open");
   };
+
+  const setSidebarCollapsed = (collapsed) => {
+    adminApp.classList.toggle("is-sidebar-collapsed", collapsed);
+    const label = collapsed ? "展开侧边栏" : "收起侧边栏";
+    sidebarCollapse.setAttribute("aria-label", label);
+    sidebarCollapse.title = label;
+    sidebarCollapse.querySelector("span").textContent = label;
+    sidebarCollapse.querySelector("i, svg").setAttribute("data-lucide", collapsed ? "panel-left-open" : "panel-left-close");
+    try { window.localStorage.setItem("portfolio-admin:sidebar-collapsed", collapsed ? "1" : "0"); } catch (error) {}
+    refreshIcons();
+  };
+
+  try { setSidebarCollapsed(window.localStorage.getItem("portfolio-admin:sidebar-collapsed") === "1"); } catch (error) { setSidebarCollapsed(false); }
 
   const loadData = async () => {
     setSync("读取内容", "busy");
@@ -1407,6 +1421,7 @@
     });
   });
   document.getElementById("mobile-menu").addEventListener("click", () => sidebar.classList.toggle("is-open"));
+  sidebarCollapse.addEventListener("click", () => setSidebarCollapsed(!adminApp.classList.contains("is-sidebar-collapsed")));
   document.getElementById("logout-button").addEventListener("click", async () => {
     await api.signOut();
     authSession.clear();

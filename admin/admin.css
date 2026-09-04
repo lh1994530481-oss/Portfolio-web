@@ -244,6 +244,7 @@ body { background: var(--bg); }
   color: var(--text);
   box-shadow: 4px 0 18px rgba(56, 78, 84, .04);
 }
+.sidebar-head { display: flex; align-items: center; gap: 10px; padding-bottom: 12px; border-bottom: 1px solid var(--line); }
 .sidebar-brand {
   position: relative;
   display: grid;
@@ -251,6 +252,7 @@ body { background: var(--bg); }
   height: 46px;
   place-items: center;
   padding: 0;
+  flex: none;
   border: 0;
 }
 .brand-mark {
@@ -267,7 +269,7 @@ body { background: var(--bg); }
   border-top: 1px solid var(--line);
 }
 .sidebar-group { border: 0; }
-.sidebar-collapse { display: flex; width: 100%; min-height: 38px; align-items: center; gap: 14px; margin: 12px 0 2px; padding: 0 12px; border: 1px solid var(--line); border-radius: 5px; background: #fff; color: #697579; font-size: 12px; text-align: left; }
+.sidebar-collapse { display: flex; min-width: 0; min-height: 38px; flex: 1; align-items: center; gap: 12px; margin: 0; padding: 0 10px; border: 1px solid var(--line); border-radius: 5px; background: #fff; color: #697579; font-size: 12px; text-align: left; }
 .sidebar-collapse:hover { border-color: #b9c6ca; color: var(--text); }
 .sidebar-collapse svg { width: 17px; height: 17px; flex: none; }
 .sidebar-group > summary { display: grid; min-height: 36px; cursor: pointer; list-style: none; grid-template-columns: 18px 1fr 16px; align-items: center; gap: 13px; padding: 0 10px; border-radius: 5px; color: #7b8589; font-size: 11px; font-weight: 700; letter-spacing: .04em; }
@@ -332,8 +334,8 @@ body { background: var(--bg); }
 .admin-sidebar, .admin-main { transition: width .2s ease, margin-left .2s ease; }
 .admin-app.is-sidebar-collapsed .admin-sidebar { width: 72px; padding-inline: 9px; }
 .admin-app.is-sidebar-collapsed .admin-main { margin-left: 72px; }
-.admin-app.is-sidebar-collapsed .sidebar-collapse { justify-content: center; padding: 0; }
-.admin-app.is-sidebar-collapsed .sidebar-collapse span,
+.admin-app.is-sidebar-collapsed .sidebar-head { justify-content: center; padding-bottom: 12px; }
+.admin-app.is-sidebar-collapsed .sidebar-collapse,
 .admin-app.is-sidebar-collapsed .sidebar-group > summary,
 .admin-app.is-sidebar-collapsed .nav-item > span,
 .admin-app.is-sidebar-collapsed .sidebar-footer span { display: none; }
@@ -535,6 +537,7 @@ input, textarea, select, .toggle-field { border-radius: 4px; }
   .admin-app.is-sidebar-collapsed .nav-item > span,
   .admin-app.is-sidebar-collapsed .sidebar-footer span { display: inline; }
   .admin-app.is-sidebar-collapsed .sidebar-group-items { padding: 3px 0 0 12px; }
+  .sidebar-head { display: block; }
   .sidebar-brand { display: flex; width: 100%; justify-content: flex-start; gap: 10px; }
   .sidebar-brand::before { content: "Portfolio CMS"; font-size: 13px; font-weight: 700; order: 2; }
   .sidebar-brand::after, .nav-item::after, .sidebar-footer a::after, .sidebar-footer button::after { display: none; }

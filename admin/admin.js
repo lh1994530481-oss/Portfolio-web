@@ -33,6 +33,7 @@
   const authStatus = document.getElementById("auth-status");
   const sidebar = document.querySelector(".admin-sidebar");
   const sidebarCollapse = document.getElementById("sidebar-collapse");
+  const sidebarBrandToggle = document.getElementById("sidebar-brand-toggle");
   const sectionTitle = document.getElementById("section-title");
   const modeBadge = document.getElementById("mode-badge");
   const syncStatus = document.getElementById("sync-status");
@@ -184,6 +185,8 @@
     sidebarCollapse.querySelector("i, svg").setAttribute("data-lucide", collapsed ? "panel-left-open" : "panel-left-close");
     try { window.localStorage.setItem("portfolio-admin:sidebar-collapsed", collapsed ? "1" : "0"); } catch (error) {}
     refreshIcons();
+    sidebarBrandToggle.setAttribute("aria-label", collapsed ? "展开侧边栏" : "Lin Studio");
+    sidebarBrandToggle.dataset.label = collapsed ? "展开侧边栏" : "Lin Studio";
   };
 
   try { setSidebarCollapsed(window.localStorage.getItem("portfolio-admin:sidebar-collapsed") === "1"); } catch (error) { setSidebarCollapsed(false); }
@@ -1422,6 +1425,9 @@
   });
   document.getElementById("mobile-menu").addEventListener("click", () => sidebar.classList.toggle("is-open"));
   sidebarCollapse.addEventListener("click", () => setSidebarCollapsed(!adminApp.classList.contains("is-sidebar-collapsed")));
+  sidebarBrandToggle.addEventListener("click", () => {
+    if (adminApp.classList.contains("is-sidebar-collapsed")) setSidebarCollapsed(false);
+  });
   document.getElementById("logout-button").addEventListener("click", async () => {
     await api.signOut();
     authSession.clear();

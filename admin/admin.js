@@ -181,8 +181,6 @@
     const label = collapsed ? "展开侧边栏" : "收起侧边栏";
     sidebarCollapse.setAttribute("aria-label", label);
     sidebarCollapse.title = label;
-    sidebarCollapse.querySelector("span").textContent = label;
-    sidebarCollapse.querySelector("i, svg").setAttribute("data-lucide", collapsed ? "panel-left-open" : "panel-left-close");
     try { window.localStorage.setItem("portfolio-admin:sidebar-collapsed", collapsed ? "1" : "0"); } catch (error) {}
     refreshIcons();
     sidebarBrandToggle.setAttribute("aria-label", collapsed ? "展开侧边栏" : "Lin Studio");

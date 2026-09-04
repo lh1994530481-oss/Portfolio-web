@@ -711,6 +711,67 @@
     if (error) throw error;
   };
 
+  const personalNoteFromRow = (row) => ({
+    id: row.id,
+    title: row.title,
+    category: row.category || "个人",
+    tags: Array.isArray(row.tags) ? row.tags : [],
+    blocks: Array.isArray(row.blocks) ? row.blocks : [],
+    status: row.status || "active",
+    pinned: row.pinned === true,
+    favorite: row.favorite === true,
+    createdAt: row.created_at || row.createdAt,
+    updatedAt: row.updated_at || row.updatedAt,
+  });
+
+  const listPersonalNotes = async () => {
+    if (!isConfigured()) return readLocal("personal-notes", []).map(personalNoteFromRow);
+    const { data, error } = await getClient().from("personal_notes").select("*").order("pinned", { ascending: false }).order("updated_at", { ascending: false });
+    if (error) throw error;
+    return (data || []).map(personalNoteFromRow);
+  };
+
+  const savePersonalNote = async (note) => {
+    const tags = Array.from(new Set((Array.isArray(note.tags) ? note.tags : []).map((item) => String(item || "").trim()).filter(Boolean)));
+    const value = {
+      ...note,
+      title: String(note.title || "").trim(),
+      category: String(note.category || "个人").trim() || "个人",
+      tags,
+      blocks: Array.isArray(note.blocks) ? note.blocks : [],
+      status: ["draft", "active", "archived"].includes(note.status) ? note.status : "active",
+      pinned: note.pinned === true,
+      favorite: note.favorite === true,
+      updatedAt: new Date().toISOString(),
+    };
+    if (!value.title) throw new Error("笔记标题不能为空");
+    if (value.title.length > 160) throw new Error("笔记标题不能超过 160 个字符");
+    if (value.category.length > 40) throw new Error("笔记分类不能超过 40 个字符");
+    if (value.tags.length > 20 || value.tags.some((item) => item.length > 40)) throw new Error("标签最多 20 个，每个不超过 40 个字符");
+    if (!isConfigured()) {
+      const items = readLocal("personal-notes", []);
+      const id = note.id || "local-" + Date.now();
+      const index = items.findIndex((item) => item.id === id);
+      const localValue = { ...value, id, createdAt: index >= 0 ? (items[index].createdAt || value.updatedAt) : value.updatedAt };
+      if (index >= 0) items[index] = localValue; else items.unshift(localValue);
+      writeLocal("personal-notes", items);
+      return localValue;
+    }
+    const row = { title: value.title, category: value.category, tags: value.tags, blocks: value.blocks, status: value.status, pinned: value.pinned, favorite: value.favorite };
+    const request = note.id
+      ? getClient().from("personal_notes").update(row).eq("id", note.id).select().single()
+      : getClient().from("personal_notes").insert(row).select().single();
+    const { data, error } = await request;
+    if (error) throw error;
+    return personalNoteFromRow(data);
+  };
+
+  const deletePersonalNote = async (id) => {
+    if (!isConfigured()) return writeLocal("personal-notes", readLocal("personal-notes", []).filter((item) => item.id !== id));
+    const { error } = await getClient().from("personal_notes").delete().eq("id", id);
+    if (error) throw error;
+  };
+
   const listQuickLinks = async () => {
     if (!isConfigured()) return readLocal("quick-links", []);
     const { data, error } = await getClient().from("quick_links").select("*").order("sort_order", { ascending: true });
@@ -1039,6 +1100,9 @@
     listWorkbenchNotes,
     saveWorkbenchNote,
     deleteWorkbenchNote,
+    listPersonalNotes,
+    savePersonalNote,
+    deletePersonalNote,
     listQuickLinks,
     saveQuickLink,
     deleteQuickLink,

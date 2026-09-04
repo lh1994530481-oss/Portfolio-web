@@ -494,6 +494,25 @@ $$;
 revoke all on function public.set_project_access(text, text, text) from public;
 grant execute on function public.set_project_access(text, text, text) to authenticated;
 
+create table if not exists public.personal_notes (
+  id uuid primary key default gen_random_uuid(),
+  title text not null check (char_length(title) between 1 and 160),
+  category text not null default '个人' check (char_length(category) between 1 and 40),
+  tags text[] not null default '{}' check (cardinality(tags) <= 20),
+  blocks jsonb not null default '[]'::jsonb check (jsonb_typeof(blocks) = 'array'),
+  status text not null default 'active' check (status in ('draft', 'active', 'archived')),
+  pinned boolean not null default false,
+  favorite boolean not null default false,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+
+create index if not exists personal_notes_updated_at_idx
+on public.personal_notes (pinned desc, updated_at desc);
+
+create index if not exists personal_notes_category_idx
+on public.personal_notes (category);
+
 create table if not exists public.workbench_notes (
   id uuid primary key default gen_random_uuid(),
   title text not null default '' check (char_length(title) <= 120),
@@ -551,11 +570,16 @@ create table if not exists public.workbench_schedule_items (
 create index if not exists workbench_schedule_items_date_time_idx
 on public.workbench_schedule_items (item_date, start_time);
 
+alter table public.personal_notes enable row level security;
 alter table public.workbench_notes enable row level security;
 alter table public.quick_links enable row level security;
 alter table public.quick_link_categories enable row level security;
 alter table public.workbench_moods enable row level security;
 alter table public.workbench_schedule_items enable row level security;
+
+drop policy if exists "Admins manage personal notes" on public.personal_notes;
+create policy "Admins manage personal notes" on public.personal_notes for all to authenticated
+using ((select private.is_portfolio_admin())) with check ((select private.is_portfolio_admin()));
 
 drop policy if exists "Admins manage workbench notes" on public.workbench_notes;
 create policy "Admins manage workbench notes" on public.workbench_notes for all to authenticated
@@ -577,6 +601,8 @@ drop policy if exists "Admins manage workbench schedule" on public.workbench_sch
 create policy "Admins manage workbench schedule" on public.workbench_schedule_items for all to authenticated
 using ((select private.is_portfolio_admin())) with check ((select private.is_portfolio_admin()));
 
+revoke all on public.personal_notes from public, anon, authenticated;
+grant select, insert, update, delete on public.personal_notes to authenticated;
 grant select, insert, update, delete on public.workbench_notes, public.quick_links, public.quick_link_categories, public.workbench_moods, public.workbench_schedule_items to authenticated;
 
 insert into public.quick_link_categories (name, sort_order)
@@ -653,6 +679,7 @@ using ((select private.is_portfolio_admin())) with check ((select private.is_por
 grant insert on public.quote_requests to anon, authenticated;
 grant select, update, delete on public.quote_requests to authenticated;
 
+revoke all on public.personal_notes from anon;
 revoke all on public.workbench_notes from anon;
 revoke all on public.quick_links from anon;
 revoke all on public.quick_link_categories from anon;
@@ -1408,6 +1435,7 @@ begin
     'contact_inquiries',
     'finance_entries',
     'project_access',
+    'personal_notes',
     'workbench_notes',
     'quick_links',
     'quick_link_categories',

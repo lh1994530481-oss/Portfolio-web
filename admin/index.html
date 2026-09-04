@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="robots" content="noindex, nofollow" />
     <title>Lin Tong Xin | Portfolio CMS</title>
-    <link rel="stylesheet" href="./admin.css?v=20260901-1" />
+    <link rel="stylesheet" href="./admin.css?v=20260904-1" />
   </head>
   <body>
     <main class="auth-screen" id="auth-screen">
@@ -299,9 +299,27 @@
             <div class="content-list" id="navigation-list"></div>
           </section>
 
-          <section class="admin-section" data-panel="notes">
-            <div class="section-toolbar"><div><p class="eyebrow">Personal Notes</p><h2>笔记管理</h2><p>个人笔记将在这里集中整理，不影响网站内容与现有后台功能。</p></div></div>
-            <div class="surface empty-state">笔记管理入口已建立，后续可在这里继续完善分类、编辑与发布功能。</div>
+          <section class="admin-section article-admin-section" data-panel="notes">
+            <div class="article-page-toolbar">
+              <div class="article-page-title">
+                <div><p class="eyebrow">Personal Notes</p><h2>笔记管理</h2><p>整理私人知识、思考与长期资料，仅后台管理员可见。</p></div>
+                <button class="button button-primary article-create-button" type="button" data-create="personalNote"><i data-lucide="plus" aria-hidden="true"></i><span>新建笔记</span></button>
+              </div>
+              <label class="content-search article-search"><i data-lucide="search" aria-hidden="true"></i><input id="personal-note-search" type="search" placeholder="搜索标题、分类、标签或正文" /></label>
+            </div>
+            <div class="article-management-layout">
+              <aside class="article-category-panel" aria-label="笔记分类">
+                <div class="article-category-heading"><strong>分类</strong></div>
+                <div class="article-category-list" id="personal-note-category-list"></div>
+              </aside>
+              <section class="article-list-panel" aria-label="笔记列表">
+                <div class="article-list-tools">
+                  <span class="content-count" id="personal-note-count"></span>
+                  <span class="content-filter-select"><select id="personal-note-status-filter" aria-label="筛选笔记状态"><option value="all">全部状态</option><option value="active">使用中</option><option value="draft">草稿</option><option value="archived">已归档</option><option value="favorite">已收藏</option></select><i data-lucide="chevron-down" aria-hidden="true"></i></span>
+                </div>
+                <div class="article-list" id="personal-note-list"></div>
+              </section>
+            </div>
           </section>
 
           <section class="admin-section" data-panel="ai">
@@ -529,13 +547,13 @@
     <script src="../shared/sanitize.js?v=20260831-2"></script>
     <script src="../shared/content-api-models.js?v=20260901-1"></script>
     <script src="../shared/content-api-analytics.js?v=20260901-1"></script>
-    <script src="../shared/content-api.js?v=20260901-1"></script>
+    <script src="../shared/content-api.js?v=20260904-1"></script>
     <script src="https://unpkg.com/lucide@0.468.0/dist/umd/lucide.min.js"></script>
     <script src="./modules/auth-session.js?v=20260831-2"></script>
     <script src="./modules/content.js?v=20260831-2"></script>
     <script src="./modules/leads.js?v=20260831-2"></script>
     <script src="./modules/finance.js?v=20260831-2"></script>
     <script src="./modules/analytics.js?v=20260901-1"></script>
-    <script src="./admin.js?v=20260901-1" defer></script>
+    <script src="./admin.js?v=20260904-1" defer></script>
   </body>
 </html>

@@ -165,6 +165,7 @@
 
   const publicRequest = async (path) => {
     const response = await fetch(config.supabaseUrl.replace(/\/$/, "") + "/rest/v1/" + path, {
+      cache: "no-store",
       headers: {
         apikey: getKey(),
         Authorization: "Bearer " + getKey(),

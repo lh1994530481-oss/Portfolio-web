@@ -258,13 +258,12 @@ async function initManagedContent() {
   };
 
   grid.innerHTML = portfolioProjects.slice(0, 6).map((project, index) => {
-    const href = project.passwordEnabled ? "#" : project.prototypeHref
-      ? homePath(project.prototypeHref)
-      : "./portfolio/project-detail.html?slug=" + encodeURIComponent(project.slug);
+    const detailHref = "./portfolio/project-detail.html?slug=" + encodeURIComponent(project.slug);
+    const href = project.passwordEnabled ? "#" : detailHref;
     const cover = homePath(project.cover);
     const title = escapeAttr(project.title);
     const protectedAttr = project.passwordEnabled
-      ? ' data-protected-project="' + escapeAttr(project.slug) + '" data-protected-project-title="' + title + '" data-protected-success-href="./portfolio/project-detail.html?slug=' + encodeURIComponent(project.slug) + '"'
+      ? ' data-protected-project="' + escapeAttr(project.slug) + '" data-protected-project-title="' + title + '" data-protected-success-href="' + escapeAttr(detailHref) + '"'
       : '';
     const hiddenClass = index === 3 || index === 5 ? " project-card-mobile-hidden" : "";
     return [

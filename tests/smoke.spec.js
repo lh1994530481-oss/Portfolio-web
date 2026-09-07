@@ -93,6 +93,53 @@ test("opening a portfolio project records one deduplicated project view", async 
   expect(tracked.filter((item) => item.eventName === "project_view" && item.contentId === slug)).toHaveLength(1);
 });
 
+test("managed project content remains visible when an external project URL is configured", async ({ page }) => {
+  const project = {
+    id: "managed-project-id",
+    slug: "managed-project",
+    title: "后台同步项目",
+    category: "Web Design",
+    tags: ["Web Design"],
+    description_zh: "后台保存的项目简介",
+    cover_url: "./assets/project-wall/1.webp",
+    prototype_url: "https://example.com/prototype",
+    item_type: "portfolio",
+    gallery: [],
+    content_blocks: [{ type: "paragraph", text: "后台新增的项目正文" }],
+    media_url: "",
+    client_name: "示例客户",
+    project_date: "2026-09-08",
+    password_enabled: false,
+    published: true,
+    sort_order: 0,
+  };
+
+  await page.route("**/rest/v1/projects?*", (route) => route.fulfill({
+    status: 200,
+    contentType: "application/json",
+    body: JSON.stringify([project]),
+  }));
+  await page.route("https://unpkg.com/@splinetool/viewer@1.12.98/build/spline-viewer.js", (route) =>
+    route.fulfill({ status: 200, contentType: "text/javascript", body: "" }),
+  );
+
+  await page.goto("/", { waitUntil: "domcontentloaded" });
+  const homeProject = page.locator('[data-managed-projects] [data-slug="managed-project"]');
+  await expect(homeProject).toBeVisible();
+  await expect(homeProject).toHaveAttribute("href", "./portfolio/project-detail.html?slug=managed-project");
+
+  await page.goto("/portfolio/project-detail.html?slug=managed-project", { waitUntil: "domcontentloaded" });
+  await expect(page.locator(".project-title")).toHaveText("后台同步项目");
+  await expect(page.locator(".project-content-copy")).toHaveText("后台新增的项目正文");
+  await expect(page.locator(".project-external-link")).toHaveAttribute("href", "https://example.com/prototype");
+
+  await page.goto("/portfolio/", { waitUntil: "domcontentloaded" });
+  await page.locator('[data-project-modal="managed-project"]').first().click();
+  await expect(page.locator("#portfolio-modal-gallery")).toContainText("后台新增的项目正文");
+  await expect(page.locator("#portfolio-modal-external")).toHaveAttribute("href", "https://example.com/prototype");
+  await expect(page.locator("#portfolio-modal-external")).toBeVisible();
+});
+
 test("admin select indicators keep a consistent right inset", async ({ page }, testInfo) => {
   test.setTimeout(60_000);
   const pageErrors = [];

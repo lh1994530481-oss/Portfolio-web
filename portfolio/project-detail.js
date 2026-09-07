@@ -87,6 +87,7 @@
     return "";
   }).join("\n");
   const projectFacts = [project.clientName ? "客户：" + project.clientName : "", project.projectDate ? "日期：" + project.projectDate : ""].filter(Boolean);
+  const externalHref = project.passwordEnabled ? "" : safeUrl(project.prototypeHref || "");
 
   root.innerHTML = [
     '<div class="project-shell">',
@@ -103,6 +104,7 @@
       "</div>",
     '      <p class="project-description">' + escapeHtml(project.descriptionZh) + "</p>",
     projectFacts.length ? '      <p class="project-facts">' + projectFacts.map(escapeHtml).join(" / ") + '</p>' : "",
+    externalHref ? '      <a class="project-external-link" href="' + escapeAttr(externalHref) + '" target="_blank" rel="noopener noreferrer">访问项目</a>' : "",
     "    </div>",
     "  </section>",
     '  <section class="project-gallery" id="project-gallery">',

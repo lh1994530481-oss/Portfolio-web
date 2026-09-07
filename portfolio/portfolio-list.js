@@ -6,6 +6,7 @@
   const modalTitle = document.getElementById("portfolio-modal-title");
   const modalDescription = document.getElementById("portfolio-modal-description");
   const modalCategory = document.getElementById("portfolio-modal-category");
+  const modalExternal = document.getElementById("portfolio-modal-external");
   const modalGallery = document.getElementById("portfolio-modal-gallery");
   const pageHeader = document.querySelector(".portfolio-page-header");
   const pageMain = document.querySelector(".portfolio-list-page");
@@ -19,7 +20,7 @@
   const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
   const pointerFine = window.matchMedia("(hover: hover) and (pointer: fine)").matches;
 
-  if (!root || !filterRoot || !modal || !modalDialog || !modalTitle || !modalDescription || !modalCategory || !modalGallery) return;
+  if (!root || !filterRoot || !modal || !modalDialog || !modalTitle || !modalDescription || !modalCategory || !modalExternal || !modalGallery) return;
 
   const preferredFilters = ["APP Design", "Web Design", "Data visualization", "IP Design"];
   const displayLabels = {
@@ -216,6 +217,10 @@
     modalTitle.textContent = title;
     modalDescription.textContent = description;
     modalCategory.textContent = tags.join(" / ") || "项目";
+    const externalHref = project.passwordEnabled ? "" : safeUrl(project.prototypeHref || "");
+    modalExternal.hidden = !externalHref;
+    if (externalHref) modalExternal.href = externalHref;
+    else modalExternal.removeAttribute("href");
 
     modalGallery.innerHTML = renderProjectContent(project, title, coverImage, gallery);
 

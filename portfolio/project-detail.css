@@ -138,6 +138,32 @@ iframe {
 }
 .project-facts { margin: 14px 0 0; color: rgba(255, 255, 255, .46); font-size: 12px; }
 
+.project-external-link {
+  display: inline-flex;
+  min-height: 44px;
+  align-items: center;
+  justify-content: center;
+  margin-top: 28px;
+  padding: 0 22px;
+  border: 1px solid rgba(255, 255, 255, 0.34);
+  border-radius: 999px;
+  background: #fff;
+  color: #000;
+  font-size: 14px;
+  font-weight: 600;
+  transition: transform 0.2s ease, background-color 0.2s ease;
+}
+
+.project-external-link:hover {
+  background: rgba(255, 255, 255, 0.86);
+  transform: translateY(-1px);
+}
+
+.project-external-link:focus-visible {
+  outline: 2px solid #fff;
+  outline-offset: 3px;
+}
+
 .project-gallery {
   width: min(100% - 40px, 1480px);
   margin: 0 auto;

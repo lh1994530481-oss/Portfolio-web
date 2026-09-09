@@ -467,4 +467,5 @@
 
   renderFilters();
   renderProjects();
+  if (window.ContentAPI?.enableProjectAutoRefresh) window.ContentAPI.enableProjectAutoRefresh(projectRecords);
 })();

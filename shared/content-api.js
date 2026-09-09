@@ -4,6 +4,8 @@
   const contentModels = window.PortfolioContentModels;
   if (!contentModels) throw new Error("PortfolioContentModels 未加载");
   const localPrefix = "lin-tong-xin-cms:";
+  const contentChangeStorageKey = localPrefix + "content-change";
+  const contentChangeChannelName = "lin-tong-xin-cms-content";
   let client = null;
 
   const defaultConsultationContent = {
@@ -153,6 +155,59 @@
     return value;
   };
 
+  const notifyContentChange = (type, id) => {
+    const detail = {
+      type,
+      id: id || "",
+      changedAt: new Date().toISOString(),
+      nonce: Date.now() + "-" + Math.random().toString(16).slice(2),
+    };
+    try {
+      window.localStorage.setItem(contentChangeStorageKey, JSON.stringify(detail));
+    } catch (error) {
+      // Cross-tab notification is best effort; the database save already succeeded.
+    }
+    if ("BroadcastChannel" in window) {
+      try {
+        const channel = new BroadcastChannel(contentChangeChannelName);
+        channel.postMessage(detail);
+        channel.close();
+      } catch (error) {
+        // Storage events and focus checks remain available as fallbacks.
+      }
+    }
+    window.dispatchEvent(new CustomEvent("portfolio:content-changed", { detail }));
+    return detail;
+  };
+
+  const subscribeContentChanges = (callback) => {
+    if (typeof callback !== "function") return () => {};
+    const dispatch = (detail) => {
+      if (detail && typeof detail === "object") callback(detail);
+    };
+    const storageHandler = (event) => {
+      if (event.key !== contentChangeStorageKey || !event.newValue) return;
+      try { dispatch(JSON.parse(event.newValue)); } catch (error) { /* Ignore malformed local signals. */ }
+    };
+    const customHandler = (event) => dispatch(event.detail);
+    let channel = null;
+    window.addEventListener("storage", storageHandler);
+    window.addEventListener("portfolio:content-changed", customHandler);
+    if ("BroadcastChannel" in window) {
+      try {
+        channel = new BroadcastChannel(contentChangeChannelName);
+        channel.addEventListener("message", (event) => dispatch(event.data));
+      } catch (error) {
+        channel = null;
+      }
+    }
+    return () => {
+      window.removeEventListener("storage", storageHandler);
+      window.removeEventListener("portfolio:content-changed", customHandler);
+      if (channel) channel.close();
+    };
+  };
+
   const getClient = () => {
     if (!isConfigured()) return null;
     if (client) return client;
@@ -234,6 +289,7 @@
     protectedTargetUrl: row.protected_target_url || "",
     published: row.published !== false,
     sortOrder: Number(row.sort_order || 0),
+    updatedAt: row.updated_at || "",
   });
 
   const projectToRow = (project) => ({
@@ -446,6 +502,47 @@
       if (includeDrafts) throw error;
       return defaults;
     }
+  };
+
+  const getProjectRevision = async () => {
+    if (!isConfigured()) return "";
+    try {
+      const rows = await publicRequest("projects?select=updated_at&published=eq.true&order=updated_at.desc&limit=1");
+      return rows[0]?.updated_at || "";
+    } catch (error) {
+      return "";
+    }
+  };
+
+  const enableProjectAutoRefresh = (projects) => {
+    const initialRevision = (projects || []).map((item) => item.updatedAt || "").filter(Boolean).sort().at(-1) || "";
+    let checking = false;
+    let reloading = false;
+    const reload = () => {
+      if (reloading) return;
+      reloading = true;
+      window.location.reload();
+    };
+    const unsubscribe = subscribeContentChanges((detail) => {
+      if (detail.type === "projects") reload();
+    });
+    const checkRevision = async () => {
+      if (document.hidden || checking || reloading) return;
+      checking = true;
+      try {
+        const currentRevision = await getProjectRevision();
+        if (currentRevision && currentRevision !== initialRevision) reload();
+      } finally {
+        checking = false;
+      }
+    };
+    window.addEventListener("focus", checkRevision);
+    document.addEventListener("visibilitychange", checkRevision);
+    return () => {
+      unsubscribe();
+      window.removeEventListener("focus", checkRevision);
+      document.removeEventListener("visibilitychange", checkRevision);
+    };
   };
 
   const listArticles = async (fallback, includeDrafts) => {
@@ -1180,13 +1277,41 @@
       p_access_password: project.accessPassword || "",
     });
     if (error) throw error;
-    return projectFromRow(data);
+    const { data: confirmedRow, error: confirmationError } = await getClient()
+      .from("projects")
+      .select("*")
+      .eq("slug", project.slug)
+      .single();
+    if (confirmationError) throw new Error("项目已提交，但数据库同步确认失败：" + confirmationError.message);
+    const confirmedProject = projectFromRow(confirmedRow || data);
+    const expectedRow = projectToRow(project);
+    const confirmedData = projectToRow(confirmedProject);
+    const confirmationFields = [
+      "title", "category", "tags", "description_zh", "cover_url", "prototype_url",
+      "item_type", "gallery", "content_blocks", "media_url", "client_name", "project_date",
+      "password_enabled", "published", "sort_order",
+    ];
+    const normalizeComparable = (value) => {
+      if (Array.isArray(value)) return value.map(normalizeComparable);
+      if (!value || typeof value !== "object") return value;
+      return Object.keys(value).sort().reduce((result, key) => {
+        result[key] = normalizeComparable(value[key]);
+        return result;
+      }, {});
+    };
+    const mismatchedField = confirmationFields.find((field) =>
+      JSON.stringify(normalizeComparable(expectedRow[field])) !== JSON.stringify(normalizeComparable(confirmedData[field])),
+    );
+    if (mismatchedField) throw new Error("项目保存后校验不一致，请重新登录后再试（字段：" + mismatchedField + "）");
+    notifyContentChange("projects", project.slug);
+    return confirmedProject;
   };
 
   const deleteProject = async (slug, fallback) => {
     if (!isConfigured()) return writeLocal("projects", (await listProjects(fallback, true)).filter((item) => item.slug !== slug));
     const { error } = await getClient().from("projects").delete().eq("slug", slug);
     if (error) throw error;
+    notifyContentChange("projects", slug);
   };
 
   const saveArticle = async (article, fallback) => {
@@ -1318,6 +1443,9 @@
     signIn,
     signOut,
     listProjects,
+    getProjectRevision,
+    enableProjectAutoRefresh,
+    notifyContentChange,
     listArticles,
     listNavigation,
     getSettings,

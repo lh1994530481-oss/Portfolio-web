@@ -116,4 +116,5 @@
   document.dispatchEvent(new CustomEvent("portfolio:project-view", {
     detail: { slug: project.slug, title: project.title },
   }));
+  if (window.ContentAPI?.enableProjectAutoRefresh) window.ContentAPI.enableProjectAutoRefresh(projects);
 })();

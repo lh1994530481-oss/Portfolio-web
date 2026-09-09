@@ -140,7 +140,7 @@ function initProjectWall() {
 }
 
 async function initManagedContent() {
-  if (!window.ContentAPI) return;
+  if (!window.ContentAPI) return [];
 
   const fallbackProjects = Array.isArray(window.PROJECT_DATA) ? window.PROJECT_DATA : [];
   const [settings, projects, navigation] = await Promise.all([
@@ -243,7 +243,7 @@ async function initManagedContent() {
 
   const grid = document.querySelector("[data-managed-projects]");
   const portfolioProjects = projects.filter((project) => project.itemType !== "demo" && project.slug !== "homi-smart-home-prototype");
-  if (!grid || !portfolioProjects.length) return;
+  if (!grid || !portfolioProjects.length) return projects;
 
   const escapeAttr = (value) =>
     String(value || "")
@@ -273,6 +273,7 @@ async function initManagedContent() {
       "</a>",
     ].join("\n");
   }).join("\n");
+  return projects;
 }
 
 function initWechatDialog() {
@@ -553,7 +554,8 @@ function initScrollScene() {
 window.addEventListener("DOMContentLoaded", async () => {
   initHeader();
   initReveal();
-  await initManagedContent();
+  const managedProjects = await initManagedContent();
+  if (window.ContentAPI?.enableProjectAutoRefresh) window.ContentAPI.enableProjectAutoRefresh(managedProjects);
   initMagnetic();
   initProjectWall();
   initWechatDialog();

@@ -140,6 +140,46 @@ test("managed project content remains visible when an external project URL is co
   await expect(page.locator("#portfolio-modal-external")).toBeVisible();
 });
 
+test("an open portfolio page refreshes after the admin announces a project save", async ({ page }) => {
+  await page.route("**/rest/v1/projects?*", (route) => route.fulfill({
+    status: 200,
+    contentType: "application/json",
+    body: JSON.stringify([{
+      id: "refresh-project-id",
+      slug: "refresh-project",
+      title: "自动同步项目",
+      category: "Web Design",
+      tags: ["Web Design"],
+      description_zh: "用于验证后台保存通知。",
+      cover_url: "./assets/project-wall/1.webp",
+      item_type: "portfolio",
+      content_blocks: [],
+      gallery: [],
+      published: true,
+      sort_order: 0,
+      updated_at: "2026-09-09T00:00:00Z",
+    }]),
+  }));
+  await page.route("**/rest/v1/site_settings?*", (route) => route.fulfill({ status: 200, contentType: "application/json", body: "[]" }));
+  await page.route("**/rest/v1/navigation_items?*", (route) => route.fulfill({ status: 200, contentType: "application/json", body: "[]" }));
+  await page.route("https://unpkg.com/@splinetool/viewer@1.12.98/build/spline-viewer.js", (route) =>
+    route.fulfill({ status: 200, contentType: "text/javascript", body: "" }),
+  );
+  let navigationCount = 0;
+  page.on("framenavigated", (frame) => {
+    if (frame === page.mainFrame() && new URL(frame.url()).pathname === "/") navigationCount += 1;
+  });
+
+  await page.goto("/", { waitUntil: "domcontentloaded" });
+  await expect(page.locator("[data-managed-projects] [data-slug]").first()).toBeVisible();
+  const before = navigationCount;
+  await page.evaluate(() => {
+    window.setTimeout(() => window.ContentAPI.notifyContentChange("projects", "test-project"), 0);
+  });
+  await expect.poll(() => navigationCount).toBeGreaterThan(before);
+  await expect(page.locator("[data-managed-projects] [data-slug]").first()).toBeVisible();
+});
+
 test("admin select indicators keep a consistent right inset", async ({ page }, testInfo) => {
   test.setTimeout(60_000);
   const pageErrors = [];

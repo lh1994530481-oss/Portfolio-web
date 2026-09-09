@@ -1716,7 +1716,13 @@
     }
     closeEditor();
     await loadData();
-    showToast(type === "inquiry" ? "咨询状态已更新" : "内容已保存");
+    if (type === "project" || type === "demo") {
+      const online = api.getMode() === "supabase";
+      setSync(online ? "已同步网站" : "仅本机保存", online ? "" : "error");
+      showToast(online ? "项目已写入数据库并同步到个人网站" : "当前为本地预览，项目未同步到个人网站", !online);
+    } else {
+      showToast(type === "inquiry" ? "咨询状态已更新" : "内容已保存");
+    }
   };
 
   const handleListAction = async (event) => {

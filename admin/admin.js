@@ -1248,23 +1248,39 @@
 
   const projectDocumentHtmlToBlocks = (html) => {
     const documentValue = new DOMParser().parseFromString('<div id="root">' + html + '</div>', "text/html");
-    return Array.from(documentValue.getElementById("root").childNodes).map((node) => {
+    const blocks = [];
+    const appendNode = (node) => {
       if (node.nodeType === Node.TEXT_NODE) {
         const text = node.textContent.trim();
-        return text ? { type: "paragraph", text } : null;
+        if (text) blocks.push({ type: "paragraph", text });
+        return;
       }
-      if (node.nodeType !== Node.ELEMENT_NODE) return null;
-      if (/^H[1-6]$/.test(node.tagName)) return { type: "heading", text: node.textContent.trim() };
-      const image = node.tagName === "IMG" ? node : node.querySelector("img");
+      if (node.nodeType !== Node.ELEMENT_NODE) return;
+      if (/^H[1-6]$/.test(node.tagName)) {
+        const text = node.textContent.trim();
+        if (text) blocks.push({ type: "heading", text });
+        return;
+      }
+      const image = node.tagName === "IMG" ? node : node.querySelector(":scope > img");
       if (image) {
         const caption = node.querySelector("figcaption")?.textContent.trim() || image.getAttribute("alt") || "";
-        return { type: "image", src: image.getAttribute("src") || "", alt: caption, caption };
+        blocks.push({ type: "image", src: image.getAttribute("src") || "", alt: caption, caption });
       }
-      const video = node.tagName === "VIDEO" ? node : node.querySelector("video");
-      if (video) return { type: "video", src: video.getAttribute("src") || "", caption: node.querySelector("figcaption")?.textContent.trim() || "" };
+      const video = node.tagName === "VIDEO" ? node : node.querySelector(":scope > video");
+      if (video) blocks.push({ type: "video", src: video.getAttribute("src") || "", caption: node.querySelector("figcaption")?.textContent.trim() || "" });
+      const nestedMedia = node.querySelector("figure, [data-project-document-media]");
+      if (nestedMedia) {
+        Array.from(node.childNodes).forEach((child) => {
+          if (child !== image && child !== video && child.nodeName !== "FIGCAPTION" && child.nodeName !== "BUTTON") appendNode(child);
+        });
+        return;
+      }
+      if (image || video) return;
       const text = node.textContent.trim();
-      return text ? { type: "paragraph", text, html: sanitizeInlineHtml(node) } : null;
-    }).filter((item) => item && (item.src || item.text));
+      if (text) blocks.push({ type: "paragraph", text, html: sanitizeInlineHtml(node) });
+    };
+    Array.from(documentValue.getElementById("root").childNodes).forEach(appendNode);
+    return blocks.filter((item) => item && (item.src || item.text));
   };
 
   let projectDocumentRange = null;
@@ -1327,12 +1343,35 @@
 
   const insertProjectDocumentBlock = (block) => {
     const editor = document.getElementById("project-document-editor");
-    if (!editor || !block?.src) return;
-    restoreProjectDocumentRange();
-    document.execCommand("insertHTML", false, projectDocumentBlockToHtml(block) + '<p><br></p>');
-    rememberProjectDocumentRange();
-    syncProjectDocumentSources();
+    if (!editor || !block?.src) return false;
+    const template = document.createElement("template");
+    template.innerHTML = projectDocumentBlockToHtml(block);
+    const mediaNode = template.content.firstElementChild;
+    if (!mediaNode) return false;
+    const spacer = document.createElement("p");
+    spacer.appendChild(document.createElement("br"));
+    let referenceNode = null;
+    if (projectDocumentRange && editor.contains(projectDocumentRange.commonAncestorContainer)) {
+      referenceNode = projectDocumentRange.commonAncestorContainer.nodeType === Node.ELEMENT_NODE
+        ? projectDocumentRange.commonAncestorContainer
+        : projectDocumentRange.commonAncestorContainer.parentElement;
+      while (referenceNode && referenceNode.parentNode !== editor) referenceNode = referenceNode.parentNode;
+    }
+    const insertionPoint = referenceNode?.parentNode === editor ? referenceNode.nextSibling : null;
+    editor.insertBefore(mediaNode, insertionPoint);
+    editor.insertBefore(spacer, mediaNode.nextSibling);
+    const selection = window.getSelection();
+    const range = document.createRange();
+    range.selectNodeContents(spacer);
+    range.collapse(false);
+    projectDocumentRange = range.cloneRange();
+    if (selection) {
+      selection.removeAllRanges();
+      selection.addRange(range);
+    }
+    const blocks = syncProjectDocumentSources();
     refreshIcons();
+    return blocks.some((item) => item.type === block.type && item.src === block.src);
   };
 
   const uploadProjectDocumentFiles = async (files) => {
@@ -1341,7 +1380,8 @@
     setSync("上传媒体", "busy");
     for (const file of mediaFiles) {
       const url = await api.uploadMedia(file);
-      insertProjectDocumentBlock({ type: /^video\//.test(file.type) ? "video" : "image", src: url, caption: "" });
+      const inserted = insertProjectDocumentBlock({ type: /^video\//.test(file.type) ? "video" : "image", src: url, caption: "" });
+      if (!inserted) throw new Error("文件已上传，但未能插入项目正文，请重新选择文件");
     }
     setSync("媒体已插入", "");
   };

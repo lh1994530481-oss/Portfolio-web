@@ -284,4 +284,27 @@ test("project editor uses direct image and video file pickers", async ({ page })
     return values.protectedTargetUrl;
   });
   expect(normalized).toBe("https://example.com/protected");
+
+  await page.locator("[data-project-private-toggle]").uncheck();
+  await page.locator('input[name="title"]').fill("媒体序列化回归");
+  await page.locator('input[name="slug"]').fill("media-serialization-regression");
+  const png = Buffer.from("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=", "base64");
+  await imageInput.setInputFiles({ name: "first.png", mimeType: "image/png", buffer: png });
+  await expect(page.locator("#project-document-editor > [data-project-document-media]")).toHaveCount(1);
+  await page.locator("#project-document-editor figcaption").first().evaluate((caption) => {
+    const range = document.createRange();
+    range.selectNodeContents(caption);
+    range.collapse(false);
+    const selection = window.getSelection();
+    selection.removeAllRanges();
+    selection.addRange(range);
+    caption.dispatchEvent(new InputEvent("input", { bubbles: true, inputType: "insertText" }));
+  });
+  await imageInput.setInputFiles({ name: "second.png", mimeType: "image/png", buffer: png });
+  await expect(page.locator("#project-document-editor > [data-project-document-media]")).toHaveCount(2);
+
+  await page.getByRole("button", { name: "创建项目" }).click();
+  await expect(page.locator("#editor-dialog")).toBeHidden();
+  await page.locator('[data-edit="project"][data-slug="media-serialization-regression"]').click();
+  await expect(page.locator("#project-document-editor > [data-project-document-media]")).toHaveCount(2);
 });

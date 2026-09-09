@@ -555,7 +555,7 @@ window.addEventListener("DOMContentLoaded", async () => {
   initHeader();
   initReveal();
   const managedProjects = await initManagedContent();
-  if (window.ContentAPI?.enableProjectAutoRefresh) window.ContentAPI.enableProjectAutoRefresh(managedProjects);
+  if (window.ContentAPI?.enableProjectAutoRefresh) window.ContentAPI.enableProjectAutoRefresh(managedProjects, ["projects", "navigation"]);
   initMagnetic();
   initProjectWall();
   initWechatDialog();

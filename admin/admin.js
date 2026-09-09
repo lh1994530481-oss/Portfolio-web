@@ -1149,9 +1149,8 @@
       '        <button type="button" data-project-document-link title="插入链接"><i data-lucide="link-2" aria-hidden="true"></i></button>',
       '      </div>',
       '      <div class="project-document-insert-group">',
-      '        <button type="button" data-project-document-image-url><i data-lucide="image-plus" aria-hidden="true"></i><span>图片</span></button>',
-      '        <button type="button" data-project-document-video-url><i data-lucide="video" aria-hidden="true"></i><span>视频</span></button>',
-      '        <label><i data-lucide="upload" aria-hidden="true"></i><span>上传媒体</span><input type="file" accept="image/jpeg,image/png,image/webp,image/gif,video/mp4,video/webm" multiple data-project-document-upload /></label>',
+      '        <label title="选择图片"><i data-lucide="image-plus" aria-hidden="true"></i><span>图片</span><input type="file" accept="image/jpeg,image/png,image/webp,image/gif" multiple data-project-document-file-upload data-project-document-image-upload /></label>',
+      '        <label title="选择视频"><i data-lucide="video" aria-hidden="true"></i><span>视频</span><input type="file" accept="video/mp4,video/webm" data-project-document-file-upload data-project-document-video-upload /></label>',
       '      </div>',
       '    </div>',
       '    <textarea name="gallery" class="project-gallery-source" hidden>' + escapeHtml(galleryImages.join("\n")) + '</textarea>',
@@ -1174,9 +1173,12 @@
       '      <label class="project-compact-field"><span>' + (isDemo ? "原型体验地址" : "项目链接") + '</span><input name="prototypeHref" value="' + escapeHtml(item.prototypeHref || "") + '" placeholder="https:// 或站内路径" /></label>',
       '      <label class="project-compact-field"><span>' + (isDemo ? "演示日期" : "项目日期") + '</span><input name="projectDate" type="date" value="' + escapeHtml(item.projectDate || "") + '" /></label>',
       '      <div class="project-field-split"><label class="project-compact-field"><span>Slug</span><input name="slug" required pattern="[a-z0-9\\-]+" ' + (editing ? "readonly" : "") + ' value="' + escapeHtml(item.slug || "") + '" placeholder="' + (isDemo ? "demo-slug" : "project-slug") + '" /></label><label class="project-compact-field"><span>' + (isDemo ? "演示排序" : "项目排序") + '</span><input name="sortOrder" type="number" min="0" value="' + Number(item.sortOrder || 0) + '" /></label></div>',
-      '      <label class="project-switch-field"><span><strong>是否私密</strong><small>开启后需输入访问密码</small></span><input name="passwordEnabled" type="checkbox"' + (item.passwordEnabled ? " checked" : "") + ' /></label>',
-      '      <label class="project-compact-field"><span>访问密码</span><input name="accessPassword" type="password" placeholder="' + (item.passwordEnabled ? "留空则保留当前密码" : "开启私密后填写") + '" /></label>',
-      '      <label class="project-compact-field"><span>受保护跳转地址</span><input name="protectedTargetUrl" value="' + escapeHtml(item.protectedTargetUrl || "") + '" placeholder="验证通过后打开的地址" /></label>',
+      '      <label class="project-switch-field"><span><strong>是否私密</strong><small>关闭时不会校验密码与跳转地址</small></span><input name="passwordEnabled" type="checkbox" data-project-private-toggle' + (item.passwordEnabled ? " checked" : "") + ' /></label>',
+      '      <div class="project-access-fields" data-project-access-fields' + (item.passwordEnabled ? "" : " hidden") + '>',
+      '        <div class="project-sidebar-heading"><span>私密访问配置</span><small>仅开启后生效</small></div>',
+      '        <label class="project-compact-field"><span>访问密码</span><input name="accessPassword" type="password" placeholder="' + (item.passwordEnabled ? "留空则保留当前密码" : "首次开启时至少 6 个字节") + '" /></label>',
+      '        <label class="project-compact-field"><span>受保护跳转地址</span><input name="protectedTargetUrl" value="' + escapeHtml(item.protectedTargetUrl || "") + '" placeholder="留空时使用上方项目链接" /></label>',
+      '      </div>',
       '      <label class="project-switch-field"><span><strong>公开发布</strong><small>关闭后保存为草稿</small></span><input name="published" type="checkbox"' + (item.published === false ? "" : " checked") + ' /></label>',
       '    </div>',
       '  </aside>',
@@ -1720,6 +1722,12 @@
       const online = api.getMode() === "supabase";
       setSync(online ? "已同步网站" : "仅本机保存", online ? "" : "error");
       showToast(online ? "项目已写入数据库并同步到个人网站" : "当前为本地预览，项目未同步到个人网站", !online);
+    } else if (type === "navigation") {
+      const online = api.getMode() === "supabase";
+      setSync(online ? "已同步网站" : "仅本机保存", online ? "" : "error");
+      showToast(online
+        ? (values.published ? "导航已显示并同步到个人网站" : "导航已隐藏并同步到个人网站")
+        : "当前为本地预览，导航未同步到个人网站", !online);
     } else {
       showToast(type === "inquiry" ? "咨询状态已更新" : "内容已保存");
     }
@@ -2260,9 +2268,7 @@
     const projectCommand = event.target.closest("[data-project-document-command]");
     const projectFormat = event.target.closest("[data-project-document-format]");
     const projectLink = event.target.closest("[data-project-document-link]");
-    const projectImage = event.target.closest("[data-project-document-image-url]");
-    const projectVideo = event.target.closest("[data-project-document-video-url]");
-    if (projectEditor && (projectCommand || projectFormat || projectLink || projectImage || projectVideo)) {
+    if (projectEditor && (projectCommand || projectFormat || projectLink)) {
       event.preventDefault();
       restoreProjectDocumentRange();
       if (projectCommand) document.execCommand(projectCommand.dataset.projectDocumentCommand, false);
@@ -2270,14 +2276,6 @@
       if (projectLink) {
         const url = window.prompt("输入链接地址");
         if (url) document.execCommand("createLink", false, url);
-      }
-      if (projectImage) {
-        const url = window.prompt("输入图片地址");
-        if (url) insertProjectDocumentBlock({ type: "image", src: url.trim(), caption: "" });
-      }
-      if (projectVideo) {
-        const url = window.prompt("输入视频地址（MP4 或 WebM）");
-        if (url) insertProjectDocumentBlock({ type: "video", src: url.trim(), caption: "" });
       }
       rememberProjectDocumentRange();
       syncProjectDocumentSources();
@@ -2400,6 +2398,12 @@
   });
 
   editorBody.addEventListener("change", async (event) => {
+    const privateToggle = event.target.closest("[data-project-private-toggle]");
+    if (privateToggle) {
+      const accessFields = editorBody.querySelector("[data-project-access-fields]");
+      if (accessFields) accessFields.hidden = !privateToggle.checked;
+      return;
+    }
     const articleFormat = event.target.closest("[data-rich-format-select]");
     const articleFontSize = event.target.closest("[data-rich-font-size]");
     if (articleFormat || articleFontSize) {
@@ -2425,7 +2429,7 @@
       }
       return;
     }
-    const documentUpload = event.target.closest("[data-project-document-upload]");
+    const documentUpload = event.target.closest("[data-project-document-file-upload]");
     if (documentUpload && documentUpload.files && documentUpload.files.length) {
       try {
         await uploadProjectDocumentFiles(documentUpload.files);

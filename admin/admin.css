@@ -1122,6 +1122,7 @@ body.project-editor-open { overflow: hidden; }
 
 .project-editor-layout {
   display: grid;
+  min-height: calc(100vh - 158px);
   grid-template-columns: minmax(0, 1fr) minmax(330px, 410px);
   align-items: start;
   gap: 12px;
@@ -1138,7 +1139,7 @@ body.project-editor-open { overflow: hidden; }
   box-shadow: 0 10px 30px rgba(63, 90, 97, .045);
 }
 
-.project-editor-main { overflow: hidden; }
+.project-editor-main { min-height: calc(100vh - 158px); overflow: hidden; }
 .project-editor-intro { padding: 26px clamp(24px, 4vw, 62px) 18px; }
 
 .project-title-field,
@@ -1611,6 +1612,18 @@ body.project-editor-open { overflow: hidden; }
 .project-switch-field input:checked { background: #111517; }
 .project-switch-field input:checked::after { transform: translateX(16px); }
 .project-switch-field input:focus-visible { outline: 2px solid #35b1d2; outline-offset: 2px; }
+
+.project-access-fields {
+  display: grid;
+  gap: 9px;
+  padding: 12px;
+  border: 1px solid #dce7e9;
+  border-radius: 7px;
+  background: #f8fbfc;
+}
+
+.project-access-fields[hidden] { display: none; }
+.project-access-fields .project-sidebar-heading { margin-bottom: 0; }
 
 .inquiry-detail-layout {
   display: grid;

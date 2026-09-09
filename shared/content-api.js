@@ -514,8 +514,9 @@
     }
   };
 
-  const enableProjectAutoRefresh = (projects) => {
+  const enableProjectAutoRefresh = (projects, contentTypes) => {
     const initialRevision = (projects || []).map((item) => item.updatedAt || "").filter(Boolean).sort().at(-1) || "";
+    const refreshTypes = new Set(Array.isArray(contentTypes) && contentTypes.length ? contentTypes : ["projects"]);
     let checking = false;
     let reloading = false;
     const reload = () => {
@@ -524,7 +525,7 @@
       window.location.reload();
     };
     const unsubscribe = subscribeContentChanges((detail) => {
-      if (detail.type === "projects") reload();
+      if (refreshTypes.has(detail.type)) reload();
     });
     const checkRevision = async () => {
       if (document.hidden || checking || reloading) return;
@@ -571,7 +572,10 @@
       openNewTab: item.openNewTab === true,
       sortOrder: item.sortOrder ?? index,
     }));
-    if (!isConfigured()) return ensureRequiredNavigation(sortContent(readLocal("navigation", defaults)).filter((item) => includeDrafts || item.published !== false));
+    if (!isConfigured()) {
+      const localNavigation = ensureRequiredNavigation(sortContent(readLocal("navigation", defaults)));
+      return localNavigation.filter((item) => includeDrafts || item.published !== false);
+    }
 
     try {
       if (includeDrafts) {
@@ -580,7 +584,7 @@
         return ensureRequiredNavigation(data.map(navigationFromRow));
       }
       const rows = await publicRequest("navigation_items?select=*&published=eq.true&order=sort_order.asc");
-      return ensureRequiredNavigation(rows.map(navigationFromRow));
+      return sortContent(rows.map(navigationFromRow));
     } catch (error) {
       if (includeDrafts) throw error;
       return ensureRequiredNavigation(defaults.filter((item) => includeDrafts || item.published !== false));
@@ -1339,7 +1343,9 @@
       const index = items.findIndex((entry) => entry.id === item.id);
       if (index >= 0) items[index] = { ...items[index], ...item };
       else items.push({ ...item, id: "local-" + Date.now() });
-      return writeLocal("navigation", items);
+      const savedItems = writeLocal("navigation", items);
+      notifyContentChange("navigation", item.id || "local");
+      return savedItems;
     }
     const row = navigationToRow(item);
     const request = item.id
@@ -1347,13 +1353,31 @@
       : getClient().from("navigation_items").insert(row).select().single();
     const { data, error } = await request;
     if (error) throw error;
-    return navigationFromRow(data);
+    const saved = navigationFromRow(data);
+    const { data: confirmedRow, error: confirmationError } = await getClient()
+      .from("navigation_items")
+      .select("*")
+      .eq("id", saved.id)
+      .single();
+    if (confirmationError) throw new Error("导航已提交，但数据库同步确认失败：" + confirmationError.message);
+    const confirmed = navigationFromRow(confirmedRow);
+    const expected = navigationFromRow({ ...row, id: saved.id });
+    const mismatchedField = ["label", "href", "openNewTab", "published", "sortOrder"]
+      .find((field) => confirmed[field] !== expected[field]);
+    if (mismatchedField) throw new Error("导航保存后校验不一致，请重新登录后再试（字段：" + mismatchedField + "）");
+    notifyContentChange("navigation", confirmed.id);
+    return confirmed;
   };
 
   const deleteNavigationItem = async (id, fallback) => {
-    if (!isConfigured()) return writeLocal("navigation", (await listNavigation(fallback, true)).filter((item) => item.id !== id));
+    if (!isConfigured()) {
+      const items = writeLocal("navigation", (await listNavigation(fallback, true)).filter((item) => item.id !== id));
+      notifyContentChange("navigation", id);
+      return items;
+    }
     const { error } = await getClient().from("navigation_items").delete().eq("id", id);
     if (error) throw error;
+    notifyContentChange("navigation", id);
   };
 
   const saveSettings = async (settings) => {

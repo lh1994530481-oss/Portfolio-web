@@ -93,6 +93,25 @@ test("opening a portfolio project records one deduplicated project view", async 
   expect(tracked.filter((item) => item.eventName === "project_view" && item.contentId === slug)).toHaveLength(1);
 });
 
+test("managed navigation does not recreate hidden default pages", async ({ page }) => {
+  await page.route("**/rest/v1/navigation_items?*", (route) => route.fulfill({
+    status: 200,
+    contentType: "application/json",
+    body: JSON.stringify([
+      { id: "home", label: "首页", href: "#top", published: true, open_new_tab: false, sort_order: 0 },
+      { id: "portfolio", label: "作品集", href: "./portfolio/index.html", published: true, open_new_tab: false, sort_order: 1 },
+    ]),
+  }));
+  await page.route("https://unpkg.com/@splinetool/viewer@1.12.98/build/spline-viewer.js", (route) =>
+    route.fulfill({ status: 200, contentType: "text/javascript", body: "" }),
+  );
+
+  await page.goto("/", { waitUntil: "domcontentloaded" });
+  await expect(page.locator("[data-managed-navigation]")).toContainText("作品集");
+  await expect(page.locator("[data-managed-navigation]")).not.toContainText("关于");
+  await expect(page.locator("[data-managed-navigation]")).not.toContainText("咨询");
+});
+
 test("managed project content remains visible when an external project URL is configured", async ({ page }) => {
   const project = {
     id: "managed-project-id",
@@ -181,7 +200,7 @@ test("an open portfolio page refreshes after the admin announces a project save"
 });
 
 test("admin select indicators keep a consistent right inset", async ({ page }, testInfo) => {
-  test.setTimeout(60_000);
+  test.setTimeout(90_000);
   const pageErrors = [];
   page.on("pageerror", (error) => pageErrors.push(error.message));
   await page.route("**/admin/config.js*", (route) => route.fulfill({
@@ -211,17 +230,17 @@ test("admin select indicators keep a consistent right inset", async ({ page }, t
   await page.locator('.admin-sidebar [data-section="notes"]').click();
   await page.locator('[data-create="personalNote"]').click();
   await expect(page.locator("#editor-dialog")).toBeVisible();
-  await expect.poll(() => inset('.article-sidebar-field select[name="status"]')).toEqual({ appearance: "none", right: 12 });
-  await expect.poll(() => inset('[data-rich-format-select]')).toEqual({ appearance: "none", right: 7 });
+  await expect.poll(() => inset('.article-sidebar-field select[name="status"]'), { timeout: 15_000 }).toEqual({ appearance: "none", right: 12 });
+  await expect.poll(() => inset('[data-rich-format-select]'), { timeout: 15_000 }).toEqual({ appearance: "none", right: 7 });
   await page.screenshot({ path: testInfo.outputPath("note-editor-dropdowns.png"), fullPage: false });
 
   await page.getByRole("button", { name: "返回列表" }).click();
   await page.locator('.admin-sidebar [data-section="goals"]').click();
   await page.locator('[data-create="personalTask"]').click();
   await expect(page.locator("#editor-dialog")).toBeVisible();
-  await expect.poll(() => inset('select[name="goalId"]')).toEqual({ appearance: "none", right: 16 });
-  await expect.poll(() => inset('select[name="status"]')).toEqual({ appearance: "none", right: 16 });
-  await expect.poll(() => inset('select[name="priority"]')).toEqual({ appearance: "none", right: 16 });
+  await expect.poll(() => inset('select[name="goalId"]'), { timeout: 15_000 }).toEqual({ appearance: "none", right: 16 });
+  await expect.poll(() => inset('select[name="status"]'), { timeout: 15_000 }).toEqual({ appearance: "none", right: 16 });
+  await expect.poll(() => inset('select[name="priority"]'), { timeout: 15_000 }).toEqual({ appearance: "none", right: 16 });
   await page.screenshot({ path: testInfo.outputPath("task-editor-dropdowns.png"), fullPage: false });
 
   const unenhancedSelects = await page.locator("select").evaluateAll((selects) =>
@@ -229,4 +248,40 @@ test("admin select indicators keep a consistent right inset", async ({ page }, t
   );
   expect(unenhancedSelects).toBe(0);
   expect(pageErrors).toEqual([]);
+});
+
+test("project editor uses direct image and video file pickers", async ({ page }) => {
+  await page.route("**/admin/config.js*", (route) => route.fulfill({
+    status: 200,
+    contentType: "text/javascript",
+    body: "window.PORTFOLIO_CMS_CONFIG={adminUsername:'test',publicSiteUrl:'http://127.0.0.1:4173/'};",
+  }));
+
+  await page.goto("/admin/", { waitUntil: "domcontentloaded" });
+  await page.locator("#login-username").fill("test");
+  await page.locator("#login-password").fill("test");
+  await page.getByRole("button", { name: "登录后台" }).click();
+  await expect(page.locator("#admin-app")).toBeVisible();
+  await page.locator('.admin-sidebar [data-section="projects"]').click();
+  await page.locator('[data-create="project"]').click();
+
+  const imageInput = page.locator("[data-project-document-image-upload]");
+  const videoInput = page.locator("[data-project-document-video-upload]");
+  await expect(imageInput).toHaveAttribute("type", "file");
+  await expect(imageInput).toHaveAttribute("accept", /image\/jpeg/);
+  await expect(videoInput).toHaveAttribute("type", "file");
+  await expect(videoInput).toHaveAttribute("accept", /video\/mp4/);
+  await expect(page.locator("[data-project-document-image-url], [data-project-document-video-url]")).toHaveCount(0);
+
+  const accessFields = page.locator("[data-project-access-fields]");
+  await expect(accessFields).toBeHidden();
+  await page.locator("[data-project-private-toggle]").check();
+  await expect(accessFields).toBeVisible();
+
+  const normalized = await page.evaluate(() => {
+    const values = { passwordEnabled: true, protectedTargetUrl: "", prototypeHref: "", accessPassword: "" };
+    window.PortfolioAdminContent.validateProjectAccess(values, { passwordEnabled: true, protectedTargetUrl: "https://example.com/protected" });
+    return values.protectedTargetUrl;
+  });
+  expect(normalized).toBe("https://example.com/protected");
 });

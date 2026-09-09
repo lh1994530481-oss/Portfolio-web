@@ -5,13 +5,14 @@
     .filter(Boolean);
 
   const validateProjectAccess = (values, existingProject) => {
-    const protectedTarget = String(values.protectedTargetUrl || values.prototypeHref || "").trim();
+    const protectedTarget = String(values.protectedTargetUrl || values.prototypeHref || existingProject?.protectedTargetUrl || "").trim();
     const accessPassword = String(values.accessPassword || "");
     const accessPasswordBytes = accessPassword ? new TextEncoder().encode(accessPassword).length : 0;
-    if (values.passwordEnabled && !protectedTarget) throw new Error("私密项目必须填写受保护跳转地址");
+    if (values.passwordEnabled && !protectedTarget) throw new Error("已开启“是否私密”，请填写项目链接或受保护跳转地址；如不需要密码，请关闭私密开关");
     if (values.passwordEnabled && !existingProject?.passwordEnabled && !accessPassword) throw new Error("首次开启私密项目时必须填写访问密码");
     if (accessPassword && accessPasswordBytes < 6) throw new Error("访问密码至少需要 6 个字节");
     if (accessPasswordBytes > 72) throw new Error("访问密码不能超过 72 个字节");
+    values.protectedTargetUrl = protectedTarget;
     return { protectedTarget, accessPasswordBytes };
   };
 

@@ -208,8 +208,8 @@ test("admin select indicators keep a consistent right inset", async ({ page }, t
     contentType: "text/javascript",
     body: "window.PORTFOLIO_CMS_CONFIG={adminUsername:'test',publicSiteUrl:'http://127.0.0.1:4173/'};",
   }));
-
   await page.goto("/admin/", { waitUntil: "domcontentloaded" });
+  await page.waitForFunction(() => Boolean(window.ContentAPI && window.PortfolioAdminAuth && window.PortfolioAdminContent));
   await page.locator("#login-username").fill("test");
   await page.locator("#login-password").fill("test");
   await page.getByRole("button", { name: "登录后台" }).click();
@@ -250,19 +250,25 @@ test("admin select indicators keep a consistent right inset", async ({ page }, t
   expect(pageErrors).toEqual([]);
 });
 
-test("project editor uses direct image and video file pickers", async ({ page }) => {
+test("project editor uses direct image and video file pickers", async ({ page }, testInfo) => {
+  test.setTimeout(90_000);
+  await page.setViewportSize({ width: 1920, height: 905 });
   await page.route("**/admin/config.js*", (route) => route.fulfill({
     status: 200,
     contentType: "text/javascript",
     body: "window.PORTFOLIO_CMS_CONFIG={adminUsername:'test',publicSiteUrl:'http://127.0.0.1:4173/'};",
   }));
+  await page.route("https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.57.4", (route) => route.fulfill({ status: 200, contentType: "text/javascript", body: "window.supabase={};" }));
+  await page.route("https://unpkg.com/lucide@0.468.0/dist/umd/lucide.min.js", (route) => route.fulfill({ status: 200, contentType: "text/javascript", body: "window.lucide={createIcons(){}};" }));
 
   await page.goto("/admin/", { waitUntil: "domcontentloaded" });
+  await page.waitForFunction(() => Boolean(window.ContentAPI && window.PortfolioAdminAuth && window.PortfolioAdminContent));
   await page.locator("#login-username").fill("test");
   await page.locator("#login-password").fill("test");
   await page.getByRole("button", { name: "登录后台" }).click();
   await expect(page.locator("#admin-app")).toBeVisible();
   await page.locator('.admin-sidebar [data-section="projects"]').click();
+  await page.locator("#sidebar-collapse").click();
   await page.locator('[data-create="project"]').click();
 
   const imageInput = page.locator("[data-project-document-image-upload]");
@@ -272,6 +278,20 @@ test("project editor uses direct image and video file pickers", async ({ page })
   await expect(videoInput).toHaveAttribute("type", "file");
   await expect(videoInput).toHaveAttribute("accept", /video\/mp4/);
   await expect(page.locator("[data-project-document-image-url], [data-project-document-video-url]")).toHaveCount(0);
+  await expect(page.locator('input[name="clientName"]')).toBeHidden();
+  await expect(page.locator('input[name="prototypeHref"]')).toBeHidden();
+  await expect(page.locator('input[name="slug"]')).toBeHidden();
+  await expect(page.locator('input[name="sortOrder"]')).toBeHidden();
+  const editorAlignment = await page.evaluate(() => {
+    const sidebar = document.querySelector(".admin-sidebar").getBoundingClientRect();
+    const dialog = document.querySelector("#editor-dialog").getBoundingClientRect();
+    const heading = document.querySelector("#editor-title").getBoundingClientRect();
+    const layout = document.querySelector(".project-editor-layout").getBoundingClientRect();
+    return { sidebarRight: Math.round(sidebar.right), dialogLeft: Math.round(dialog.left), headingLeft: Math.round(heading.left), layoutLeft: Math.round(layout.left) };
+  });
+  expect(editorAlignment.dialogLeft).toBe(editorAlignment.sidebarRight);
+  expect(Math.abs(editorAlignment.headingLeft - editorAlignment.layoutLeft)).toBeLessThanOrEqual(2);
+  await page.screenshot({ path: testInfo.outputPath("project-editor-implementation.png"), fullPage: false });
 
   const accessFields = page.locator("[data-project-access-fields]");
   await expect(accessFields).toBeHidden();
@@ -287,7 +307,8 @@ test("project editor uses direct image and video file pickers", async ({ page })
 
   await page.locator("[data-project-private-toggle]").uncheck();
   await page.locator('input[name="title"]').fill("媒体序列化回归");
-  await page.locator('input[name="slug"]').fill("media-serialization-regression");
+  const generatedSlug = await page.locator('input[name="slug"]').inputValue();
+  expect(generatedSlug).toMatch(/^project-\d+$/);
   const png = Buffer.from("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=", "base64");
   await imageInput.setInputFiles({ name: "first.png", mimeType: "image/png", buffer: png });
   await expect(page.locator("#project-document-editor > [data-project-document-media]")).toHaveCount(1);
@@ -305,6 +326,24 @@ test("project editor uses direct image and video file pickers", async ({ page })
 
   await page.getByRole("button", { name: "创建项目" }).click();
   await expect(page.locator("#editor-dialog")).toBeHidden();
-  await page.locator('[data-edit="project"][data-slug="media-serialization-regression"]').click();
+  await page.locator('[data-edit="project"][data-slug="' + generatedSlug + '"]').click();
   await expect(page.locator("#project-document-editor > [data-project-document-media]")).toHaveCount(2);
+  await page.getByRole("button", { name: "返回列表" }).click();
+  const rows = page.locator("#project-list [data-project-sort-row]");
+  const initial = await rows.evaluateAll((items) => items.map((item) => item.dataset.slug));
+  expect(initial.length).toBeGreaterThan(1);
+  await rows.nth(0).locator("[data-project-sort-handle]").dragTo(rows.nth(1).locator("[data-project-sort-handle]"), { targetPosition: { x: 15, y: 30 } });
+  await expect.poll(async () => rows.evaluateAll((items) => items.map((item) => item.dataset.slug))).toEqual([
+    initial[1],
+    initial[0],
+    ...initial.slice(2),
+  ]);
+  await expect(page.locator("#toast")).toContainText("项目顺序已保存");
+  await rows.nth(1).locator("[data-project-sort-handle]").press("ArrowUp");
+  await expect.poll(async () => rows.evaluateAll((items) => items.map((item) => item.dataset.slug))).toEqual(initial);
+  const stored = await page.evaluate(() => JSON.parse(localStorage.getItem("lin-tong-xin-cms:projects") || "[]")
+    .filter((item) => item.itemType !== "demo")
+    .sort((left, right) => left.sortOrder - right.sortOrder)
+    .map((item) => item.slug));
+  expect(stored).toEqual(initial);
 });

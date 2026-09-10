@@ -1318,6 +1318,28 @@
     notifyContentChange("projects", slug);
   };
 
+  const reorderProjects = async (slugs, fallback) => {
+    const orderedSlugs = Array.from(new Set((slugs || []).map((slug) => String(slug || "").trim()).filter(Boolean)));
+    if (!orderedSlugs.length) throw new Error("没有可保存的项目顺序");
+    if (!isConfigured()) {
+      const projects = await listProjects(fallback, true);
+      const order = new Map(orderedSlugs.map((slug, index) => [slug, index]));
+      const portfolio = projects.filter((item) => item.itemType !== "demo");
+      if (portfolio.length !== orderedSlugs.length || portfolio.some((item) => !order.has(item.slug))) throw new Error("项目列表已变化，请刷新后重试排序");
+      const reordered = projects.map((item) => item.itemType === "demo" ? item : { ...item, sortOrder: order.get(item.slug) });
+      writeLocal("projects", reordered);
+      notifyContentChange("projects", "reorder");
+      return sortContent(reordered);
+    }
+    const { data, error } = await getClient().rpc("reorder_projects", { p_slugs: orderedSlugs });
+    if (error) throw error;
+    const confirmed = Array.isArray(data) ? data : [];
+    const confirmedSlugs = confirmed.map((item) => item.slug);
+    if (confirmedSlugs.length !== orderedSlugs.length || confirmedSlugs.some((slug, index) => slug !== orderedSlugs[index])) throw new Error("项目排序保存后校验不一致，请刷新后重试");
+    notifyContentChange("projects", "reorder");
+    return confirmed;
+  };
+
   const saveArticle = async (article, fallback) => {
     if (!isConfigured()) {
       const articles = await listArticles(fallback, true);
@@ -1521,6 +1543,7 @@
     verifyProjectAccess,
     saveProject,
     deleteProject,
+    reorderProjects,
     saveArticle,
     deleteArticle,
     saveNavigationItem,

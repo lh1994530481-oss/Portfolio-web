@@ -239,6 +239,7 @@
       sidebarGroups.forEach((group, index) => { group.open = sidebarGroupStates[index]; });
     }
     adminApp.classList.toggle("is-sidebar-collapsed", collapsed);
+    document.body.classList.toggle("admin-sidebar-collapsed", collapsed);
     const label = collapsed ? "展开侧边栏" : "收起侧边栏";
     sidebarCollapse.setAttribute("aria-label", label);
     sidebarCollapse.title = label;
@@ -416,16 +417,19 @@
     renderCalendarSchedule();
   };
 
-  const renderContentList = (items, type) => {
+  const renderContentList = (items, type, options = {}) => {
     if (!items.length) return '<div class="empty-state">还没有内容，点击右上角新建。</div>';
     return items.map((item) => {
       const isProject = type === "project" || type === "demo";
+      const isSortableProject = type === "project";
+      const canReorder = isSortableProject && options.reorderable === true;
       const subtitle = isProject ? item.slug : (item.date || item.slug);
       const image = isProject && item.cover
         ? '<img class="content-thumb" src="' + escapeHtml(safeImageUrl(item.cover)) + '" alt="" />'
         : '<span class="content-thumb content-placeholder"><i data-lucide="' + (isProject ? "image" : "file-text") + '"></i></span>';
       return [
-        '<article class="content-row">',
+        '<article class="content-row' + (isSortableProject ? ' project-content-row' : '') + (canReorder ? ' is-reorderable' : '') + '"' + (isSortableProject ? ' data-project-sort-row data-slug="' + escapeHtml(item.slug) + '"' : '') + '>',
+        isSortableProject ? '  <button class="project-sort-handle" type="button" draggable="' + canReorder + '" data-project-sort-handle aria-label="调整' + escapeHtml(item.title) + '的顺序" title="' + (canReorder ? '拖动调整顺序，也可用上下方向键' : '清除搜索和状态筛选后可调整顺序') + '"' + (canReorder ? '' : ' disabled') + '><i data-lucide="grip-vertical" aria-hidden="true"></i></button>' : '',
         '  <div class="content-main">' + image + '<div class="content-main-text"><strong>' + escapeHtml(item.title) + "</strong><small>" + escapeHtml(subtitle) + "</small></div></div>",
         '  <div class="content-category content-cell">' + escapeHtml(type === "demo" ? (item.passwordEnabled ? item.category + " · 加密" : item.category) : item.category) + "</div>",
         '  <div class="content-order content-cell">#' + Number(item.sortOrder || 0) + "</div>",
@@ -881,8 +885,11 @@
     state.articlePage = Math.min(Math.max(1, state.articlePage), articlePageCount);
     const articleStart = (state.articlePage - 1) * state.articlePageSize;
     const visibleArticles = matchingArticles.slice(articleStart, articleStart + state.articlePageSize);
+    const canReorderProjects = projects.length > 1
+      && listControls.project.search.value.trim() === ""
+      && listControls.project.status.value === "all";
     projectList.innerHTML = projects.length || !state.projects.length
-      ? renderContentList(projects, "project")
+      ? renderContentList(projects, "project", { reorderable: canReorderProjects })
       : '<div class="empty-state">没有符合条件的项目。</div>';
     demoList.innerHTML = demos.length || !demoItems.length
       ? renderContentList(demos, "demo")
@@ -891,7 +898,9 @@
     articleList.innerHTML = renderArticleRows(visibleArticles);
     renderArticlePagination(matchingArticles.length, articlePageCount);
     navigationList.innerHTML = renderNavigationList(navigation);
-    listControls.project.count.textContent = "显示 " + projects.length + " / " + portfolioItems.length;
+    listControls.project.count.textContent = canReorderProjects
+      ? "显示 " + projects.length + " / " + portfolioItems.length + " · 拖动左侧手柄排序"
+      : "显示 " + projects.length + " / " + portfolioItems.length + (portfolioItems.length > 1 ? " · 清除筛选后可排序" : "");
     listControls.demo.count.textContent = "显示 " + demos.length + " / " + demoItems.length;
     listControls.article.count.textContent = "共 " + matchingArticles.length + " 篇文章";
     listControls.navigation.count.textContent = "显示 " + navigation.length + " / " + state.navigation.length;
@@ -1123,6 +1132,7 @@
   const demoCategories = ["原型", "练习", "数字孪生"];
   const projectFields = (item, editing, type) => {
     const isDemo = type === "demo";
+    const generatedSlug = item.slug || ((isDemo ? "demo" : "project") + "-" + Date.now());
     const gallery = (item.gallery || []).filter(Boolean);
     const cover = item.cover || gallery[0] || "";
     const galleryImages = gallery.length ? gallery : (cover ? [cover] : []);
@@ -1169,10 +1179,12 @@
       '    <div class="project-sidebar-fields">',
       '      ' + categoryControl,
       '      <label class="project-compact-field"><span>技术标签</span><input name="tags" value="' + escapeHtml((item.tags || []).join("，")) + '" placeholder="多个标签用逗号分隔" /></label>',
-      isDemo ? '' : '      <label class="project-compact-field"><span>客户</span><input name="clientName" value="' + escapeHtml(item.clientName || "") + '" placeholder="请输入客户名称" /></label>',
-      '      <label class="project-compact-field"><span>' + (isDemo ? "原型体验地址" : "项目链接") + '</span><input name="prototypeHref" value="' + escapeHtml(item.prototypeHref || "") + '" placeholder="https:// 或站内路径" /></label>',
+      isDemo ? '' : '      <input name="clientName" type="hidden" value="' + escapeHtml(item.clientName || "") + '" />',
+      isDemo ? '      <label class="project-compact-field"><span>原型体验地址</span><input name="prototypeHref" value="' + escapeHtml(item.prototypeHref || "") + '" placeholder="https:// 或站内路径" /></label>' : '      <input name="prototypeHref" type="hidden" value="' + escapeHtml(item.prototypeHref || "") + '" />',
       '      <label class="project-compact-field"><span>' + (isDemo ? "演示日期" : "项目日期") + '</span><input name="projectDate" type="date" value="' + escapeHtml(item.projectDate || "") + '" /></label>',
-      '      <div class="project-field-split"><label class="project-compact-field"><span>Slug</span><input name="slug" required pattern="[a-z0-9\\-]+" ' + (editing ? "readonly" : "") + ' value="' + escapeHtml(item.slug || "") + '" placeholder="' + (isDemo ? "demo-slug" : "project-slug") + '" /></label><label class="project-compact-field"><span>' + (isDemo ? "演示排序" : "项目排序") + '</span><input name="sortOrder" type="number" min="0" value="' + Number(item.sortOrder || 0) + '" /></label></div>',
+      isDemo
+        ? '      <div class="project-field-split"><label class="project-compact-field"><span>Slug</span><input name="slug" required pattern="[a-z0-9\\-]+" ' + (editing ? "readonly" : "") + ' value="' + escapeHtml(generatedSlug) + '" placeholder="demo-slug" /></label><label class="project-compact-field"><span>演示排序</span><input name="sortOrder" type="number" min="0" value="' + Number(item.sortOrder || 0) + '" /></label></div>'
+        : '      <input name="slug" type="hidden" required value="' + escapeHtml(generatedSlug) + '" /><input name="sortOrder" type="hidden" value="' + Number(item.sortOrder || 0) + '" />',
       '      <label class="project-switch-field"><span><strong>是否私密</strong><small>关闭时不会校验密码与跳转地址</small></span><input name="passwordEnabled" type="checkbox" data-project-private-toggle' + (item.passwordEnabled ? " checked" : "") + ' /></label>',
       '      <div class="project-access-fields" data-project-access-fields' + (item.passwordEnabled ? "" : " hidden") + '>',
       '        <div class="project-sidebar-heading"><span>私密访问配置</span><small>仅开启后生效</small></div>',
@@ -1595,7 +1607,7 @@
   const openEditor = (type, item) => {
     const editing = Boolean(item);
     const value = item || ((type === "project" || type === "demo")
-      ? { itemType: type === "demo" ? "demo" : "portfolio", category: type === "demo" ? "原型" : "APP Design", sortOrder: state.projects.length, published: true, gallery: [], contentBlocks: [], tags: [] }
+      ? { itemType: type === "demo" ? "demo" : "portfolio", category: type === "demo" ? "原型" : "APP Design", slug: (type === "demo" ? "demo" : "project") + "-" + Date.now(), sortOrder: state.projects.filter((entry) => type === "demo" ? entry.itemType === "demo" : entry.itemType !== "demo").length, published: true, gallery: [], contentBlocks: [], tags: [] }
       : type === "article"
         ? { category: state.pendingArticleCategory || "AI", sortOrder: state.articles.length, published: true, blocks: [] }
       : type === "personalNote"
@@ -1874,6 +1886,71 @@
   });
   document.querySelectorAll("[data-create]").forEach((button) => button.addEventListener("click", () => openEditor(button.dataset.create)));
   projectList.addEventListener("click", (event) => handleListAction(event).catch((error) => { setSync("保存失败", "error"); showToast(error.message, true); }));
+  let draggedProjectRow = null;
+  let projectOrderSaving = false;
+  const clearProjectDragState = () => {
+    projectList.querySelectorAll(".is-dragging, .is-drag-over").forEach((row) => row.classList.remove("is-dragging", "is-drag-over"));
+    draggedProjectRow = null;
+  };
+  const persistProjectOrder = async (focusSlug) => {
+    if (projectOrderSaving) return;
+    const slugs = Array.from(projectList.querySelectorAll("[data-project-sort-row]"), (row) => row.dataset.slug).filter(Boolean);
+    if (slugs.length < 2) return;
+    projectOrderSaving = true;
+    try {
+      setSync("保存项目排序", "busy");
+      await api.reorderProjects(slugs, defaultProjects);
+      state.projects = state.projects.map((item) => item.itemType === "demo" ? item : { ...item, sortOrder: slugs.indexOf(item.slug) });
+      await loadData();
+      showToast("项目顺序已保存，个人网站会同步更新");
+      if (focusSlug) projectList.querySelector('[data-project-sort-row][data-slug="' + CSS.escape(focusSlug) + '"] [data-project-sort-handle]')?.focus();
+    } catch (error) {
+      setSync("排序保存失败", "error");
+      showToast(error.message, true);
+      await loadData();
+    } finally {
+      projectOrderSaving = false;
+    }
+  };
+  projectList.addEventListener("dragstart", (event) => {
+    const handle = event.target.closest("[data-project-sort-handle]");
+    if (!handle || handle.disabled || projectOrderSaving) return;
+    draggedProjectRow = handle.closest("[data-project-sort-row]");
+    if (!draggedProjectRow) return;
+    draggedProjectRow.classList.add("is-dragging");
+    event.dataTransfer.effectAllowed = "move";
+    event.dataTransfer.setData("text/plain", draggedProjectRow.dataset.slug || "");
+  });
+  projectList.addEventListener("dragover", (event) => {
+    if (!draggedProjectRow) return;
+    event.preventDefault();
+    event.dataTransfer.dropEffect = "move";
+    const target = event.target.closest("[data-project-sort-row]");
+    if (!target || target === draggedProjectRow) return;
+    projectList.querySelectorAll(".is-drag-over").forEach((row) => row.classList.remove("is-drag-over"));
+    target.classList.add("is-drag-over");
+    const rect = target.getBoundingClientRect();
+    projectList.insertBefore(draggedProjectRow, event.clientY < rect.top + rect.height / 2 ? target : target.nextSibling);
+  });
+  projectList.addEventListener("drop", (event) => {
+    if (!draggedProjectRow) return;
+    event.preventDefault();
+    const slug = draggedProjectRow.dataset.slug;
+    clearProjectDragState();
+    persistProjectOrder(slug);
+  });
+  projectList.addEventListener("dragend", clearProjectDragState);
+  projectList.addEventListener("keydown", (event) => {
+    const handle = event.target.closest("[data-project-sort-handle]");
+    if (!handle || handle.disabled || !["ArrowUp", "ArrowDown"].includes(event.key) || projectOrderSaving) return;
+    const row = handle.closest("[data-project-sort-row]");
+    const sibling = event.key === "ArrowUp" ? row.previousElementSibling : row.nextElementSibling;
+    if (!row || !sibling?.matches("[data-project-sort-row]")) return;
+    event.preventDefault();
+    if (event.key === "ArrowUp") projectList.insertBefore(row, sibling);
+    else projectList.insertBefore(sibling, row);
+    persistProjectOrder(row.dataset.slug);
+  });
   demoList.addEventListener("click", (event) => handleListAction(event).catch((error) => { setSync("保存失败", "error"); showToast(error.message, true); }));
   articleList.addEventListener("click", (event) => handleListAction(event).catch((error) => { setSync("保存失败", "error"); showToast(error.message, true); }));
   personalNoteList.addEventListener("click", (event) => handleListAction(event).catch((error) => { setSync("保存失败", "error"); showToast(error.message, true); }));

@@ -1047,8 +1047,8 @@ body.project-editor-open { overflow: hidden; }
 
 .editor-dialog.is-project-editor {
   position: fixed;
-  inset: 54px 0 0 64px;
-  width: calc(100vw - 64px);
+  inset: 54px 0 0 220px;
+  width: calc(100vw - 220px);
   max-width: none;
   height: calc(100vh - 54px);
   max-height: none;
@@ -1072,7 +1072,7 @@ body.project-editor-open { overflow: hidden; }
 .editor-dialog.is-project-editor .editor-header {
   min-height: 90px;
   justify-content: flex-start;
-  padding: 16px 24px;
+  padding: 16px max(24px, calc((100% - 1680px) / 2));
   border: 0;
   background: #eef6f8;
 }
@@ -1622,6 +1622,11 @@ body.project-editor-open { overflow: hidden; }
   background: #f8fbfc;
 }
 
+body.admin-sidebar-collapsed .editor-dialog.is-project-editor {
+  left: 72px;
+  width: calc(100vw - 72px);
+}
+
 .project-access-fields[hidden] { display: none; }
 .project-access-fields .project-sidebar-heading { margin-bottom: 0; }
 
@@ -1687,6 +1692,39 @@ body.project-editor-open { overflow: hidden; }
 .inquiry-contact-card small { color: #8f9a9e; font-size: 9px; }
 .inquiry-delete-button { justify-content: center; margin-top: 4px; border: 1px solid #efcfca; background: #fff6f4; color: #ba5b50; }
 .inquiry-delete-button:hover { border-color: #dfa59d; background: #ffefec; }
+
+.project-content-row {
+  grid-template-columns: 30px minmax(260px, 1.7fr) minmax(140px, .65fr) 72px 84px 94px;
+}
+
+.project-sort-handle {
+  display: grid;
+  width: 30px;
+  height: 36px;
+  place-items: center;
+  padding: 0;
+  border: 1px solid transparent;
+  border-radius: 4px;
+  background: transparent;
+  color: #9aa5a9;
+  cursor: grab;
+}
+
+.project-sort-handle:hover,
+.project-sort-handle:focus-visible { border-color: var(--line); background: #f4f8f9; color: #263236; }
+.project-sort-handle:active { cursor: grabbing; }
+.project-sort-handle:disabled { opacity: .38; cursor: not-allowed; }
+.project-sort-handle .lucide { width: 17px; height: 17px; }
+.project-content-row.is-dragging { opacity: .48; background: #e9f5f8; }
+.project-content-row.is-drag-over { box-shadow: inset 0 2px 0 #35aeca; }
+
+@media (max-width: 1100px) {
+  .project-content-row { grid-template-columns: 30px minmax(240px, 1fr) 140px 86px 110px; }
+}
+
+@media (max-width: 760px) {
+  .project-content-row { grid-template-columns: 30px minmax(0, 1fr) auto; gap: 12px; }
+}
 
 @media (max-width: 1180px) {
   .project-editor-layout { grid-template-columns: minmax(0, 1fr) 340px; }

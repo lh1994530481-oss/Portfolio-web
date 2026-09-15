@@ -347,3 +347,65 @@ test("project editor uses direct image and video file pickers", async ({ page },
     .map((item) => item.slug));
   expect(stored).toEqual(initial);
 });
+
+test("expanded sidebar items use a consistent content indent", async ({ page }, testInfo) => {
+  test.setTimeout(90_000);
+  const pageErrors = [];
+  const consoleErrors = [];
+  page.on("pageerror", (error) => pageErrors.push(error.message));
+  page.on("console", (message) => {
+    if (message.type() === "error") consoleErrors.push(message.text());
+  });
+  await page.setViewportSize({ width: 1280, height: 720 });
+  await page.route("**/admin/config.js*", (route) => route.fulfill({
+    status: 200,
+    contentType: "text/javascript",
+    body: "window.PORTFOLIO_CMS_CONFIG={adminUsername:'test',publicSiteUrl:'http://127.0.0.1:4173/'};",
+  }));
+
+  await page.goto("/admin/", { waitUntil: "domcontentloaded" });
+  await page.waitForFunction(() => Boolean(window.ContentAPI && window.PortfolioAdminAuth && window.PortfolioAdminContent));
+  await page.locator("#login-username").fill("test");
+  await page.locator("#login-password").fill("test");
+  await page.getByRole("button", { name: "登录后台" }).click();
+  await expect(page.locator("#admin-app")).toBeVisible();
+  await expect(page.locator(".admin-sidebar .nav-item svg").first()).toBeVisible();
+
+  const expandedMetrics = await page.locator(".admin-sidebar .nav-item").evaluateAll((items) => items.map((item) => {
+    const icon = item.querySelector(":scope > svg");
+    const label = item.querySelector(":scope > span");
+    const itemRect = item.getBoundingClientRect();
+    const iconRect = icon.getBoundingClientRect();
+    const labelRect = label.getBoundingClientRect();
+    return {
+      paddingLeft: Math.round(Number.parseFloat(getComputedStyle(item).paddingLeft)),
+      iconInset: Math.round(iconRect.left - itemRect.left),
+      labelGap: Math.round(labelRect.left - iconRect.right),
+    };
+  }));
+  expect(expandedMetrics.length).toBeGreaterThan(0);
+  expect(new Set(expandedMetrics.map((metric) => metric.paddingLeft))).toEqual(new Set([8]));
+  expect(new Set(expandedMetrics.map((metric) => metric.iconInset))).toEqual(new Set([10]));
+  expect(new Set(expandedMetrics.map((metric) => metric.labelGap))).toEqual(new Set([14]));
+  await page.screenshot({
+    path: testInfo.outputPath("sidebar-spacing-implementation.png"),
+    clip: { x: 0, y: 64, width: 220, height: 122 },
+  });
+
+  await page.locator("#sidebar-collapse").click();
+  await expect(page.locator("#admin-app")).toHaveClass(/is-sidebar-collapsed/);
+  const collapsedMetrics = await page.locator(".admin-sidebar .nav-item").evaluateAll((items) => items.map((item) => {
+    const icon = item.querySelector(":scope > svg");
+    const label = item.querySelector(":scope > span");
+    const itemRect = item.getBoundingClientRect();
+    const iconRect = icon.getBoundingClientRect();
+    return {
+      paddingLeft: Math.round(Number.parseFloat(getComputedStyle(item).paddingLeft)),
+      centered: Math.abs((iconRect.left + iconRect.width / 2) - (itemRect.left + itemRect.width / 2)) <= 1,
+      labelHidden: getComputedStyle(label).display === "none",
+    };
+  }));
+  expect(collapsedMetrics.every((metric) => metric.paddingLeft === 0 && metric.centered && metric.labelHidden)).toBe(true);
+  expect(pageErrors).toEqual([]);
+  expect(consoleErrors).toEqual([]);
+});

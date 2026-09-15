@@ -430,7 +430,7 @@ body { background: var(--bg); }
 .nav-item > span,
 .sidebar-footer a > span,
 .sidebar-footer button > span { position: static; width: auto; height: auto; overflow: visible; clip: auto; white-space: nowrap; }
-.nav-item { display: grid; grid-template-columns: 18px minmax(0, 1fr); column-gap: 13px; }
+.nav-item { display: grid; grid-template-columns: 18px minmax(0, 1fr); column-gap: 13px; padding-inline: 8px; }
 .nav-item > svg { width: 17px; height: 17px; justify-self: center; }
 .sidebar-footer a,
 .sidebar-footer button { display: grid; grid-template-columns: 18px minmax(0, 1fr); column-gap: 13px; }

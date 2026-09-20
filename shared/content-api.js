@@ -376,7 +376,7 @@
     openingMessages: Array.isArray(row.opening_messages) ? row.opening_messages : [],
     operationRules: row.operation_rules || defaultAiProfile.operationRules,
     workflow: Array.isArray(row.workflow) ? row.workflow : [],
-    promptTemplate: row.prompt_template || defaultAiProfile.promptTemplate,
+    promptTemplate: row.prompt_template ?? defaultAiProfile.promptTemplate,
   });
 
   const aiProfileToRow = (profile) => ({
@@ -621,6 +621,9 @@
     if (!isConfigured()) return writeLocal("ai-profile", { ...defaultAiProfile, ...profile });
     const { data, error } = await getClient().from("ai_profile").upsert(aiProfileToRow(profile)).select().single();
     if (error) throw error;
+    if (!data || data.prompt_template !== (profile.promptTemplate || "")) {
+      throw new Error("提示词保存结果未能确认，请保留当前内容后重试");
+    }
     return aiProfileFromRow(data);
   };
 

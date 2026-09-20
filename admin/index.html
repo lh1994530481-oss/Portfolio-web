@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="robots" content="noindex, nofollow" />
     <title>Lin Tong Xin | Portfolio CMS</title>
-    <link rel="stylesheet" href="./admin.css?v=20260915-1" />
+    <link rel="stylesheet" href="./admin.css?v=20260920-1" />
   </head>
   <body>
     <main class="auth-screen" id="auth-screen">
@@ -389,10 +389,15 @@
           </section>
 
           <section class="admin-section" data-panel="ai">
-            <div class="section-toolbar"><div><p class="eyebrow">AI Profile</p><h2>AI 分身配置</h2><p>配置前台设计助手的身份、推荐问题和知识回答。</p></div></div>
+            <div class="section-toolbar"><div><p class="eyebrow">AI Profile</p><h2>AI 分身配置</h2><p>编写并保存你的专属提示词，统一管理助手资料和知识库。</p></div></div>
             <form class="settings-form surface ai-form" id="ai-form">
               <label class="toggle-field field-wide"><span>启用前台 AI 助手</span><input name="enabled" type="checkbox" /></label>
-              <label class="field"><span>助手名称</span><input name="displayName" required /></label>
+              <label class="field field-wide"><span>助手名称</span><input name="displayName" required /></label>
+              <div class="ai-config-notice field-wide"><strong>当前模式：知识库匹配</strong><p>提示词会保存为后续接入大模型的配置。当前前台仍按知识库回答，修改提示词暂不改变回答方式。</p></div>
+              <label class="field field-wide ai-prompt-field"><span>系统提示词</span><textarea id="ai-prompt-template" name="promptTemplate" rows="14" spellcheck="false" aria-describedby="ai-prompt-help ai-prompt-count" placeholder="在这里配置助手的身份、语气、回答范围与规则。例如：&#10;你是我的个人网站助手。请用专业、友好的中文回答。&#10;优先依据我的个人介绍和作品资料回答，不编造项目经历。&#10;遇到未知问题，请引导访客通过咨询页面联系我。"></textarea><small id="ai-prompt-help">可直接粘贴多行提示词。请勿填写密钥、密码或不宜公开的资料，当前助手配置可由个人网站读取。</small><small id="ai-prompt-count">0 字符</small></label>
+              <details class="ai-advanced-settings field-wide" id="ai-advanced-settings">
+                <summary>助手资料与知识库<span>展开配置欢迎语、推荐问题和预设回答</span></summary>
+                <div class="ai-advanced-fields">
               <label class="field"><span>技能标签</span><input name="skills" placeholder="使用逗号分隔" /></label>
               <label class="field field-wide"><span>欢迎语</span><textarea name="greeting" rows="3" required></textarea></label>
               <label class="field field-wide"><span>个人介绍</span><textarea name="introduction" rows="4"></textarea></label>
@@ -403,9 +408,10 @@
               <label class="field field-wide"><span>知识库 JSON</span><textarea name="knowledgeBase" rows="12" spellcheck="false"></textarea><small>每项包含 keywords 数组和 answer 文本。</small></label>
               <label class="field field-wide"><span>操作规则</span><textarea name="operationRules" rows="6"></textarea></label>
               <label class="field field-wide"><span>运行工作流 JSON</span><textarea name="workflow" rows="7" spellcheck="false"></textarea></label>
-              <label class="field field-wide"><span>提示词模板</span><textarea name="promptTemplate" rows="8"></textarea></label>
               <label class="field field-wide"><span>无法回答时</span><textarea name="fallbackMessage" rows="3"></textarea></label>
-              <div class="form-actions field-wide"><button class="button button-primary" type="submit"><i data-lucide="save" aria-hidden="true"></i><span>保存 AI 配置</span></button></div>
+                </div>
+              </details>
+              <div class="form-actions field-wide ai-config-actions"><p id="ai-save-status" role="status" aria-live="polite">配置加载中</p><button id="ai-reload-button" class="button button-ghost" type="button" hidden>重新读取</button><button class="button button-primary" type="submit"><i data-lucide="save" aria-hidden="true"></i><span>保存 AI 配置</span></button></div>
             </form>
           </section>
 
@@ -613,13 +619,13 @@
     <script src="../shared/sanitize.js?v=20260831-2"></script>
     <script src="../shared/content-api-models.js?v=20260901-1"></script>
     <script src="../shared/content-api-analytics.js?v=20260901-1"></script>
-    <script src="../shared/content-api.js?v=20260910-1"></script>
+    <script src="../shared/content-api.js?v=20260920-1"></script>
     <script src="https://unpkg.com/lucide@0.468.0/dist/umd/lucide.min.js"></script>
     <script src="./modules/auth-session.js?v=20260831-2"></script>
     <script src="./modules/content.js?v=20260909-2"></script>
     <script src="./modules/leads.js?v=20260831-2"></script>
     <script src="./modules/finance.js?v=20260831-2"></script>
     <script src="./modules/analytics.js?v=20260901-1"></script>
-    <script src="./admin.js?v=20260910-1" defer></script>
+    <script src="./admin.js?v=20260920-1" defer></script>
   </body>
 </html>

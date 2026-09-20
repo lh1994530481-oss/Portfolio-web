@@ -77,6 +77,10 @@
   const analyticsEventList = document.getElementById("analytics-event-list");
   const visitorSessionList = document.getElementById("visitor-session-list");
   const aiForm = document.getElementById("ai-form");
+  const aiSaveStatus = document.getElementById("ai-save-status");
+  const aiReloadButton = document.getElementById("ai-reload-button");
+  const aiAdvancedSettings = document.getElementById("ai-advanced-settings");
+  let aiSaving = false;
   const inquiryList = document.getElementById("inquiry-list");
   const inquirySearch = document.getElementById("inquiry-search");
   const inquiryStatusFilter = document.getElementById("inquiry-status-filter");
@@ -140,6 +144,8 @@
     settings: { ...api.defaultSettings },
     analyticsDashboard: window.PortfolioAnalyticsApi.emptyDashboard(),
     aiProfile: { ...api.defaultAiProfile },
+    aiProfileLoaded: false,
+    aiProfileLoadError: "",
     inquiries: [],
     finance: [],
     workbenchNotes: [],
@@ -253,6 +259,11 @@
 
   const loadData = async () => {
     setSync("读取内容", "busy");
+    state.aiProfileLoaded = false;
+    state.aiProfileLoadError = "";
+    setAiFormDisabled(true);
+    aiReloadButton.hidden = true;
+    setAiSaveStatus("正在读取 AI 配置", "loading");
     const resources = [
       ["projects", "项目", () => api.listProjects(defaultProjects, true), defaultProjects],
       ["articles", "文章", () => api.listArticles(defaultArticles, true), defaultArticles],
@@ -281,8 +292,10 @@
       const [key, label, , fallback] = resources[index];
       if (result.status === "fulfilled") {
         state[key] = result.value;
+        if (key === "aiProfile") state.aiProfileLoaded = true;
         return;
       }
+      if (key === "aiProfile") state.aiProfileLoadError = result.reason?.message || "网络请求失败";
       if (!state[key] || (Array.isArray(state[key]) && !state[key].length)) state[key] = fallback;
       failures.push({ label, error: result.reason });
       console.error(label + "加载失败", result.reason);
@@ -990,7 +1003,29 @@
     return;
   };
 
+  const setAiSaveStatus = (message, status) => {
+    aiSaveStatus.textContent = message;
+    aiSaveStatus.dataset.state = status;
+  };
+
+  const updateAiPromptCount = () => {
+    const prompt = aiForm.elements.namedItem("promptTemplate").value;
+    document.getElementById("ai-prompt-count").textContent = Array.from(prompt).length + " 字符";
+  };
+
+  const setAiFormDisabled = (disabled) => {
+    Array.from(aiForm.elements).forEach((control) => {
+      if (control !== aiReloadButton) control.disabled = disabled;
+    });
+  };
+
   const renderAiProfile = () => {
+    setAiFormDisabled(!state.aiProfileLoaded || aiSaving);
+    aiReloadButton.hidden = state.aiProfileLoaded;
+    if (!state.aiProfileLoaded) {
+      setAiSaveStatus("AI 配置读取失败：" + state.aiProfileLoadError + "。请重新读取后再编辑，避免覆盖已有配置。", "error");
+      return;
+    }
     const profile = state.aiProfile || api.defaultAiProfile;
     aiForm.elements.namedItem("enabled").checked = profile.enabled === true;
     aiForm.elements.namedItem("displayName").value = profile.displayName || "";
@@ -1006,6 +1041,8 @@
     aiForm.elements.namedItem("workflow").value = JSON.stringify(profile.workflow || [], null, 2);
     aiForm.elements.namedItem("promptTemplate").value = profile.promptTemplate || "";
     aiForm.elements.namedItem("fallbackMessage").value = profile.fallbackMessage || "";
+    updateAiPromptCount();
+    setAiSaveStatus(api.getMode() === "local" ? "当前为本地预览，配置仅保存在此浏览器" : "已读取保存的配置", "loaded");
   };
 
   const inquiryStatusNames = leadsDomain.inquiryStatusNames;
@@ -2202,8 +2239,38 @@
     loadData().then(() => showToast("统计数据已刷新")).catch((error) => showToast(error.message, true));
   });
 
+  aiForm.addEventListener("input", () => {
+    updateAiPromptCount();
+    setAiSaveStatus("有未保存的修改", "dirty");
+  });
+  aiForm.addEventListener("change", () => setAiSaveStatus("有未保存的修改", "dirty"));
+  aiForm.addEventListener("invalid", (event) => {
+    const details = event.target.closest("details");
+    if (details) details.open = true;
+  }, true);
+
+  aiReloadButton.addEventListener("click", async () => {
+    aiReloadButton.disabled = true;
+    setAiSaveStatus("正在重新读取 AI 配置", "loading");
+    try {
+      state.aiProfile = await api.getAiProfile(true);
+      state.aiProfileLoaded = true;
+      state.aiProfileLoadError = "";
+    } catch (error) {
+      state.aiProfileLoaded = false;
+      state.aiProfileLoadError = error.message || "网络请求失败";
+    } finally {
+      aiReloadButton.disabled = false;
+      renderAiProfile();
+    }
+  });
+
   aiForm.addEventListener("submit", async (event) => {
     event.preventDefault();
+    if (aiSaving || !state.aiProfileLoaded) return;
+    const controls = Array.from(aiForm.elements);
+    const disabledStates = controls.map((control) => control.disabled);
+    const submitLabel = aiForm.querySelector('button[type="submit"] span');
     try {
       const values = serializeForm(aiForm);
       values.enabled = aiForm.elements.namedItem("enabled").checked;
@@ -2215,16 +2282,34 @@
         values.openingMessages = JSON.parse(values.openingMessages || "[]");
         values.workflow = JSON.parse(values.workflow || "[]");
       } catch (error) {
+        aiAdvancedSettings.open = true;
         throw new Error("AI 配置中的 JSON 格式不正确");
       }
-      if (![values.knowledgeBase, values.dialoguePresets, values.openingMessages, values.workflow].every(Array.isArray)) throw new Error("AI 的 JSON 配置必须是数组");
+      if (![values.knowledgeBase, values.dialoguePresets, values.openingMessages, values.workflow].every(Array.isArray)) {
+        aiAdvancedSettings.open = true;
+        throw new Error("AI 的 JSON 配置必须是数组");
+      }
+      aiSaving = true;
+      controls.forEach((control) => { control.disabled = true; });
+      aiForm.setAttribute("aria-busy", "true");
+      submitLabel.textContent = "保存中…";
+      setAiSaveStatus("正在保存提示词与助手配置", "saving");
       setSync("保存中", "busy");
-      await api.saveAiProfile(values);
-      await loadData();
-      showToast("AI 分身配置已保存");
+      state.aiProfile = await api.saveAiProfile(values);
+      renderAiProfile();
+      const message = api.getMode() === "local" ? "已保存到本地浏览器，尚未同步到网站" : "提示词与助手配置已保存";
+      setAiSaveStatus(message, "saved");
+      setSync(api.getMode() === "local" ? "本地已保存" : "已同步", "");
+      showToast(message);
     } catch (error) {
       setSync("保存失败", "error");
+      setAiSaveStatus("保存失败：" + error.message + "。当前输入已保留。", "error");
       showToast(error.message, true);
+    } finally {
+      aiSaving = false;
+      controls.forEach((control, index) => { control.disabled = disabledStates[index]; });
+      aiForm.removeAttribute("aria-busy");
+      submitLabel.textContent = "保存 AI 配置";
     }
   });
 
